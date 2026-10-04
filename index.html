@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>NEON//REVOLUTION - Piratage Idle</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body id="gameBody">
+    <canvas id="rain"></canvas>
+    <div id="scan"></div>
+    <div id="breakOverlay"></div>
+    <div id="crackLayer"></div>
+    <div id="toasts"></div>
+
+    <div id="app">
+        <header id="topbar" class="panel">
+            <div class="brand">
+                <h1 class="glitch" data-text="NEON//REVOLUTION">NEON//REVOLUTION</h1>
+                <div class="sub">root@takiwaltek:~# piratage_idle --v2.077<span class="cursor">_</span></div>
+            </div>
+            <div class="res">
+                <div class="r big"><label>OCTETS</label><b id="score">0</b></div>
+                <div class="r"><label>OCTETS / s</label><b id="sps">0</b></div>
+                <div class="r"><label>P.MULT</label><b id="pm">x1</b></div>
+                <div class="r"><label>P.EXP</label><b id="pe">^1.00</b></div>
+                <div class="r"><label>CRYPTO ₿</label><b id="shards">0</b></div>
+            </div>
+        </header>
+
+        <div id="challengeBanner"></div>
+        <div id="smashAlert"></div>
+
+        <main id="layout">
+            <section id="stage">
+                <div id="multRow" class="panel"></div>
+
+                <div class="canvas-wrap" id="canvasWrap">
+                    <canvas id="gameCanvas" width="520" height="520"></canvas>
+                    <div id="cpsHud">0.0 CPS</div>
+                </div>
+
+                <div id="statsMini" class="panel">
+                    <div class="odline">
+                        <span id="odLabel">OVERDRIVE</span>
+                        <div class="bar"><i id="odFill"></i></div>
+                        <span id="odText">0%</span>
+                    </div>
+                    <div class="mini">
+                        <span>RECORD CPS <b id="peakCps">0.0</b></span>
+                        <span>CLIC <b id="clickVal">1</b></span>
+                        <span id="chaosTag">CHAOS x2</span>
+                    </div>
+                </div>
+
+                <div id="terminal" class="panel">
+                    <div id="termLog"></div>
+                </div>
+            </section>
+
+            <section id="panel" class="panel">
+                <nav id="tabs">
+                    <button class="tab active" data-tab="tabCircles">PROCESSUS</button>
+                    <button class="tab" data-tab="tabPrestige">REBOOT</button>
+                    <button class="tab" data-tab="tabShop">MARCHÉ NOIR</button>
+                    <button class="tab" data-tab="tabContracts">CONTRATS</button>
+                    <button class="tab" data-tab="tabAch">SUCCÈS</button>
+                    <button class="tab" data-tab="tabOptions">SYSTÈME</button>
+                </nav>
+                <div id="tabBody">
+                    <div id="tabCircles" class="tabc active"></div>
+                    <div id="tabPrestige" class="tabc"></div>
+                    <div id="tabShop" class="tabc"></div>
+                    <div id="tabContracts" class="tabc"></div>
+                    <div id="tabAch" class="tabc"></div>
+                    <div id="tabOptions" class="tabc"></div>
+                </div>
+            </section>
+        </main>
+
+        <footer id="footer">
+            Clique le noyau (ou ESPACE) pour pirater plus vite · M = tout acheter · &gt;= 3 CPS : surchauffe · &gt;= 8 CPS : le système plante
+        </footer>
+    </div>
+
+    <script src="js/data.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/fx.js"></script>
+    <script src="js/ui.js"></script>
+</body>
+</html>
