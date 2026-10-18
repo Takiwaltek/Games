@@ -58,23 +58,36 @@ const TUTORIAL_STEPS = [
 
 function renderTutorial() {
     const step = TUTORIAL_STEPS[tutorialIndex];
-    $("tutorialProgress").textContent = `ÉTAPE ${tutorialIndex + 1} / ${TUTORIAL_STEPS.length}`;
-    $("tutorialTitle").textContent = step.title;
-    $("tutorialContent").innerHTML = step.content;
-    $("tutorialBack").disabled = tutorialIndex === 0;
-    setText($("tutorialNext"), tutorialIndex === TUTORIAL_STEPS.length - 1 ? "COMMENCER À JOUER" : "SUIVANT");
+    const isPanel = !$("tutorialPanel").hasAttribute("hidden");
+    const prefix = isPanel ? "Panel" : "";
+    
+    $(f("tutorialProgress{}", prefix)).textContent = `ÉTAPE ${tutorialIndex + 1} / ${TUTORIAL_STEPS.length}`;
+    $(f("tutorialTitle{}", prefix)).textContent = step.title;
+    $(f("tutorialContent{}", prefix)).innerHTML = step.content;
+    $(f("tutorialBack{}", prefix)).disabled = tutorialIndex === 0;
+    const nextBtn = $(f("tutorialNext{}", prefix));
+    if (nextBtn) setText(nextBtn, tutorialIndex === TUTORIAL_STEPS.length - 1 ? "COMMENCER À JOUER" : "SUIVANT");
+}
+
+function f(template, suffix = "") {
+    return template.replace("{}", suffix);
 }
 
 function openTutorial() {
     tutorialIndex = 0;
+    const panel = $("tutorialPanel");
+    panel.removeAttribute("hidden");
     renderTutorial();
-    $("tutorial").showModal();
 }
 
 function closeTutorial() {
+    const panel = $("tutorialPanel");
+    panel.setAttribute("hidden", "");
     $("tutorial").close();
     saveGame();
 }
+
+$("closeTutorialPanel").addEventListener("click", closeTutorial);
 
 $("tutorial").addEventListener("cancel", e => {
     e.preventDefault();
@@ -675,12 +688,12 @@ const ACTIONS = {
 };
 
 document.addEventListener("click", e => {
-    if (e.target.closest("#tutorialBack")) {
+    if (e.target.closest("#tutorialBack") || e.target.closest("#tutorialPanelBack")) {
         tutorialIndex = Math.max(0, tutorialIndex - 1);
         renderTutorial();
         return;
     }
-    if (e.target.closest("#tutorialNext")) {
+    if (e.target.closest("#tutorialNext") || e.target.closest("#tutorialPanelNext")) {
         if (tutorialIndex === TUTORIAL_STEPS.length - 1) {
             closeTutorial();
         } else {

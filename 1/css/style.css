@@ -604,3 +604,104 @@ body {
         transform: none;
     }
 }
+
+/* Tutorial Panel à côté */
+.tutorial-panel {
+    position: fixed;
+    right: 12px;
+    top: 12px;
+    width: min(360px, calc(100vw - 580px));
+    max-height: calc(100vh - 24px);
+    overflow-y: auto;
+    z-index: 900;
+    display: flex;
+    flex-direction: column;
+    padding: 12px;
+    gap: 10px;
+}
+.tutorial-panel:not([hidden]) {
+    display: flex;
+}
+.tutorial-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(0, 255, 156, 0.3);
+}
+.tutorial-header .tutorial-kicker {
+    flex: 1;
+}
+.close-btn {
+    background: transparent;
+    border: 1px solid var(--g);
+    color: var(--g);
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.close-btn:hover {
+    background: rgba(0, 255, 156, 0.1);
+    box-shadow: 0 0 8px rgba(0, 255, 156, 0.3);
+}
+#tutorialPanelProgress {
+    font-size: 0.68rem;
+    color: var(--dim);
+    letter-spacing: 1px;
+}
+#tutorialPanelTitle {
+    margin: 8px 0;
+    color: var(--c);
+    font-size: 1.1rem;
+}
+#tutorialPanelContent {
+    min-height: auto;
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 0.85rem;
+    flex: 1;
+}
+#tutorialPanelContent p {
+    margin: 0 0 10px;
+}
+#tutorialPanelContent b {
+    color: var(--y);
+}
+#tutorialPanelContent kbd {
+    padding: 1px 3px;
+    border: 1px solid var(--g);
+    color: var(--g);
+    font-size: 0.75rem;
+}
+.tutorial-panel .tutorial-actions {
+    margin-top: 10px;
+    gap: 6px;
+}
+.tutorial-panel .tutorial-actions button {
+    flex: 1;
+    min-height: 32px;
+}
+#tutorialPanelBack:disabled {
+    visibility: hidden;
+}
+
+@media (max-width: 1200px) {
+    .tutorial-panel {
+        width: min(320px, calc(100vw - 24px));
+    }
+}
+@media (max-width: 840px) {
+    .tutorial-panel {
+        position: static;
+        width: 100%;
+        max-height: none;
+        margin-top: 10px;
+    }
+}
