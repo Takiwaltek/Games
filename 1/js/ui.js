@@ -17,7 +17,7 @@ const TUTORIAL_STEPS = [
     {
         title: "🎮 Bienvenue dans NEON//REVOLUTION",
         content: `<p><b>NEON//REVOLUTION</b> est un jeu de piratage inactif (idle game). Tu gères des processus pour générer des <b>octets</b> (ta monnaie).</p>
-            <p><b>Clique le noyau</b> au centre du canvas pour gagner des octets. Tu peux aussi appuyer sur <kbd>Espace</kbd> ou cliquer le bouton ⚡ en bas du canvas.</p>
+            <p><b>Clique le noyau</b> au centre du canvas pour gagner des octets. Ou clique le bouton ⚡ en bas du canvas.</p>
             <p>Tu commences avec du <b>BOTNET</b> qui produit automatiquement. Regarde le compteur « <b>OCTETS / s</b> » en haut à gauche!</p>`
     },
     {
@@ -30,7 +30,7 @@ const TUTORIAL_STEPS = [
     {
         title: "💰 Acheter des niveaux",
         content: `<p>Dans l'onglet <b>PROCESSUS</b>, clique <b>ACHETER</b> pour augmenter le niveau d'un processus (coûte des octets).</p>
-            <p><b>MAX</b> = achète autant de niveaux que tu peux avec tes octets. <kbd>M</kbd> ou le bouton « TOUT ACHETER » = achète tous les niveaux pour tous les processus.</p>
+            <p><b>MAX</b> = achète autant de niveaux que tu peux avec tes octets. Le bouton « TOUT ACHETER » = achète tous les niveaux pour tous les processus.</p>
             <p>Les coûts augmentent : chaque niveau coûte plus cher. Plus tu vas loin, plus tu as besoin d'octets!</p>`
     },
     {
