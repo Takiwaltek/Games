@@ -65,6 +65,10 @@
             text-align: center;
             margin-bottom: 30px;
             animation: slideDown 0.8s ease-out;
+            padding: 40px 20px;
+            border-bottom: 2px solid rgba(0, 255, 156, 0.5);
+            background: linear-gradient(135deg, rgba(0, 255, 156, 0.08), rgba(0, 240, 255, 0.05));
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
         }
 
         .logo {
@@ -253,6 +257,33 @@
             transform: translateY(-3px);
         }
 
+        .buttons-container {
+            text-align: center;
+            margin-top: 80px;
+            padding: 40px 20px;
+            border-top: 2px solid rgba(0, 255, 156, 0.5);
+            background: linear-gradient(180deg, transparent, rgba(0, 255, 156, 0.05));
+        }
+
+        .buttons-container > div {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            animation: buttonsIn 0.8s ease-out 0.3s both;
+        }
+
+        @keyframes buttonsIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         .video-embed {
             position: relative;
             width: 100%;
@@ -383,8 +414,8 @@
         </div>
 
         <!-- 4 BOUTONS SIMPLES -->
-        <div style="text-align: center; margin-top: 60px;">
-            <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center;">
+        <div class="buttons-container">
+            <div>
                 <a href="https://www.youtube.com/@takiwaltek" target="_blank" class="simple-btn">📹 VIDÉOS</a>
                 <a href="https://soundcloud.com/takiwalte" target="_blank" class="simple-btn">🎵 SON</a>
                 <a href="https://www.caracterespeciaux.com/" target="_blank" class="simple-btn">🔤 CARACTÈRES</a>
