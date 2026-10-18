@@ -199,6 +199,152 @@
             transform: translateX(4px);
         }
 
+        section {
+            margin-top: 80px;
+            padding-top: 40px;
+            border-top: 2px solid rgba(0, 255, 156, 0.3);
+            animation: slideUp 0.8s ease-out;
+            animation-fill-mode: both;
+        }
+
+        section:nth-of-type(1) { animation-delay: 0.1s; }
+        section:nth-of-type(2) { animation-delay: 0.2s; }
+        section:nth-of-type(3) { animation-delay: 0.3s; }
+        section:nth-of-type(4) { animation-delay: 0.4s; }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-title {
+            font-size: 2rem;
+            color: var(--g);
+            letter-spacing: 2px;
+            margin: 0 0 30px;
+            text-shadow: 0 0 15px rgba(0, 255, 156, 0.5);
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 20px;
+        }
+
+        .content-card {
+            background:
+                linear-gradient(135deg, rgba(0, 240, 255, 0.055), transparent 45%),
+                var(--panel);
+            border: 1px solid rgba(0, 240, 255, 0.4);
+            border-radius: 0;
+            clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), inset 0 1px rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .content-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 240, 255, 0.2);
+            border-color: rgba(0, 240, 255, 0.7);
+        }
+
+        .content-card h3 {
+            color: var(--c);
+            margin: 0 0 10px;
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+        }
+
+        .content-card p {
+            color: var(--dim);
+            margin: 0 0 15px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .content-card a,
+        .content-card button {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(255, 43, 214, 0.1));
+            border: 1px solid var(--c);
+            color: var(--c);
+            padding: 8px 16px;
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+        }
+
+        .content-card a:hover,
+        .content-card button:hover {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.3), rgba(255, 43, 214, 0.2));
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.5);
+            transform: translateX(2px);
+        }
+
+        .video-embed {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            margin-bottom: 15px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 255, 156, 0.3);
+            clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
+        }
+
+        .video-embed iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .links-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .link-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            background: rgba(0, 240, 255, 0.05);
+            border-left: 3px solid var(--c);
+            transition: all 0.2s;
+        }
+
+        .link-item:hover {
+            background: rgba(0, 240, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        .link-item a {
+            color: var(--c);
+            text-decoration: none;
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        .link-item a:hover {
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+        }
+
         footer {
             text-align: center;
             margin-top: 80px;
@@ -222,12 +368,17 @@
             .logo {
                 font-size: 2.5rem;
             }
-            .games-grid {
+            .games-grid,
+            .content-grid {
                 grid-template-columns: 1fr;
                 gap: 20px;
             }
-            .game-card {
+            .game-card,
+            .content-card {
                 padding: 20px;
+            }
+            .section-title {
+                font-size: 1.5rem;
             }
         }
     </style>
@@ -271,6 +422,79 @@
                 <button class="play-btn" disabled style="opacity: 0.5; cursor: not-allowed;">BIENTÔT</button>
             </div>
         </div>
+
+        <!-- SECTION VIDÉOS -->
+        <section id="videos">
+            <h2 class="section-title">📹 VIDÉOS</h2>
+            <div class="content-grid">
+                <div class="content-card">
+                    <h3>Tutoriel NEON//REVOLUTION</h3>
+                    <p>Guide complet pour débuter dans le jeu. Apprenez les mécaniques, les processus et les stratégies pour maximiser vos gains.</p>
+                    <a href="https://youtube.com" target="_blank">Regarder sur YouTube ▶</a>
+                </div>
+                <div class="content-card">
+                    <h3>Speedrun - Les premiers Reboots</h3>
+                    <p>Découvrez comment atteindre rapidement les Reboots et débloquer le prestige dans NEON//REVOLUTION.</p>
+                    <a href="https://youtube.com" target="_blank">Regarder sur YouTube ▶</a>
+                </div>
+                <div class="content-card">
+                    <h3>Développement du Jeu</h3>
+                    <p>Suivez l'évolution de NEON//REVOLUTION. Découvrez les coulisses, les mises à jour et les nouvelles fonctionnalités.</p>
+                    <a href="https://youtube.com" target="_blank">Regarder sur YouTube ▶</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION LIENS UTILES -->
+        <section id="links">
+            <h2 class="section-title">🔗 LIENS UTILES</h2>
+            <div class="content-grid">
+                <div class="content-card">
+                    <h3>GitHub Repository</h3>
+                    <p>Accédez au code source du projet et contribuez au développement de nos jeux.</p>
+                    <a href="https://github.com/Takiwaltek/Games" target="_blank">→ Visiter GitHub</a>
+                </div>
+                <div class="content-card">
+                    <h3>Discord Community</h3>
+                    <p>Rejoignez notre communauté, partagez vos scores et discutez avec d'autres joueurs.</p>
+                    <a href="https://discord.gg" target="_blank">→ Rejoindre Discord</a>
+                </div>
+                <div class="content-card">
+                    <h3>Twitter / X</h3>
+                    <p>Suivez les dernières actualités, annonces et mises à jour en temps réel.</p>
+                    <a href="https://twitter.com" target="_blank">→ Suivre sur Twitter</a>
+                </div>
+                <div class="content-card">
+                    <h3>Email Support</h3>
+                    <p>Une question? Un bug? Contactez-nous directement pour une assistance rapide.</p>
+                    <a href="mailto:support@takiwaltek.fr">✉ support@takiwaltek.fr</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION INFO -->
+        <section id="info">
+            <h2 class="section-title">ℹ️ À PROPOS</h2>
+            <div class="content-grid">
+                <div class="content-card">
+                    <h3>Qui sommes-nous?</h3>
+                    <p>Takiwaltek Games est un collectif de développeurs passionnés par la création de jeux innovants et accesibles. Nous créons des expériences uniques blend de rétro et moderne.</p>
+                </div>
+                <div class="content-card">
+                    <h3>Notre Mission</h3>
+                    <p>Créer des jeux de qualité accessibles au plus grand nombre, avec une esthétique NEON distinctive et une gameplay profonde et addictive.</p>
+                </div>
+                <div class="content-card">
+                    <h3>Technologie</h3>
+                    <p>Nos jeux sont développés en HTML5, CSS3 et JavaScript vanilla, garantissant une compatibilité maximale et des performances optimales.</p>
+                </div>
+            </div>
+            <div style="margin-top: 20px; padding: 20px; background: rgba(0, 255, 156, 0.05); border-left: 3px solid var(--g);">
+                <p style="color: var(--text); margin: 0;">
+                    <strong>Version 1.0</strong> · Prochaine mise à jour Q1 2026 · Suivi en temps réel sur GitHub
+                </p>
+            </div>
+        </section>
 
         <footer>
             <p>© 2025 Takiwaltek Games · Tous droits réservés</p>
