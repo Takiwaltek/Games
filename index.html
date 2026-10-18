@@ -522,49 +522,47 @@
     </div>
 
     <script>
-        // Récupérer les jeux Steam récemment sortis
-        async function loadSteamGames() {
+        // Jeux Steam populaires et récents
+        const popularGames = [
+            { name: 'Black Myth: Wukong', id: 2358720 },
+            { name: 'Elden Ring', id: 570940 },
+            { name: 'Baldur\'s Gate 3', id: 1238140 },
+            { name: 'Palworld', id: 1623730 },
+            { name: 'Like a Dragon: Infinite Wealth', id: 2190560 },
+            { name: 'Final Fantasy VII Rebirth', id: 1462040 },
+            { name: 'Dragon Age: The Veilguard', id: 1222690 },
+            { name: 'S.T.A.L.K.E.R. 2', id: 2645590 },
+            { name: 'Indiana Jones', id: 2757590 },
+            { name: 'Call of Duty: Black Ops 6', id: 2879850 },
+            { name: 'Microsoft Flight Simulator', id: 1250410 },
+            { name: 'Space Marine 2', id: 1029440 }
+        ];
+
+        function loadSteamGames() {
             try {
                 const grid = document.getElementById('steam-grid');
-                grid.innerHTML = '<div class="loading">Chargement des jeux Steam...</div>';
-                
-                // Récupérer la liste de tous les jeux Steam
-                const response = await fetch('https://api.steampowered.com/ISteamApps/GetAppList/v2/');
-                const data = await response.json();
-                
-                if (!data.applist || !data.applist.apps) {
-                    throw new Error('Format de réponse invalide');
-                }
-                
-                // Récupérer les 12 derniers jeux (les plus récents)
-                const apps = data.applist.apps.slice(-12).reverse();
-                
                 grid.innerHTML = '';
                 
-                for (const app of apps) {
-                    if (!app.name || app.name.trim() === '') continue;
-                    
+                // Afficher les jeux populaires
+                popularGames.forEach(game => {
                     const card = document.createElement('div');
                     card.className = 'steam-card';
                     card.innerHTML = `
-                        <h3>${app.name.substring(0, 40)}${app.name.length > 40 ? '...' : ''}</h3>
-                        <p>ID: ${app.appid}</p>
-                        <a href="https://store.steampowered.com/app/${app.appid}" target="_blank">Voir ▶</a>
+                        <h3>${game.name}</h3>
+                        <p>ID: ${game.id}</p>
+                        <a href="https://store.steampowered.com/app/${game.id}" target="_blank">Voir ▶</a>
                     `;
                     grid.appendChild(card);
-                }
+                });
             } catch (error) {
-                console.error('Erreur Steam:', error);
+                console.error('Erreur:', error);
                 const grid = document.getElementById('steam-grid');
-                grid.innerHTML = '<div class="loading">Impossible de charger les jeux Steam. Vérifiez votre connexion.</div>';
+                grid.innerHTML = '<div class="loading">Erreur lors du chargement.</div>';
             }
         }
         
         // Charger les jeux au chargement
         document.addEventListener('DOMContentLoaded', loadSteamGames);
-        
-        // Rafraîchir toutes les 2 heures
-        setInterval(loadSteamGames, 2 * 60 * 60 * 1000);
     </script>
 </body>
 </html>
