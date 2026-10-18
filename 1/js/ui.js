@@ -628,11 +628,10 @@ canvasWrap.addEventListener("pointerdown", e => {
 document.addEventListener("keydown", e => {
     const tag = (e.target.tagName || "").toLowerCase();
     if (tag === "textarea" || tag === "input") return;
-    if ($("tutorial").open) return;
-    if (e.code === "Space") {
+    if (e.code === "Space" && !($("tutorial").open)) {
         e.preventDefault();
         if (!e.repeat) doClick(canvas.width / 2 + randomBetween(-20, 20), canvas.height / 2 + randomBetween(-20, 20));
-    } else if (e.code === "KeyM" && !e.repeat) {
+    } else if (e.code === "KeyM" && !e.repeat && !e.shiftKey) {
         if (buyAllMax()) beep(660, 0.05);
     }
 });
