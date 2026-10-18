@@ -651,7 +651,7 @@ body {
     max-height: calc(100vh - 24px);
     overflow-y: auto;
     z-index: 900;
-    display: flex;
+    display: none;
     flex-direction: column;
     padding: 12px;
     gap: 10px;
