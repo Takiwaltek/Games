@@ -574,18 +574,18 @@
     <script>
         // Jeux Steam populaires et récents
         const popularGames = [
-            { name: 'Black Myth: Wukong', id: 2358720 },
-            { name: 'Elden Ring', id: 570940 },
-            { name: 'Baldur\'s Gate 3', id: 1238140 },
-            { name: 'Palworld', id: 1623730 },
-            { name: 'Like a Dragon: Infinite Wealth', id: 2190560 },
-            { name: 'Final Fantasy VII Rebirth', id: 1462040 },
-            { name: 'Dragon Age: The Veilguard', id: 1222690 },
-            { name: 'S.T.A.L.K.E.R. 2', id: 2645590 },
-            { name: 'Indiana Jones', id: 2757590 },
-            { name: 'Call of Duty: Black Ops 6', id: 2879850 },
-            { name: 'Microsoft Flight Simulator', id: 1250410 },
-            { name: 'Space Marine 2', id: 1029440 }
+            { name: 'Black Myth: Wukong', id: 2358720, released: '20 Août 2024' },
+            { name: 'Elden Ring', id: 570940, released: '25 Février 2022' },
+            { name: 'Baldur\'s Gate 3', id: 1238140, released: '3 Août 2023' },
+            { name: 'Palworld', id: 1623730, released: '19 Janvier 2024' },
+            { name: 'Like a Dragon: Infinite Wealth', id: 2190560, released: '16 Janvier 2024' },
+            { name: 'Final Fantasy VII Rebirth', id: 1462040, released: '29 Février 2024' },
+            { name: 'Dragon Age: The Veilguard', id: 1222690, released: '31 Octobre 2024' },
+            { name: 'S.T.A.L.K.E.R. 2', id: 2645590, released: '20 Novembre 2024' },
+            { name: 'Indiana Jones', id: 2757590, released: '9 Décembre 2024' },
+            { name: 'Call of Duty: Black Ops 6', id: 2879850, released: '25 Octobre 2024' },
+            { name: 'Microsoft Flight Simulator', id: 1250410, released: '18 Août 2020' },
+            { name: 'Space Marine 2', id: 1029440, released: '9 Septembre 2024' }
         ];
 
         function loadSteamGames() {
@@ -602,7 +602,7 @@
                         <img src="${imageUrl}" alt="${game.name}" loading="lazy">
                         <div class="steam-card-content">
                             <h3>${game.name}</h3>
-                            <p>ID: ${game.id}</p>
+                            <p>${game.released}</p>
                             <a href="https://store.steampowered.com/app/${game.id}" target="_blank">Voir ▶</a>
                         </div>
                     `;
