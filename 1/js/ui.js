@@ -15,44 +15,67 @@ let tutorialIndex = 0;
 
 const TUTORIAL_STEPS = [
     {
-        title: "Bienvenue dans le réseau",
-        content: `<p>Le but est de produire toujours plus d'<b>octets</b>. Clique sur le noyau au centre pour en gagner. Tu peux aussi appuyer sur <kbd>Espace</kbd>.</p>
-            <p>Ta partie commence avec quelques niveaux de <b>BOTNET</b> : ils produisent déjà des octets automatiquement. Le compteur « OCTETS / s » indique cette production.</p>`
+        title: "🎮 Bienvenue dans NEON//REVOLUTION",
+        content: `<p><b>NEON//REVOLUTION</b> est un jeu de piratage inactif (idle game). Tu gères des processus pour générer des <b>octets</b> (ta monnaie).</p>
+            <p><b>Clique le noyau</b> au centre du canvas pour gagner des octets. Tu peux aussi appuyer sur <kbd>Espace</kbd> ou cliquer le bouton ⚡ en bas du canvas.</p>
+            <p>Tu commences avec du <b>BOTNET</b> qui produit automatiquement. Regarde le compteur « <b>OCTETS / s</b> » en haut à gauche!</p>`
     },
     {
-        title: "Acheter et débloquer des processus",
-        content: `<p>Dans l'onglet <b>PROCESSUS</b>, dépense tes octets pour acheter des niveaux. Les processus produisent des revenus et se débloquent les uns après les autres : il faut 5 niveaux du processus précédent.</p>
-            <p><b>MAX</b> achète autant de niveaux que possible pour un processus. <kbd>M</kbd> ou « TOUT ACHETER » achète tous les niveaux possibles.</p>`
+        title: "📊 Les 10 processus",
+        content: `<p>Il y a 10 processus du plus faible au plus puissant:</p>
+            <p><b>BOTNET</b> → ROOTKIT → TROJAN → WORM → PHISH → KEYLOG → RANSOM → ZERO-DAY → BACKDOOR → QUANTUM</p>
+            <p>Chaque processus débloqué (en haut à gauche) se déverrouille après 5 niveaux du précédent. Ils produisent des <b>octets</b> et gagnent en puissance avec le <b>P.MULT</b> (voir en haut).</p>
+            <p>Plus tu as de processus puissants, plus tu gagnes vite!</p>`
     },
     {
-        title: "Clics et surchauffe",
-        content: `<p>Le compteur <b>CPS</b> mesure tes clics par seconde. À partir de 3 CPS, le jeu t'avertit ; l'alerte devient plus forte à 5 CPS et les effets de plantage commencent à 8 CPS.</p>
-            <p>Pas de panique : ce sont des effets visuels, ils ne suppriment pas ta partie. Tu peux désactiver les effets de casse dans l'onglet <b>SYSTÈME</b>.</p>`
+        title: "💰 Acheter des niveaux",
+        content: `<p>Dans l'onglet <b>PROCESSUS</b>, clique <b>ACHETER</b> pour augmenter le niveau d'un processus (coûte des octets).</p>
+            <p><b>MAX</b> = achète autant de niveaux que tu peux avec tes octets. <kbd>M</kbd> ou le bouton « TOUT ACHETER » = achète tous les niveaux pour tous les processus.</p>
+            <p>Les coûts augmentent : chaque niveau coûte plus cher. Plus tu vas loin, plus tu as besoin d'octets!</p>`
     },
     {
-        title: "Déclencher l'Overdrive",
-        content: `<p>Cliquer et produire des octets chargent l'<b>OVERDRIVE</b>. Une fois chargé, il s'active automatiquement et multiplie temporairement par 3 la vitesse des processus.</p>
-            <p>L'amélioration « Overclock Overdrive » du Marché noir augmente sa durée.</p>`
+        title: "⚡ Surcharge du système (CPS)",
+        content: `<p>Le <b>CPS</b> = clics par seconde. Clique trop vite et tu vas surcharger le système!</p>
+            <p>🟢 < 3 CPS : normal. 🟠 3-5 CPS : attention. 🔴 > 8 CPS : le système plante!</p>
+            <p>Si ça plante (effets visuels), c'est normal, tu ne perds rien. Mais ça peut être dérangeant. Tu peux désactiver ces effets dans <b>SYSTÈME</b>.</p>`
     },
     {
-        title: "Overclocker un processus",
-        content: `<p>Un processus au niveau maximal peut être <b>overclocké</b>. Il repart au niveau 5, mais son plafond augmente de 10 niveaux et sa puissance progresse.</p>
-            <p>Le plafond de départ est de 100 niveaux. L'overclock du processus est perdu lors d'un Reboot. Le contrat « Zéro Overclock » interdit cette action pendant le contrat.</p>`
+        title: "🔋 L'OVERDRIVE",
+        content: `<p>Chaque clic et chaque octet gagné charge l'<b>OVERDRIVE</b> (barre en bas à gauche). Une fois à 100%, il s'active!</p>
+            <p>Pendant ~8 secondes, tes processus vont <b>3x plus vite</b>. C'est puissant! Regarde « Overclock Overdrive » dans le MARCHÉ NOIR pour augmenter la durée.</p>
+            <p>Le problème : tu cliques trop = surcharge. L'Overdrive te sauve!</p>`
     },
     {
-        title: "Reboot : recommencer plus puissant",
-        content: `<p>À <b>10 milliards d'octets</b>, le Reboot devient accessible. Il remet à zéro tes octets et tes processus, mais améliore tes multiplicateurs permanents <b>P.MULT</b> et <b>P.EXP</b> et te rapporte de la Crypto.</p>
-            <p>Le Reboot n'est possible que si le multiplicateur ou l'exposant peut réellement progresser. Utilise ensuite la Crypto dans le <b>MARCHÉ NOIR</b>.</p>`
+        title: "🔧 Overclocker (améliorer)",
+        content: `<p>Quand un processus atteint son niveau MAX (100 de base), tu peux le <b>OVERCLOCKER</b>.</p>
+            <p>L'overclock : le processus revient au niveau 5, MAIS son plafond augmente de +10 (devient 110, puis 120...) ET sa puissance multipliée explose!</p>
+            <p>Attention : tu perds l'overclock lors du REBOOT. C'est le prix à payer pour redémarrer plus fort.</p>`
     },
     {
-        title: "Marché noir et exploits",
-        content: `<p>La Crypto achète des améliorations permanentes : production, clics, Overdrive et revenus hors-ligne. La partie se sauvegarde automatiquement ; les gains hors-ligne sont plafonnés à 2 heures.</p>
-            <p>Quand ton P.MULT atteint <b>x1000</b> (actuel ou au prochain Reboot), tu peux lancer un <b>exploit</b>. Cela remet aussi P.MULT et P.EXP à zéro, mais renforce un kit d'exploit.</p>`
+        title: "🚀 Le REBOOT (redémarrage)",
+        content: `<p>À <b>10 milliards d'octets</b>, tu peux faire un <b>REBOOT</b>. Clique le bouton dans l'onglet REBOOT.</p>
+            <p>Effet : tu perds TOUT (octets, processus, overclocks), MAIS tu gagnes:</p>
+            <p>✨ <b>P.MULT</b> permanent +x1.5 ou plus (multiplicateur)<br>✨ <b>P.EXP</b> permanent +0.01 ou plus (exposant bonus)<br>✨ <b>Crypto ₿</b> (nouvelle monnaie)</p>
+            <p>Plus tu recommences, plus tu deviens puissant rapidement!</p>`
     },
     {
-        title: "Contrats, succès… et l'infini",
-        content: `<p>Les <b>CONTRATS</b> sont des défis avec des règles spéciales. Les démarrer remet à zéro ta partie en cours ; une fois actif, tu ne peux pas lancer de Reboot ni d'exploit. Termine l'objectif pour obtenir sa récompense permanente.</p>
-            <p>Les <b>SUCCÈS</b> donnent chacun +2 % de revenus. Atteins <b>1,79e308 octets</b> pour débloquer le nouvel univers et ses Fragments d'Infini, sans perdre ta progression actuelle.</p>`
+        title: "🛒 Le MARCHÉ NOIR",
+        content: `<p>Utilise ta <b>Crypto ₿</b> pour acheter des améliorations PERMANENTES dans le <b>MARCHÉ NOIR</b>:</p>
+            <p>💨 Surcadence CPU : +vitesse des processus<br>💥 Payload Amplifier : +gain de multiplicateur<br>🖱️ Neuro-Link : +puissance des clics<br>⏳ Lien Hors-ligne : tu gagnes octets même fermé (max 2h)</p>
+            <p>Ces améliorations restent FOREVER. C'est là que tu dépenses ta Crypto!</p>`
+    },
+    {
+        title: "🎯 EXPLOITS et autres défis",
+        content: `<p>Quand <b>P.MULT ≥ x1000</b>, tu peux lancer un <b>EXPLOIT</b>. Cela remet P.MULT et P.EXP à zéro, mais renforce un kit d'exploit FOREVER.</p>
+            <p>Les <b>CONTRATS</b> = défis bonus avec des règles spéciales. Réussis pour +rewards permanentes.</p>
+            <p>Les <b>SUCCÈS</b> = chacun +2% revenus. À ~1.79e308 octets, tu débloques l'univers INFINI!</p>`
+    },
+    {
+        title: "🎮 C'est parti!",
+        content: `<p><b>Résumé :</b> Clique → achète processus → clique plus → REBOOT → Crypto → améliorations → REPEAT</p>
+            <p>Chaque cycle te rend plus fort. Le jeu s'accélère exponentiellement!</p>
+            <p>💡 Conseil : commence par augmenter BOTNET niveau 30-50, puis déverrouille les autres petit à petit.</p>
+            <p>Bonne chance, hacker! 🚀</p>`
     }
 ];
 
