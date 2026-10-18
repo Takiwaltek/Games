@@ -73,7 +73,6 @@ function openTutorial() {
 
 function closeTutorial() {
     $("tutorial").close();
-    state.settings.tutorialSeen = true;
     saveGame();
 }
 
@@ -789,7 +788,7 @@ function init() {
     computeDerived();
     tickAchievements();
     updateUI();
-    if (!state.settings.tutorialSeen) openTutorial();
+    if (!loaded) openTutorial();
     lastTs = performance.now();
     lastWall = Date.now();
     requestAnimationFrame(frame);
