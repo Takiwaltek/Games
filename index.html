@@ -231,6 +231,28 @@
             color: var(--g) !important;
         }
 
+        .simple-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, rgba(0, 255, 156, 0.15), rgba(0, 240, 255, 0.1));
+            border: 2px solid var(--g);
+            color: var(--g);
+            padding: 12px 28px;
+            font-family: var(--mono);
+            font-size: 0.9rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+        }
+
+        .simple-btn:hover {
+            background: linear-gradient(135deg, rgba(0, 255, 156, 0.3), rgba(0, 240, 255, 0.2));
+            box-shadow: 0 0 20px rgba(0, 255, 156, 0.6);
+            transform: translateY(-3px);
+        }
+
         .video-embed {
             position: relative;
             width: 100%;
@@ -413,8 +435,11 @@
         <!-- SECTION LIENS UTILES -->
         <section id="links">
             <h2 class="section-title">🔗 LIENS UTILES</h2>
-            <div class="content-grid" id="links-grid">
-                <!-- Liens ajoutés via JavaScript ou formulaire -->
+            <div style="display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;">
+                <a href="#" class="simple-btn">Lien 1</a>
+                <a href="#" class="simple-btn">Lien 2</a>
+                <a href="#" class="simple-btn">Lien 3</a>
+                <a href="#" class="simple-btn">Lien 4</a>
             </div>
         </section>
 
