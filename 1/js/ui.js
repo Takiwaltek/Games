@@ -175,6 +175,7 @@ function buildMultRow() {
 function buildCircles() {
     $("tabCircles").innerHTML = `
         <div class="toolbar">
+            <button class="btn warn" data-act="maxAll">TOUT ACHETER</button>
             <span>Niv. max = 100 + 10 × overclocks</span>
         </div>
         <div id="crows">${CIRCLES.map((c, i) => `
@@ -631,6 +632,7 @@ document.addEventListener("keydown", e => {
 /* ---------- Actions des boutons ---------- */
 
 const ACTIONS = {
+    maxAll() { if (buyAllMax()) beep(660, 0.05); },
     buy(el) { const i = +el.dataset.i; if (maxBuy(i) > 0 && buyLevels(i, 1)) beep(520, 0.04); },
     max(el) { const i = +el.dataset.i; const n = maxBuy(i); if (n > 0 && buyLevels(i, n)) beep(620, 0.05); },
     asc(el) {
