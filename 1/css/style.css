@@ -16,17 +16,26 @@
 html, body { margin: 0; }
 
 body {
-    background: url('game-bg.webp') fixed center/cover no-repeat,
-                radial-gradient(ellipse at 50% 30%, rgba(0, 240, 255, 0.1), transparent 50%),
-                radial-gradient(ellipse at 80% 70%, rgba(255, 43, 214, 0.08), transparent 50%),
-                var(--bg);
-    background-size: cover, 140% 140%, 140% 140%, 100% 100%;
-    background-attachment: fixed, scroll, scroll, scroll;
     color: var(--text);
     font-family: var(--mono);
     font-size: 13px;
     min-height: 100vh;
     overflow-x: hidden;
+    position: relative;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: url('game-bg.webp') fixed center/cover no-repeat,
+                radial-gradient(ellipse at 50% 30%, rgba(0, 240, 255, 0.1), transparent 50%),
+                radial-gradient(ellipse at 80% 70%, rgba(255, 43, 214, 0.08), transparent 50%),
+                #03060a;
+    background-size: cover, 140% 140%, 140% 140%, 100% 100%;
+    background-attachment: fixed, scroll, scroll, scroll;
+    z-index: -1;
+    pointer-events: none;
 }
 
 #rain {
