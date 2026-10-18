@@ -177,6 +177,23 @@ body {
 #cpsHud.rainbow { animation: rainbow 1.2s linear infinite; }
 @keyframes rainbow { 0% { color: var(--m); } 50% { color: var(--y); } 100% { color: var(--m); } }
 
+.main-click-btn {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    height: 90%;
+    background: transparent;
+    border: none;
+    cursor: crosshair;
+    color: transparent;
+    font-size: 0;
+    padding: 0;
+    z-index: 10;
+    pointer-events: auto;
+}
+
 #statsMini .odline { display: flex; align-items: center; gap: 8px; }
 .bar { flex: 1; height: 10px; border: 1px solid var(--g); background: rgba(0, 0, 0, 0.5); }
 .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--g), var(--c)); box-shadow: 0 0 10px var(--g); }

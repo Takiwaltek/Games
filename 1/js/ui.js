@@ -569,9 +569,12 @@ function doClick(x, y) {
     if (currentCPS >= 8) triggerShake();
 }
 
-canvas.addEventListener("pointerdown", e => {
-    const r = canvas.getBoundingClientRect();
-    doClick((e.clientX - r.left) * canvas.width / r.width, (e.clientY - r.top) * canvas.height / r.height);
+const canvasWrap = document.getElementById("canvasWrap");
+canvasWrap.addEventListener("pointerdown", e => {
+    if (e.target === canvas || e.target.id === "mainClickBtn") {
+        const r = canvas.getBoundingClientRect();
+        doClick((e.clientX - r.left) * canvas.width / r.width, (e.clientY - r.top) * canvas.height / r.height);
+    }
 });
 
 document.addEventListener("keydown", e => {
