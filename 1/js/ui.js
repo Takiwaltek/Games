@@ -82,19 +82,24 @@ const TUTORIAL_STEPS = [
 function renderTutorial() {
     const step = TUTORIAL_STEPS[tutorialIndex];
     const isPanel = !$("tutorialPanel").hasAttribute("hidden");
-    const suffix = isPanel ? "Panel" : "";
     
-    const progId = "tutorialProgress" + suffix;
-    const titleId = "tutorialTitle" + suffix;
-    const contentId = "tutorialContent" + suffix;
-    const backId = "tutorialBack" + suffix;
-    const nextId = "tutorialNext" + suffix;
+    const progId = isPanel ? "tutorialPanelProgress" : "tutorialProgress";
+    const titleId = isPanel ? "tutorialPanelTitle" : "tutorialTitle";
+    const contentId = isPanel ? "tutorialPanelContent" : "tutorialContent";
+    const backId = isPanel ? "tutorialPanelBack" : "tutorialBack";
+    const nextId = isPanel ? "tutorialPanelNext" : "tutorialNext";
     
-    $(progId).textContent = `ÉTAPE ${tutorialIndex + 1} / ${TUTORIAL_STEPS.length}`;
-    $(titleId).textContent = step.title;
-    $(contentId).innerHTML = step.content;
-    $(backId).disabled = tutorialIndex === 0;
-    setText($(nextId), tutorialIndex === TUTORIAL_STEPS.length - 1 ? "COMMENCER À JOUER" : "SUIVANT");
+    const progEl = $(progId);
+    const titleEl = $(titleId);
+    const contentEl = $(contentId);
+    const backEl = $(backId);
+    const nextEl = $(nextId);
+    
+    if (progEl) progEl.textContent = `ÉTAPE ${tutorialIndex + 1} / ${TUTORIAL_STEPS.length}`;
+    if (titleEl) titleEl.textContent = step.title;
+    if (contentEl) contentEl.innerHTML = step.content;
+    if (backEl) backEl.disabled = tutorialIndex === 0;
+    if (nextEl) setText(nextEl, tutorialIndex === TUTORIAL_STEPS.length - 1 ? "COMMENCER À JOUER" : "SUIVANT");
 }
 
 function openTutorial() {
