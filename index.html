@@ -340,9 +340,12 @@
 
         .steam-title-container {
             padding: 25px 20px;
-            border-bottom: 2px solid rgba(0, 255, 156, 0.4);
-            background: linear-gradient(135deg, rgba(0, 255, 156, 0.1), rgba(0, 240, 255, 0.08));
+            border-bottom: 2px solid rgba(0, 255, 156, 0.5);
+            background: linear-gradient(135deg, rgba(0, 255, 156, 0.12), rgba(0, 240, 255, 0.1));
+            backdrop-filter: blur(12px);
+            background-color: rgba(6, 12, 16, 0.75);
             clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+            box-shadow: inset 0 1px rgba(255, 255, 255, 0.1), 0 4px 15px rgba(0, 0, 0, 0.5);
         }
 
         .steam-title {
