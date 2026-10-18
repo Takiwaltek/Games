@@ -241,35 +241,37 @@
             background: linear-gradient(135deg, rgba(0, 255, 156, 0.15), rgba(0, 240, 255, 0.1));
             border: 2px solid var(--g);
             color: var(--g);
-            padding: 12px 28px;
+            padding: 16px 40px;
             font-family: var(--mono);
-            font-size: 0.9rem;
+            font-size: 1.1rem;
             font-weight: bold;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
             cursor: pointer;
             transition: all 0.3s ease;
             text-decoration: none;
             clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+            box-shadow: 0 0 15px rgba(0, 255, 156, 0.3);
         }
 
         .simple-btn:hover {
             background: linear-gradient(135deg, rgba(0, 255, 156, 0.3), rgba(0, 240, 255, 0.2));
-            box-shadow: 0 0 20px rgba(0, 255, 156, 0.6);
-            transform: translateY(-3px);
+            box-shadow: 0 0 30px rgba(0, 255, 156, 0.8);
+            transform: translateY(-5px) scale(1.05);
         }
 
         .buttons-container {
             text-align: center;
             margin-top: 80px;
-            padding: 40px 20px;
+            padding: 60px 20px;
             border-top: 2px solid rgba(0, 255, 156, 0.5);
-            background: linear-gradient(180deg, transparent, rgba(0, 255, 156, 0.05));
+            border-bottom: 2px solid rgba(0, 255, 156, 0.5);
+            background: linear-gradient(180deg, rgba(0, 255, 156, 0.15), rgba(0, 255, 156, 0.05));
         }
 
         .buttons-container > div {
             display: flex;
             flex-wrap: wrap;
-            gap: 20px;
+            gap: 30px;
             justify-content: center;
             animation: buttonsIn 0.8s ease-out 0.3s both;
         }
