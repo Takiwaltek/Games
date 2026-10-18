@@ -288,6 +288,46 @@
             }
         }
 
+        .mini-game-card {
+            background: linear-gradient(135deg, rgba(0, 255, 156, 0.055), transparent 45%), var(--panel);
+            border: 2px solid rgba(0, 255, 156, 0.6);
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+            padding: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), inset 0 1px rgba(255, 255, 255, 0.05), 0 0 15px rgba(0, 255, 156, 0.2);
+            transition: all 0.3s ease;
+            text-align: center;
+            animation: cardSlideIn 0.6s ease-out 0.4s both;
+        }
+
+        .mini-game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 25px rgba(0, 255, 156, 0.4);
+            border-color: rgba(0, 255, 156, 0.9);
+        }
+
+        .mini-game-card h3 {
+            color: var(--g);
+            margin: 0 0 5px;
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+            text-shadow: 0 0 10px rgba(0, 255, 156, 0.6);
+        }
+
+        .mini-game-card p {
+            color: var(--dim);
+            margin: 0 0 12px;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 768px) {
+            .buttons-container > div {
+                grid-template-columns: 1fr !important;
+            }
+            .mini-game-card {
+                margin-top: 20px;
+            }
+        }
+
         .steam-section {
             margin-top: 100px;
             margin-bottom: 60px;
@@ -496,28 +536,24 @@
                 </div>
                 <a href="./1/index.html" class="play-btn">▶ JOUER</a>
             </div>
-
-            <!-- Placeholder pour futur jeu -->
-            <div class="game-card">
-                <span class="game-icon">🎮</span>
-                <h2 class="game-title">À VENIR</h2>
-                <p class="game-description">Prochainement sur Takiwaltek Games. Reste connecté pour découvrir de nouveaux titres...</p>
-                <div class="game-stats">
-                    <div class="stat">
-                        <span class="stat-label">STATUS:</span> En développement
-                    </div>
-                </div>
-                <button class="play-btn" disabled style="opacity: 0.5; cursor: not-allowed;">BIENTÔT</button>
-            </div>
         </div>
 
-        <!-- 4 BOUTONS SIMPLES -->
+        <!-- 4 BOUTONS + PETIT JEU -->
         <div class="buttons-container">
-            <div>
-                <a href="https://www.youtube.com/@takiwaltek" target="_blank" class="simple-btn">📹 VIDÉOS</a>
-                <a href="https://soundcloud.com/takiwalte" target="_blank" class="simple-btn">🎵 SON</a>
-                <a href="https://www.caracterespeciaux.com/" target="_blank" class="simple-btn">🔤 CARACTÈRES</a>
-                <a href="https://www.dafont.com/fr/" target="_blank" class="simple-btn">🔤 POLICES</a>
+            <div style="display: grid; grid-template-columns: 1fr 250px; gap: 30px; align-items: center; max-width: 1200px; margin: 0 auto;">
+                <!-- Boutons -->
+                <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; animation: buttonsIn 0.8s ease-out 0.3s both;">
+                    <a href="https://www.youtube.com/@takiwaltek" target="_blank" class="simple-btn">📹 VIDÉOS</a>
+                    <a href="https://soundcloud.com/takiwalte" target="_blank" class="simple-btn">🎵 SON</a>
+                    <a href="https://www.caracterespeciaux.com/" target="_blank" class="simple-btn">🔤 CARACTÈRES</a>
+                    <a href="https://www.dafont.com/fr/" target="_blank" class="simple-btn">🔤 POLICES</a>
+                </div>
+                <!-- Mini Jeu -->
+                <div class="mini-game-card">
+                    <h3>💻 NEON</h3>
+                    <p>Idle Game</p>
+                    <a href="./1/index.html" class="play-btn" style="padding: 10px 20px; font-size: 0.85rem;">JOUER ▶</a>
+                </div>
             </div>
         </div>
 
