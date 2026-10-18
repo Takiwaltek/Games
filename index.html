@@ -289,19 +289,33 @@
         }
 
         .steam-section {
-            margin-top: 80px;
-            padding: 40px 20px;
+            margin-top: 100px;
+            margin-bottom: 60px;
+            padding: 50px 20px;
             border-top: 2px solid rgba(0, 255, 156, 0.5);
-            background: linear-gradient(180deg, rgba(0, 255, 156, 0.05), transparent);
+            border-bottom: 2px solid rgba(0, 255, 156, 0.5);
+            background: linear-gradient(180deg, rgba(0, 255, 156, 0.05), rgba(0, 0, 0, 0.15));
+            animation: slideUp 0.8s ease-out forwards;
         }
 
         .steam-title {
-            font-size: 1.8rem;
+            font-size: 2rem;
             color: var(--g);
-            letter-spacing: 2px;
-            margin: 0 0 25px;
-            text-shadow: 0 0 15px rgba(0, 255, 156, 0.5);
+            letter-spacing: 3px;
+            margin: 0 0 30px;
+            text-shadow: 0 0 20px rgba(0, 255, 156, 0.8), 0 0 40px rgba(0, 255, 156, 0.4);
             text-align: center;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .steam-grid {
