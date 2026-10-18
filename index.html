@@ -238,7 +238,7 @@
 
         .simple-btn {
             display: inline-block;
-            background: linear-gradient(135deg, rgba(0, 255, 156, 0.15), rgba(0, 240, 255, 0.1));
+            background: linear-gradient(135deg, rgba(0, 255, 156, 0.08), rgba(0, 240, 255, 0.05));
             border: 2px solid var(--g);
             color: var(--g);
             padding: 16px 40px;
@@ -251,10 +251,13 @@
             text-decoration: none;
             clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
             box-shadow: 0 0 15px rgba(0, 255, 156, 0.3);
+            background-color: rgba(6, 12, 16, 0.6);
+            backdrop-filter: blur(8px);
         }
 
         .simple-btn:hover {
-            background: linear-gradient(135deg, rgba(0, 255, 156, 0.3), rgba(0, 240, 255, 0.2));
+            background: linear-gradient(135deg, rgba(0, 255, 156, 0.15), rgba(0, 240, 255, 0.1));
+            background-color: rgba(6, 12, 16, 0.75);
             box-shadow: 0 0 30px rgba(0, 255, 156, 0.8);
             transform: translateY(-5px) scale(1.05);
         }
@@ -265,8 +268,8 @@
             padding: 35px 20px;
             border-top: 2px solid rgba(0, 255, 156, 0.5);
             border-bottom: 2px solid rgba(0, 255, 156, 0.5);
-            background: linear-gradient(180deg, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0.25));
-            backdrop-filter: blur(5px);
+            background: linear-gradient(180deg, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.55));
+            backdrop-filter: blur(12px);
         }
 
         .buttons-container > div {
