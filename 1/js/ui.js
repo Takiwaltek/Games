@@ -625,10 +625,6 @@ canvasWrap.addEventListener("pointerdown", e => {
     }
 });
 
-document.addEventListener("keydown", e => {
-    // Tous les raccourcis clavier supprimés
-});
-
 /* ---------- Actions des boutons ---------- */
 
 const ACTIONS = {
