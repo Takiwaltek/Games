@@ -605,6 +605,43 @@ body {
     }
 }
 
+/* Help Button */
+.help-btn {
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(0, 255, 156, 0.12);
+    border: 2px solid var(--g);
+    color: var(--g);
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 950;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 0 12px rgba(0, 255, 156, 0.3);
+}
+.help-btn:hover {
+    background: rgba(0, 255, 156, 0.25);
+    box-shadow: 0 0 20px rgba(0, 255, 156, 0.6);
+}
+.help-btn.active {
+    animation: helpGlow 1.2s ease-in-out infinite;
+}
+@keyframes helpGlow {
+    0%, 100% {
+        box-shadow: 0 0 12px rgba(0, 255, 156, 0.3), 0 0 24px rgba(0, 255, 156, 0.1);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(0, 255, 156, 0.8), 0 0 50px rgba(0, 255, 156, 0.4);
+    }
+}
+
 /* Tutorial Panel à côté */
 .tutorial-panel {
     position: fixed;

@@ -59,33 +59,47 @@ const TUTORIAL_STEPS = [
 function renderTutorial() {
     const step = TUTORIAL_STEPS[tutorialIndex];
     const isPanel = !$("tutorialPanel").hasAttribute("hidden");
-    const prefix = isPanel ? "Panel" : "";
+    const suffix = isPanel ? "Panel" : "";
     
-    $(f("tutorialProgress{}", prefix)).textContent = `ÉTAPE ${tutorialIndex + 1} / ${TUTORIAL_STEPS.length}`;
-    $(f("tutorialTitle{}", prefix)).textContent = step.title;
-    $(f("tutorialContent{}", prefix)).innerHTML = step.content;
-    $(f("tutorialBack{}", prefix)).disabled = tutorialIndex === 0;
-    const nextBtn = $(f("tutorialNext{}", prefix));
-    if (nextBtn) setText(nextBtn, tutorialIndex === TUTORIAL_STEPS.length - 1 ? "COMMENCER À JOUER" : "SUIVANT");
-}
-
-function f(template, suffix = "") {
-    return template.replace("{}", suffix);
+    const progId = "tutorialProgress" + suffix;
+    const titleId = "tutorialTitle" + suffix;
+    const contentId = "tutorialContent" + suffix;
+    const backId = "tutorialBack" + suffix;
+    const nextId = "tutorialNext" + suffix;
+    
+    $(progId).textContent = `ÉTAPE ${tutorialIndex + 1} / ${TUTORIAL_STEPS.length}`;
+    $(titleId).textContent = step.title;
+    $(contentId).innerHTML = step.content;
+    $(backId).disabled = tutorialIndex === 0;
+    setText($(nextId), tutorialIndex === TUTORIAL_STEPS.length - 1 ? "COMMENCER À JOUER" : "SUIVANT");
 }
 
 function openTutorial() {
     tutorialIndex = 0;
     const panel = $("tutorialPanel");
+    const helpBtn = $("helpBtn");
     panel.removeAttribute("hidden");
+    helpBtn.classList.add("active");
     renderTutorial();
 }
 
 function closeTutorial() {
     const panel = $("tutorialPanel");
+    const helpBtn = $("helpBtn");
     panel.setAttribute("hidden", "");
+    helpBtn.classList.remove("active");
     $("tutorial").close();
     saveGame();
 }
+
+$("helpBtn").addEventListener("click", () => {
+    const panel = $("tutorialPanel");
+    if (panel.hasAttribute("hidden")) {
+        openTutorial();
+    } else {
+        closeTutorial();
+    }
+});
 
 $("closeTutorialPanel").addEventListener("click", closeTutorial);
 
