@@ -331,20 +331,31 @@
         .steam-section {
             margin-top: 100px;
             margin-bottom: 60px;
-            padding: 50px 20px;
+            padding: 0;
             border-top: 2px solid rgba(0, 255, 156, 0.5);
             border-bottom: 2px solid rgba(0, 255, 156, 0.5);
             background: linear-gradient(180deg, rgba(0, 255, 156, 0.05), rgba(0, 0, 0, 0.15));
             animation: slideUp 0.8s ease-out forwards;
         }
 
+        .steam-title-container {
+            padding: 25px 20px;
+            border-bottom: 2px solid rgba(0, 255, 156, 0.4);
+            background: linear-gradient(135deg, rgba(0, 255, 156, 0.1), rgba(0, 240, 255, 0.08));
+            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+        }
+
         .steam-title {
             font-size: 2rem;
             color: var(--g);
             letter-spacing: 3px;
-            margin: 0 0 30px;
+            margin: 0;
             text-shadow: 0 0 20px rgba(0, 255, 156, 0.8), 0 0 40px rgba(0, 255, 156, 0.4);
             text-align: center;
+        }
+
+        .steam-grid-container {
+            padding: 30px 20px;
         }
 
         @keyframes slideUp {
@@ -559,9 +570,13 @@
 
         <!-- STEAM NOUVEAUTÉS -->
         <div class="steam-section">
-            <h2 class="steam-title">🎮 NOUVEAUTÉS STEAM</h2>
-            <div class="steam-grid" id="steam-grid">
-                <div class="loading">Chargement des jeux Steam...</div>
+            <div class="steam-title-container">
+                <h2 class="steam-title">🎮 NOUVEAUTÉS STEAM</h2>
+            </div>
+            <div class="steam-grid-container">
+                <div class="steam-grid" id="steam-grid">
+                    <div class="loading">Chargement des jeux Steam...</div>
+                </div>
             </div>
         </div>
 
