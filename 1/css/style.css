@@ -71,7 +71,14 @@ body {
 }
 
 /* En-tÃªte */
-#topbar { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; justify-content: space-between; }
+#topbar { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 14px; 
+    align-items: center; 
+    justify-content: space-between;
+    margin-top: 70px;
+}
 .brand h1 {
     margin: 0;
     font-size: 1.9rem;
@@ -619,12 +626,13 @@ body {
     font-size: 1.5rem;
     font-weight: bold;
     cursor: pointer;
-    z-index: 950;
+    z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
     box-shadow: 0 0 12px rgba(0, 255, 156, 0.3);
+    pointer-events: auto;
 }
 .help-btn:hover {
     background: rgba(0, 255, 156, 0.25);
