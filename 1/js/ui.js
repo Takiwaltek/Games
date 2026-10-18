@@ -30,7 +30,7 @@ const TUTORIAL_STEPS = [
     {
         title: "💰 Acheter des niveaux",
         content: `<p>Dans l'onglet <b>PROCESSUS</b>, clique <b>ACHETER</b> pour augmenter le niveau d'un processus (coûte des octets).</p>
-            <p><b>MAX</b> = achète autant de niveaux que tu peux avec tes octets. Le bouton « TOUT ACHETER » = achète tous les niveaux pour tous les processus.</p>
+            <p><b>MAX</b> = achète autant de niveaux que tu peux avec tes octets pour ce processus.</p>
             <p>Les coûts augmentent : chaque niveau coûte plus cher. Plus tu vas loin, plus tu as besoin d'octets!</p>`
     },
     {
@@ -175,7 +175,6 @@ function buildMultRow() {
 function buildCircles() {
     $("tabCircles").innerHTML = `
         <div class="toolbar">
-            <button class="btn warn" data-act="maxAll">TOUT ACHETER (M)</button>
             <span>Niv. max = 100 + 10 × overclocks</span>
         </div>
         <div id="crows">${CIRCLES.map((c, i) => `
@@ -626,20 +625,12 @@ canvasWrap.addEventListener("pointerdown", e => {
 });
 
 document.addEventListener("keydown", e => {
-    const tag = (e.target.tagName || "").toLowerCase();
-    if (tag === "textarea" || tag === "input") return;
-    if (e.code === "Space" && !($("tutorial").open)) {
-        e.preventDefault();
-        if (!e.repeat) doClick(canvas.width / 2 + randomBetween(-20, 20), canvas.height / 2 + randomBetween(-20, 20));
-    } else if (e.code === "KeyM" && !e.repeat && !e.shiftKey) {
-        if (buyAllMax()) beep(660, 0.05);
-    }
+    // Tous les raccourcis clavier supprimés
 });
 
 /* ---------- Actions des boutons ---------- */
 
 const ACTIONS = {
-    maxAll() { if (buyAllMax()) beep(660, 0.05); },
     buy(el) { const i = +el.dataset.i; if (maxBuy(i) > 0 && buyLevels(i, 1)) beep(520, 0.04); },
     max(el) { const i = +el.dataset.i; const n = maxBuy(i); if (n > 0 && buyLevels(i, n)) beep(620, 0.05); },
     asc(el) {
