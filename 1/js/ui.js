@@ -103,11 +103,6 @@ $("helpBtn").addEventListener("click", () => {
 
 $("closeTutorialPanel").addEventListener("click", closeTutorial);
 
-$("tutorial").addEventListener("cancel", e => {
-    e.preventDefault();
-    closeTutorial();
-});
-
 /* ---------- Utilitaires ---------- */
 
 function fmt(n) {
@@ -319,7 +314,6 @@ function buildOptions() {
                 <button class="btn tog" id="optSound" data-act="sound"></button>
                 <button class="btn tog" id="optFx" data-act="fx"></button>
                 <button class="btn" data-act="save">SAUVEGARDER</button>
-                <button class="btn" data-act="tutorial">REVOIR LE TUTORIEL</button>
             </div>
         </div>
         <div class="card">
@@ -697,8 +691,7 @@ const ACTIONS = {
         if (!confirm("Tout effacer définitivement ?")) return;
         hardReset();
         location.reload();
-    },
-    tutorial() { openTutorial(); }
+    }
 };
 
 document.addEventListener("click", e => {
@@ -815,7 +808,6 @@ function init() {
     computeDerived();
     tickAchievements();
     updateUI();
-    if (!loaded) openTutorial();
     lastTs = performance.now();
     lastWall = Date.now();
     requestAnimationFrame(frame);
