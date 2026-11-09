@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Carte interactive de ta base Satisfactory, générée depuis ta sauvegarde." />
+    <title>Carte de la base · Atelier de Taki</title>
+    <script type="module" crossorigin src="./assets/index-BDYtW3F_.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DNXrEm_b.css">
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="back" href="../">← Atelier de Taki</a>
+      <h1>Carte de la base</h1>
+      <span class="tag">Satisfactory</span>
+    </header>
+
+    <div class="layout">
+      <aside class="panel">
+        <section class="card">
+          <h2>1 · Ta sauvegarde</h2>
+          <div class="dropzone">
+            <p>Glisse ton fichier <code>.sav</code> ici, ou</p>
+            <label class="btn primary">
+              Choisir une sauvegarde
+              <input id="file" class="sr-only" type="file" accept=".sav" />
+            </label>
+          </div>
+          <p class="hint">
+            Dossier des sauvegardes : <code>%LOCALAPPDATA%\FactoryGame\Saved\SaveGames</code>
+          </p>
+          <p class="hint privacy">
+            Ta sauvegarde est lue directement dans ton navigateur. Elle n'est jamais envoyée sur internet.
+          </p>
+          <p id="status" class="status"></p>
+        </section>
+
+        <section class="card">
+          <h2>2 · Recherche</h2>
+          <input id="search" type="search" placeholder="Fonderie, convoyeur, rail…" autocomplete="off" />
+          <p class="hint"><span id="searchCount"></span></p>
+        </section>
+
+        <section class="card">
+          <div class="row">
+            <h2>3 · Filtres</h2>
+            <button id="toggleAll" class="btn small" type="button">Tout masquer</button>
+          </div>
+          <div id="filters" class="filters"></div>
+        </section>
+
+        <section class="card">
+          <h2>Infos</h2>
+          <div id="stats"></div>
+        </section>
+      </aside>
+
+      <main id="mapArea" class="map-area">
+        <canvas id="map"></canvas>
+
+        <div class="zoom">
+          <button id="zoomIn" class="btn" type="button" aria-label="Zoomer">+</button>
+          <button id="zoomOut" class="btn" type="button" aria-label="Dézoomer">−</button>
+          <button id="fit" class="btn" type="button" aria-label="Tout afficher">⤢</button>
+        </div>
+
+        <p class="map-hint">Molette : zoom · Glisser : déplacer · Survol : détails</p>
+        <div id="tooltip" class="tooltip" hidden></div>
+
+        <div id="loader" class="loader" hidden>
+          <div class="spinner"></div>
+          <p id="loaderText"></p>
+        </div>
+      </main>
+    </div>
+
+  </body>
+</html>
