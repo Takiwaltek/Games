@@ -265,6 +265,70 @@
             line-height: 1;
         }
 
+        .sat-menu {
+            position: relative;
+        }
+
+        .sat-menu > summary {
+            list-style: none;
+        }
+
+        .sat-menu > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .sat-menu[open] > summary {
+            background: linear-gradient(135deg, rgba(0, 255, 156, 0.15), rgba(0, 240, 255, 0.1));
+            box-shadow: 0 0 30px rgba(0, 255, 156, 0.8);
+        }
+
+        .sat-menu-arrow {
+            font-size: 0.8em;
+            transition: transform 0.3s ease;
+        }
+
+        .sat-menu[open] .sat-menu-arrow {
+            transform: rotate(180deg);
+        }
+
+        .sat-menu-list {
+            position: absolute;
+            top: calc(100% + 12px);
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20;
+            min-width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px;
+            background-color: rgba(6, 12, 16, 0.95);
+            border: 2px solid var(--g);
+            box-shadow: 0 0 20px rgba(0, 255, 156, 0.4);
+            backdrop-filter: blur(8px);
+        }
+
+        .sat-menu-list a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            white-space: nowrap;
+            padding: 10px 14px;
+            color: var(--g);
+            font-family: var(--mono);
+            font-size: 0.85rem;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-decoration: none;
+            border: 1px solid rgba(0, 255, 156, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        .sat-menu-list a:hover {
+            background: rgba(0, 255, 156, 0.15);
+            box-shadow: 0 0 15px rgba(0, 255, 156, 0.6);
+        }
+
         .simple-btn:hover {
             background: linear-gradient(135deg, rgba(0, 255, 156, 0.15), rgba(0, 240, 255, 0.1));
             background-color: rgba(6, 12, 16, 0.75);
@@ -273,6 +337,8 @@
         }
 
         .buttons-container {
+            position: relative;
+            z-index: 10;
             text-align: center;
             margin-top: 30px;
             padding: 35px 20px;
@@ -568,9 +634,14 @@
                     <a href="https://soundcloud.com/takiwalte" target="_blank" class="simple-btn"><span class="btn-icon" aria-hidden="true">🎵</span>SON</a>
                     <a href="https://www.caracterespeciaux.com/" target="_blank" class="simple-btn"><span class="btn-icon" aria-hidden="true">🔤</span>CARACTÈRES</a>
                     <a href="https://www.dafont.com/fr/" target="_blank" class="simple-btn"><span class="btn-icon" aria-hidden="true">🔤</span>POLICES</a>
-                    <a href="./calculateur/index.html" class="simple-btn"><span class="btn-icon" aria-hidden="true">🏭</span>CALCULATEUR POUR SATISFACTORY</a>
-                    <a href="./carte/index.html" class="simple-btn"><span class="btn-icon" aria-hidden="true">🗺️</span>CARTE DE LA BASE</a>
-                    <a href="https://satisfactory-calculator.com/fr/interactive-map#3;49935;130005|gameLayer|limestonePure;ironPure;copperPure;cateriumPure;coalPure;oilPure;hardDrives" target="_blank" class="simple-btn"><span class="btn-icon" aria-hidden="true">🛰️</span>CARTE OFFICIELLE</a>
+                    <details class="sat-menu">
+                        <summary class="simple-btn"><span class="btn-icon" aria-hidden="true">🏭</span>SATISFACTORY <span class="sat-menu-arrow" aria-hidden="true">▼</span></summary>
+                        <div class="sat-menu-list">
+                            <a href="./calculateur/index.html"><span aria-hidden="true">🏭</span>CALCULATEUR</a>
+                            <a href="./carte/index.html"><span aria-hidden="true">🗺️</span>CARTE DE LA BASE</a>
+                            <a href="https://satisfactory-calculator.com/fr/interactive-map#3;49935;130005|gameLayer|limestonePure;ironPure;copperPure;cateriumPure;coalPure;oilPure;hardDrives" target="_blank" rel="noopener"><span aria-hidden="true">🛰️</span>CARTE OFFICIELLE</a>
+                        </div>
+                    </details>
                 </div>
                 <!-- Mini Jeu -->
                 <div class="mini-game-card">
