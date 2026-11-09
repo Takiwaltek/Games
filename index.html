@@ -225,6 +225,18 @@
             position: relative;
         }
 
+        .menu-title {
+            background: linear-gradient(90deg, var(--accent), var(--accent-2), #a78bfa, var(--accent));
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            animation: shine 6s linear infinite;
+        }
+
         .sat-menu > summary {
             list-style: none;
         }
@@ -509,8 +521,13 @@
             <nav class="tiles" aria-label="Liens">
                 <a class="tile" href="https://www.youtube.com/@takiwaltek" target="_blank" rel="noopener">Vidéos</a>
                 <a class="tile" href="https://soundcloud.com/takiwalte" target="_blank" rel="noopener">Son</a>
-                <a class="tile" href="https://www.caracterespeciaux.com/" target="_blank" rel="noopener">Caractères</a>
-                <a class="tile" href="https://www.dafont.com/fr/" target="_blank" rel="noopener">Polices</a>
+                <details class="sat-menu">
+                    <summary class="tile"><span class="menu-title">Ressources</span></summary>
+                    <div class="sat-menu-list">
+                        <a href="https://www.caracterespeciaux.com/" target="_blank" rel="noopener">Caractères</a>
+                        <a href="https://www.dafont.com/fr/" target="_blank" rel="noopener">Polices</a>
+                    </div>
+                </details>
                 <details class="sat-menu">
                     <summary class="tile">Satisfactory</summary>
                     <div class="sat-menu-list">
