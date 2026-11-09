@@ -334,37 +334,51 @@
             }
         }
 
-        .steam-section {
-            margin-top: 30px;
-            margin-bottom: 30px;
-            padding: 0;
-            border-top: 2px solid rgba(0, 255, 156, 0.5);
-            border-bottom: 2px solid rgba(0, 255, 156, 0.5);
-            background: linear-gradient(180deg, rgba(0, 255, 156, 0.05), rgba(0, 0, 0, 0.15));
+        .steam-panel {
+            width: min(920px, calc(100% - 40px));
+            margin: 30px auto;
+            border: 1px solid rgba(0, 240, 255, 0.4);
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.06), transparent 45%), rgba(6, 12, 16, 0.85);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 240, 255, 0.1);
+            overflow: hidden;
             animation: slideUp 0.8s ease-out forwards;
         }
 
-        .steam-title-container {
-            padding: 15px 20px;
-            border-bottom: 2px solid rgba(0, 255, 156, 0.5);
-            background: linear-gradient(135deg, rgba(0, 255, 156, 0.12), rgba(0, 240, 255, 0.1));
-            backdrop-filter: blur(12px);
-            background-color: rgba(6, 12, 16, 0.75);
-            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
-            box-shadow: inset 0 1px rgba(255, 255, 255, 0.1), 0 4px 15px rgba(0, 0, 0, 0.5);
+        .steam-panel-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 14px;
+            border-bottom: 1px solid rgba(0, 255, 156, 0.4);
+            background: linear-gradient(90deg, rgba(0, 255, 156, 0.15), rgba(0, 240, 255, 0.08));
+        }
+
+        .steam-dots {
+            display: flex;
+            gap: 5px;
+        }
+
+        .steam-dots i {
+            display: block;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: rgba(0, 255, 156, 0.6);
         }
 
         .steam-title {
-            font-size: 1.5rem;
-            color: var(--g);
-            letter-spacing: 3px;
+            flex: 1;
             margin: 0;
-            text-shadow: 0 0 20px rgba(0, 255, 156, 0.8), 0 0 40px rgba(0, 255, 156, 0.4);
-            text-align: center;
+            font-size: 0.95rem;
+            color: var(--g);
+            letter-spacing: 2px;
+            text-shadow: 0 0 12px rgba(0, 255, 156, 0.6);
         }
 
-        .steam-grid-container {
-            padding: 15px 20px;
+        .steam-updated {
+            font-size: 0.7rem;
+            color: var(--dim);
         }
 
         @keyframes slideUp {
@@ -378,79 +392,59 @@
             }
         }
 
-        .steam-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-            padding: 0 20px;
+        .steam-list {
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            padding: 12px;
+            scroll-snap-type: x mandatory;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 255, 156, 0.6) rgba(0, 0, 0, 0.35);
         }
 
-        .steam-card {
-            background: linear-gradient(135deg, rgba(0, 240, 255, 0.055), transparent 45%), var(--panel);
-            border: 1px solid rgba(0, 240, 255, 0.4);
-            clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
-            padding: 0;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), inset 0 1px rgba(255, 255, 255, 0.05);
-            transition: all 0.3s ease;
-            overflow: hidden;
+        .steam-item {
+            flex: 0 0 180px;
             display: flex;
             flex-direction: column;
-        }
-
-        .steam-card img {
-            width: 100%;
-            height: 110px;
-            object-fit: cover;
-            object-position: center;
-            border-bottom: 1px solid rgba(0, 240, 255, 0.3);
-        }
-
-        .steam-card-content {
-            padding: 6px;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .steam-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 240, 255, 0.2);
-            border-color: rgba(0, 240, 255, 0.7);
-        }
-
-        .steam-card h3 {
-            color: var(--c);
-            margin: 0 0 2px;
-            font-size: 0.75rem;
-            letter-spacing: 0.5px;
-            word-break: break-word;
-        }
-
-        .steam-card p {
-            color: var(--dim);
-            margin: 0 0 6px;
-            font-size: 0.65rem;
-            line-height: 1.2;
-            flex-grow: 1;
-        }
-
-        .steam-card a {
-            display: inline-block;
-            background: linear-gradient(135deg, rgba(0, 255, 156, 0.15), rgba(0, 240, 255, 0.1));
-            border: 1px solid var(--g);
-            color: var(--g);
-            padding: 4px 8px;
-            font-size: 0.65rem;
-            font-weight: bold;
-            letter-spacing: 0.5px;
+            scroll-snap-align: start;
             text-decoration: none;
-            transition: all 0.2s ease;
-            clip-path: polygon(4px 0, 100% 0, 100% calc(100% - 4px), calc(100% - 4px) 100%, 0 100%, 0 4px);
+            color: inherit;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(0, 240, 255, 0.25);
+            transition: border-color 0.2s ease, transform 0.2s ease;
         }
 
-        .steam-card a:hover {
-            background: linear-gradient(135deg, rgba(0, 255, 156, 0.3), rgba(0, 240, 255, 0.2));
-            box-shadow: 0 0 15px rgba(0, 255, 156, 0.6);
+        .steam-item:hover {
+            border-color: var(--c);
+            transform: translateY(-2px);
+        }
+
+        .steam-item img {
+            display: block;
+            width: 100%;
+            height: 84px;
+            object-fit: cover;
+        }
+
+        .steam-item-name {
+            padding: 6px 8px 2px;
+            font-size: 0.75rem;
+            color: var(--c);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .steam-item-price {
+            padding: 0 8px 7px;
+            font-size: 0.7rem;
+            color: var(--dim);
+        }
+
+        .steam-discount {
+            margin-right: 6px;
+            font-weight: bold;
+            color: var(--g);
         }
 
         .loading {
@@ -579,16 +573,16 @@
         </div>
 
         <!-- STEAM NOUVEAUTÉS -->
-        <div class="steam-section">
-            <div class="steam-title-container">
-                <h2 class="steam-title">🎮 NOUVEAUTÉS STEAM</h2>
+        <section class="steam-panel" aria-labelledby="steam-title">
+            <div class="steam-panel-bar">
+                <span class="steam-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+                <h2 class="steam-title" id="steam-title">🎮 NOUVEAUTÉS STEAM</h2>
+                <span class="steam-updated" id="steam-updated"></span>
             </div>
-            <div class="steam-grid-container">
-                <div class="steam-grid" id="steam-grid">
-                    <div class="loading">Chargement des jeux Steam...</div>
-                </div>
+            <div class="steam-list" id="steam-grid">
+                <div class="loading">Chargement des nouveautés...</div>
             </div>
-        </div>
+        </section>
 
         <footer>
             <p>© 2025 Atelier de Taki · Tous droits réservés</p>
@@ -597,51 +591,62 @@
     </div>
 
     <script>
-        // Jeux Steam NOUVEAUTÉS 2025-2026
-        const popularGames = [
-            { name: 'Metaphor: ReFantazio', id: 2677930, released: '11 Octobre 2024' },
-            { name: 'Indiana Jones and the Great Circle', id: 2757590, released: '9 Décembre 2024' },
-            { name: 'S.T.A.L.K.E.R. 2: Heart of Chornobyl', id: 2645590, released: '20 Novembre 2024' },
-            { name: 'Dragon Age: The Veilguard', id: 1222690, released: '31 Octobre 2024' },
-            { name: 'Persona 3 Reload', id: 2372440, released: '21 Février 2024' },
-            { name: 'Final Fantasy VII Rebirth', id: 1462040, released: '29 Février 2024' },
-            { name: 'Tekken 8', id: 1899140, released: '26 Janvier 2024' },
-            { name: 'Helldivers 2', id: 553850, released: '8 Février 2024' },
-            { name: 'Like a Dragon: Infinite Wealth', id: 2190560, released: '16 Janvier 2024' },
-            { name: 'Palworld', id: 1623730, released: '19 Janvier 2024' },
-            { name: 'Final Fantasy XVI', id: 2246618, released: '29 Juin 2023' },
-            { name: 'Baldur\'s Gate 3', id: 1238140, released: '3 Août 2023' }
-        ];
+        // Nouveautés Steam : fichier généré par scripts/fetch-steam-news.mjs au déploiement
+        function renderSteamItem(item) {
+            const link = document.createElement('a');
+            link.className = 'steam-item';
+            link.href = item.url;
+            link.target = '_blank';
+            link.rel = 'noopener';
 
-        function loadSteamGames() {
+            const img = document.createElement('img');
+            img.src = item.image;
+            img.alt = item.name;
+            img.loading = 'lazy';
+
+            const name = document.createElement('span');
+            name.className = 'steam-item-name';
+            name.textContent = item.name;
+            name.title = item.name;
+
+            const price = document.createElement('span');
+            price.className = 'steam-item-price';
+            if (item.discount > 0) {
+                const discount = document.createElement('span');
+                discount.className = 'steam-discount';
+                discount.textContent = `-${item.discount}%`;
+                price.append(discount);
+            }
+            price.append(item.price);
+
+            link.append(img, name, price);
+            return link;
+        }
+
+        async function loadSteamNews() {
+            const list = document.getElementById('steam-grid');
+            const updated = document.getElementById('steam-updated');
             try {
-                const grid = document.getElementById('steam-grid');
-                grid.innerHTML = '';
-                
-                // Afficher les jeux populaires avec images
-                popularGames.forEach(game => {
-                    const card = document.createElement('div');
-                    card.className = 'steam-card';
-                    const imageUrl = `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.id}/header.jpg`;
-                    card.innerHTML = `
-                        <img src="${imageUrl}" alt="${game.name}" loading="lazy">
-                        <div class="steam-card-content">
-                            <h3>${game.name}</h3>
-                            <p>${game.released}</p>
-                            <a href="https://store.steampowered.com/app/${game.id}" target="_blank">Voir ▶</a>
-                        </div>
-                    `;
-                    grid.appendChild(card);
-                });
+                const response = await fetch('./steam-new.json', { cache: 'no-cache' });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const feed = await response.json();
+
+                list.innerHTML = '';
+                if (!feed.items?.length) {
+                    list.innerHTML = '<div class="loading">Aucune nouveauté disponible pour le moment.</div>';
+                    return;
+                }
+                feed.items.forEach(item => list.appendChild(renderSteamItem(item)));
+                if (feed.updated) {
+                    updated.textContent = `Mis à jour le ${new Date(feed.updated).toLocaleDateString('fr-FR')}`;
+                }
             } catch (error) {
-                console.error('Erreur:', error);
-                const grid = document.getElementById('steam-grid');
-                grid.innerHTML = '<div class="loading">Erreur lors du chargement.</div>';
+                console.error('Nouveautés Steam indisponibles:', error);
+                list.innerHTML = '<div class="loading">Nouveautés Steam indisponibles.</div>';
             }
         }
-        
-        // Charger les jeux au chargement
-        document.addEventListener('DOMContentLoaded', loadSteamGames);
+
+        document.addEventListener('DOMContentLoaded', loadSteamNews);
     </script>
 </body>
 </html>
