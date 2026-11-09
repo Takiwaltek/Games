@@ -5,14 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Carte interactive de ta base Satisfactory, générée depuis ta sauvegarde." />
     <title>Carte de la base · Atelier de Taki</title>
-    <script type="module" crossorigin src="./assets/index-CA2pH8hh.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-DNXrEm_b.css">
+    <script type="module" crossorigin src="./assets/index-DsFKolFs.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-0qLN4_aI.css">
   </head>
   <body>
     <header class="topbar">
       <a class="back" href="../">← Atelier de Taki</a>
       <h1>Carte de la base</h1>
       <span class="tag">Satisfactory</span>
+      <button id="themeToggle" class="btn small" type="button">Thème clair</button>
     </header>
 
     <div class="layout">
@@ -44,7 +45,10 @@
         <section class="card">
           <div class="row">
             <h2>3 · Filtres</h2>
-            <button id="toggleAll" class="btn small" type="button">Tout masquer</button>
+            <div class="row-actions">
+              <button id="structuresOnly" class="btn small" type="button">Structures seulement</button>
+              <button id="toggleAll" class="btn small" type="button">Tout masquer</button>
+            </div>
           </div>
           <div id="filters" class="filters"></div>
         </section>
