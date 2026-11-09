@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Atelier de Taki</title>
     <style>
+        @font-face {
+            font-family: "Astral Delight";
+            src: url('fonts/AstralDelight-Black.ttf') format('truetype');
+            font-weight: 900;
+            font-display: swap;
+        }
+
         :root {
             --bg: #0a0c10;
             --panel: #121620;
@@ -125,10 +132,12 @@
 
         .logo {
             margin: 0;
+            font-family: "Astral Delight", var(--font);
             font-size: clamp(2.6rem, 6.5vw, 4.6rem);
-            font-weight: 800;
+            font-weight: 900;
             line-height: 1.05;
-            letter-spacing: -0.03em;
+            letter-spacing: 0.01em;
+            text-transform: uppercase;
             background: linear-gradient(90deg, var(--text), var(--accent), var(--accent-2), var(--text));
             background-size: 300% 100%;
             -webkit-background-clip: text;
