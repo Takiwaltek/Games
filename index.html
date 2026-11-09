@@ -6,263 +6,208 @@
     <title>Atelier de Taki</title>
     <style>
         :root {
-            --bg: #03060a;
-            --panel: rgba(6, 12, 16, 0.88);
-            --g: #00ff9c;
-            --c: #00f0ff;
-            --m: #ff2bd6;
-            --y: #fcee0a;
-            --r: #ff2a55;
-            --dim: #5f7f74;
-            --text: #c9ffe9;
-            --mono: "Cascadia Mono", Consolas, "Lucida Console", monospace;
+            --bg: #0a0c10;
+            --panel: #121620;
+            --panel-2: #181d29;
+            --line: #252c3b;
+            --text: #e6edf3;
+            --muted: #8b96a8;
+            --accent: #00e08a;
+            --accent-2: #38bdf8;
+            --radius: 16px;
+            --font: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
         }
 
         * { box-sizing: border-box; }
 
         html, body {
             margin: 0;
-            padding: 0;
+            min-height: 100%;
             background: var(--bg);
             color: var(--text);
-            font-family: var(--mono);
-            font-size: 14px;
-            min-height: 100vh;
+            font-family: var(--font);
+            font-size: 15px;
         }
 
         body {
-            background: url('takiwaltek-logo.webp') fixed center/cover no-repeat,
-                        radial-gradient(ellipse at 50% 20%, rgba(0, 240, 255, 0.11), transparent 48%),
-                        radial-gradient(ellipse at 85% 80%, rgba(255, 43, 214, 0.08), transparent 42%),
-                        radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.75)),
-                        var(--bg);
-            background-size: cover, 140% 140%, 140% 140%, cover, 100% 100%;
-            background-attachment: fixed, scroll, scroll, fixed, scroll;
-            animation: ambientDrift 16s ease-in-out infinite alternate;
+            position: relative;
+            overflow-x: hidden;
         }
 
-        @keyframes ambientDrift {
-            0% { background-position: 0% 0%; }
-            100% { background-position: 100% 100%; }
-        }
-
-        #scan {
+        .bg-orbs {
             position: fixed;
             inset: 0;
-            z-index: 1;
+            z-index: 0;
             pointer-events: none;
-            background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.18) 0, rgba(0, 0, 0, 0.18) 1px, transparent 1px, transparent 3px);
-            mix-blend-mode: multiply;
+            overflow: hidden;
         }
 
-        .container {
+        .bg-orbs span {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(90px);
+            opacity: 0.28;
+            animation: drift 20s ease-in-out infinite alternate;
+        }
+
+        .bg-orbs span:nth-child(1) {
+            width: 480px;
+            height: 480px;
+            background: var(--accent);
+            top: -140px;
+            left: -120px;
+        }
+
+        .bg-orbs span:nth-child(2) {
+            width: 420px;
+            height: 420px;
+            background: var(--accent-2);
+            right: -140px;
+            top: 30%;
+            animation-duration: 24s;
+        }
+
+        .bg-orbs span:nth-child(3) {
+            width: 380px;
+            height: 380px;
+            background: #a78bfa;
+            bottom: -160px;
+            left: 35%;
+            animation-duration: 28s;
+        }
+
+        @keyframes drift {
+            from { transform: translate(0, 0) scale(1); }
+            to { transform: translate(70px, 50px) scale(1.12); }
+        }
+
+        .page {
             position: relative;
-            z-index: 2;
-            max-width: 1280px;
+            z-index: 1;
+            max-width: 1180px;
             margin: 0 auto;
-            padding: 20px 20px;
+            padding: 56px 24px 64px;
         }
 
-        header {
-            text-align: center;
-            margin-bottom: 15px;
-            animation: slideDown 0.8s ease-out;
-            padding: 12px 20px;
-            border-bottom: 2px solid rgba(0, 255, 156, 0.5);
-            background: linear-gradient(135deg, rgba(0, 255, 156, 0.08), rgba(0, 240, 255, 0.05));
-            background-color: rgba(6, 12, 16, 0.6);
-            backdrop-filter: blur(8px);
-            clip-path: polygon(0 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%);
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(18px); }
+            to { opacity: 1; transform: none; }
+        }
+
+        .hero {
+            padding: 12px 0 8px;
+            animation: fadeUp 0.7s ease-out backwards;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            margin: 0 0 18px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            background: rgba(0, 224, 138, 0.1);
+            color: var(--accent);
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
         }
 
         .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-            letter-spacing: 3px;
-            color: var(--g);
-            text-shadow: 0 0 20px rgba(0, 255, 156, 0.8), 0 0 40px rgba(0, 255, 156, 0.4);
-            margin: 0 0 3px;
+            margin: 0;
+            font-size: clamp(2.6rem, 6.5vw, 4.6rem);
+            font-weight: 800;
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+            background: linear-gradient(90deg, var(--text), var(--accent), var(--accent-2), var(--text));
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: shine 7s linear infinite;
+        }
+
+        @keyframes shine {
+            to { background-position: 300% 0; }
         }
 
         .tagline {
-            color: var(--dim);
-            font-size: 0.65rem;
-            letter-spacing: 1px;
-            margin: 0;
-        }
-
-        .games-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 20px;
-            padding: 0 20px;
-            margin-bottom: 30px;
-        }
-
-        .game-card {
-            background:
-                linear-gradient(135deg, rgba(0, 255, 156, 0.055), transparent 45%),
-                var(--panel);
-            border: 1px solid rgba(0, 255, 156, 0.48);
-            border-radius: 0;
-            clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
-            padding: 20px;
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.48), inset 0 1px rgba(255, 255, 255, 0.08), 0 0 18px rgba(0, 255, 156, 0.1);
-            transition: all 0.3s ease;
-            cursor: pointer;
-            animation: cardSlideIn 0.6s ease-out;
-            animation-fill-mode: both;
-        }
-
-        .game-icon {
-            font-size: 3rem;
-            margin-bottom: 10px;
-            display: block;
-        }
-
-        .game-title {
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: var(--c);
-            margin: 10px 0 8px;
-            letter-spacing: 1px;
-        }
-
-        .game-description {
-            color: var(--dim);
-            font-size: 0.85rem;
-            line-height: 1.5;
-            margin-bottom: 15px;
-        }
-
-        .game-stats {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
-            font-size: 0.75rem;
-            color: var(--dim);
-        }
-
-        section {
-            margin-top: 40px;
-            padding: 25px 20px;
-            border-top: 2px solid rgba(0, 255, 156, 0.3);
-            animation: slideUp 0.8s ease-out forwards;
-        }
-
-        .section-title {
-            font-size: 1.5rem;
-            color: var(--g);
-            letter-spacing: 2px;
-            margin: 0 0 20px;
-            text-shadow: 0 0 15px rgba(0, 255, 156, 0.5);
-        }
-
-        .content-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 15px;
-            margin-bottom: 15px;
-        }
-
-        .content-card {
-            background:
-                linear-gradient(135deg, rgba(0, 240, 255, 0.055), transparent 45%),
-                var(--panel);
-            border: 1px solid rgba(0, 240, 255, 0.4);
-            border-radius: 0;
-            clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
-            padding: 15px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), inset 0 1px rgba(255, 255, 255, 0.05);
-            transition: all 0.3s ease;
-        }
-
-        .content-card h3 {
-            color: var(--c);
-            margin: 0 0 8px;
+            margin: 14px 0 0;
+            color: var(--muted);
             font-size: 1rem;
-            letter-spacing: 1px;
         }
 
-        .content-card p {
-            color: var(--dim);
-            margin: 0 0 12px;
-            font-size: 0.85rem;
-            line-height: 1.4;
+        .hero-bar {
+            width: 140px;
+            height: 4px;
+            margin-top: 26px;
+            border-radius: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-2));
+            transform-origin: left;
+            animation: grow 0.9s ease-out 0.2s backwards;
         }
 
-        .play-btn {
-            display: inline-block;
-            background: linear-gradient(135deg, rgba(0, 255, 156, 0.15), rgba(0, 240, 255, 0.1));
-            border: 2px solid var(--g);
-            color: var(--g);
-            padding: 12px 28px;
-            font-family: var(--mono);
-            font-size: 0.95rem;
-            font-weight: bold;
-            letter-spacing: 1px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+        @keyframes grow {
+            from { transform: scaleX(0); }
+            to { transform: scaleX(1); }
         }
 
-        .play-btn:hover {
-            background: linear-gradient(135deg, rgba(0, 255, 156, 0.3), rgba(0, 240, 255, 0.2));
-            box-shadow: 0 0 20px rgba(0, 255, 156, 0.6);
-            transform: translateX(4px);
+        .hub {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 24px;
+            align-items: start;
+            margin-top: 40px;
         }
 
-        .content-card a,
-        .content-card button {
-            display: inline-block;
-            background: linear-gradient(135deg, rgba(0, 255, 156, 0.15), rgba(0, 240, 255, 0.1));
-            border: 2px solid var(--g);
-            color: var(--g) !important;
-            padding: 10px 20px;
-            font-family: var(--mono);
-            font-size: 0.85rem;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
-            margin-top: 5px;
+        .tiles {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 14px;
         }
 
-        .content-card a:hover,
-        .content-card button:hover {
-            background: linear-gradient(135deg, rgba(0, 255, 156, 0.3), rgba(0, 240, 255, 0.2));
-            box-shadow: 0 0 20px rgba(0, 255, 156, 0.6);
-            transform: translateX(3px);
-            color: var(--g) !important;
+        .tiles > * {
+            animation: fadeUp 0.6s ease-out backwards;
         }
 
-        .simple-btn {
-            display: inline-flex;
+        .tiles > *:nth-child(1) { animation-delay: 0.1s; }
+        .tiles > *:nth-child(2) { animation-delay: 0.16s; }
+        .tiles > *:nth-child(3) { animation-delay: 0.22s; }
+        .tiles > *:nth-child(4) { animation-delay: 0.28s; }
+        .tiles > *:nth-child(5) { animation-delay: 0.34s; }
+
+        .tile {
+            display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 12px;
-            background: linear-gradient(135deg, rgba(0, 255, 156, 0.08), rgba(0, 240, 255, 0.05));
-            border: 2px solid var(--g);
-            color: var(--g);
-            padding: 14px 28px;
-            font-family: var(--mono);
-            font-size: 0.95rem;
-            font-weight: bold;
-            letter-spacing: 1.5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            padding: 20px 22px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            color: var(--text);
+            font-size: 1rem;
+            font-weight: 600;
             text-decoration: none;
-            clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
-            box-shadow: 0 0 15px rgba(0, 255, 156, 0.3);
-            background-color: rgba(6, 12, 16, 0.6);
-            backdrop-filter: blur(8px);
+            cursor: pointer;
+            transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
         }
 
-        .btn-icon {
-            font-size: 1.6em;
-            line-height: 1;
+        .tile::after {
+            content: "→";
+            color: var(--muted);
+            transition: transform 0.25s ease, color 0.25s ease;
+        }
+
+        .tile:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+            background: var(--panel-2);
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+        }
+
+        .tile:hover::after {
+            transform: translateX(4px);
+            color: var(--accent);
         }
 
         .sat-menu {
@@ -277,386 +222,303 @@
             display: none;
         }
 
+        .sat-menu > summary::after {
+            content: "▾";
+            transition: transform 0.25s ease, color 0.25s ease;
+        }
+
         .sat-menu[open] > summary {
-            background: linear-gradient(135deg, rgba(0, 255, 156, 0.15), rgba(0, 240, 255, 0.1));
-            box-shadow: 0 0 30px rgba(0, 255, 156, 0.8);
+            border-color: var(--accent);
         }
 
-        .sat-menu-arrow {
-            font-size: 0.8em;
-            transition: transform 0.3s ease;
-        }
-
-        .sat-menu[open] .sat-menu-arrow {
+        .sat-menu[open] > summary::after {
             transform: rotate(180deg);
+            color: var(--accent);
         }
 
         .sat-menu-list {
             position: absolute;
-            top: calc(100% + 12px);
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 20;
-            min-width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            padding: 10px;
-            background-color: rgba(6, 12, 16, 0.95);
-            border: 2px solid var(--g);
-            box-shadow: 0 0 20px rgba(0, 255, 156, 0.4);
-            backdrop-filter: blur(8px);
+            top: calc(100% + 10px);
+            left: 0;
+            right: 0;
+            z-index: 30;
+            display: grid;
+            gap: 4px;
+            padding: 8px;
+            background: var(--panel-2);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            box-shadow: 0 22px 44px rgba(0, 0, 0, 0.5);
+            transform-origin: top;
+        }
+
+        .sat-menu[open] .sat-menu-list {
+            animation: menuIn 0.22s ease-out;
+        }
+
+        @keyframes menuIn {
+            from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+            to { opacity: 1; transform: none; }
         }
 
         .sat-menu-list a {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            white-space: nowrap;
-            padding: 10px 14px;
-            color: var(--g);
-            font-family: var(--mono);
-            font-size: 0.85rem;
-            font-weight: bold;
-            letter-spacing: 1px;
+            display: block;
+            padding: 12px 14px;
+            border-radius: 10px;
+            color: var(--text);
+            font-weight: 600;
             text-decoration: none;
-            border: 1px solid rgba(0, 255, 156, 0.4);
-            transition: all 0.2s ease;
+            transition: background 0.2s ease, color 0.2s ease, padding-left 0.2s ease;
         }
 
         .sat-menu-list a:hover {
-            background: rgba(0, 255, 156, 0.15);
-            box-shadow: 0 0 15px rgba(0, 255, 156, 0.6);
+            padding-left: 20px;
+            background: rgba(0, 224, 138, 0.12);
+            color: var(--accent);
         }
 
-        .simple-btn:hover {
-            background: linear-gradient(135deg, rgba(0, 255, 156, 0.15), rgba(0, 240, 255, 0.1));
-            background-color: rgba(6, 12, 16, 0.75);
-            box-shadow: 0 0 30px rgba(0, 255, 156, 0.8);
-            transform: translateY(-5px) scale(1.05);
-        }
-
-        .buttons-container {
+        .arcade {
             position: relative;
-            z-index: 10;
-            text-align: center;
-            margin-top: 30px;
-            padding: 35px 20px;
-            border-top: 2px solid rgba(0, 255, 156, 0.5);
-            border-bottom: 2px solid rgba(0, 255, 156, 0.5);
-            background: linear-gradient(180deg, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.55));
-            backdrop-filter: blur(12px);
-        }
-
-        .buttons-container > div {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 30px;
-            justify-content: center;
-            animation: buttonsIn 0.8s ease-out 0.3s both;
-        }
-
-        @keyframes buttonsIn {
-            from {
-                opacity: 0;
-                transform: translateY(30px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .mini-game-card {
-            background: linear-gradient(135deg, rgba(0, 255, 156, 0.055), transparent 45%), var(--panel);
-            border: 2px solid rgba(0, 255, 156, 0.6);
-            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-            padding: 15px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4), inset 0 1px rgba(255, 255, 255, 0.05), 0 0 15px rgba(0, 255, 156, 0.2);
-            transition: all 0.3s ease;
-            text-align: center;
-            animation: cardSlideIn 0.6s ease-out 0.4s both;
-        }
-
-        .mini-game-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 25px rgba(0, 255, 156, 0.4);
-            border-color: rgba(0, 255, 156, 0.9);
-        }
-
-        .mini-game-card h3 {
-            color: var(--g);
-            margin: 0 0 5px;
-            font-size: 1.2rem;
-            letter-spacing: 1px;
-            text-shadow: 0 0 10px rgba(0, 255, 156, 0.6);
-        }
-
-        .mini-game-card p {
-            color: var(--dim);
-            margin: 0 0 12px;
-            font-size: 0.85rem;
-        }
-
-        @media (max-width: 768px) {
-            .buttons-container > div {
-                grid-template-columns: 1fr !important;
-            }
-            .mini-game-card {
-                margin-top: 20px;
-            }
-        }
-
-        .steam-panel {
-            width: min(920px, calc(100% - 40px));
-            margin: 30px auto;
-            border: 1px solid rgba(0, 240, 255, 0.4);
-            border-radius: 8px;
-            background: linear-gradient(135deg, rgba(0, 240, 255, 0.06), transparent 45%), rgba(6, 12, 16, 0.85);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 240, 255, 0.1);
+            padding: 24px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
             overflow: hidden;
-            animation: slideUp 0.8s ease-out forwards;
+            animation: fadeUp 0.7s ease-out 0.25s backwards;
+            transition: transform 0.3s ease, border-color 0.3s ease;
         }
 
-        .steam-panel-bar {
+        .arcade::before {
+            content: "";
+            position: absolute;
+            inset: -60%;
+            background: conic-gradient(from 0deg, transparent 0deg, rgba(56, 189, 248, 0.22) 60deg, transparent 120deg);
+            animation: spin 9s linear infinite;
+            pointer-events: none;
+        }
+
+        .arcade:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-2);
+        }
+
+        .arcade > * {
+            position: relative;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .arcade h3 {
+            margin: 0 0 4px;
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        .arcade p {
+            margin: 0 0 18px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 18px;
+            border-radius: 10px;
+            background: var(--accent);
+            color: #04120b;
+            font-weight: 700;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(0, 224, 138, 0.3);
+        }
+
+        .steam {
+            margin-top: 44px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            overflow: hidden;
+            animation: fadeUp 0.7s ease-out 0.35s backwards;
+        }
+
+        .steam-head {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 12px;
-            padding: 8px 14px;
-            border-bottom: 1px solid rgba(0, 255, 156, 0.4);
-            background: linear-gradient(90deg, rgba(0, 255, 156, 0.15), rgba(0, 240, 255, 0.08));
-        }
-
-        .steam-dots {
-            display: flex;
-            gap: 5px;
-        }
-
-        .steam-dots i {
-            display: block;
-            width: 9px;
-            height: 9px;
-            border-radius: 50%;
-            background: rgba(0, 255, 156, 0.6);
+            padding: 18px 22px;
+            border-bottom: 1px solid var(--line);
         }
 
         .steam-title {
-            flex: 1;
             margin: 0;
-            font-size: 0.95rem;
-            color: var(--g);
-            letter-spacing: 2px;
-            text-shadow: 0 0 12px rgba(0, 255, 156, 0.6);
+            font-size: 1.05rem;
+            font-weight: 700;
         }
 
         .steam-updated {
-            font-size: 0.7rem;
-            color: var(--dim);
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            color: var(--muted);
+            font-size: 0.8rem;
         }
 
         .steam-list {
             display: flex;
-            gap: 10px;
+            gap: 14px;
             overflow-x: auto;
-            padding: 12px;
+            padding: 18px 22px 22px;
             scroll-snap-type: x mandatory;
             scrollbar-width: thin;
-            scrollbar-color: rgba(0, 255, 156, 0.6) rgba(0, 0, 0, 0.35);
         }
 
         .steam-item {
-            flex: 0 0 180px;
+            flex: 0 0 200px;
             display: flex;
             flex-direction: column;
+            gap: 8px;
+            overflow: hidden;
             scroll-snap-align: start;
-            text-decoration: none;
+            background: var(--panel-2);
+            border: 1px solid var(--line);
+            border-radius: 12px;
             color: inherit;
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid rgba(0, 240, 255, 0.25);
-            transition: border-color 0.2s ease, transform 0.2s ease;
+            text-decoration: none;
+            transition: transform 0.25s ease, border-color 0.25s ease;
         }
 
         .steam-item:hover {
-            border-color: var(--c);
-            transform: translateY(-2px);
+            transform: translateY(-4px);
+            border-color: var(--accent-2);
         }
 
         .steam-item img {
             display: block;
             width: 100%;
-            height: 84px;
+            height: 94px;
             object-fit: cover;
         }
 
         .steam-item-name {
-            padding: 6px 8px 2px;
-            font-size: 0.75rem;
-            color: var(--c);
-            white-space: nowrap;
+            padding: 0 12px;
             overflow: hidden;
+            font-size: 0.9rem;
+            font-weight: 600;
             text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .steam-item-price {
-            padding: 0 8px 7px;
-            font-size: 0.7rem;
-            color: var(--dim);
+            padding: 0 12px 12px;
+            color: var(--muted);
+            font-size: 0.85rem;
         }
 
         .steam-discount {
-            margin-right: 6px;
-            font-weight: bold;
-            color: var(--g);
+            display: inline-block;
+            margin-right: 8px;
+            padding: 2px 6px;
+            border-radius: 6px;
+            background: var(--accent);
+            color: #04120b;
+            font-size: 0.75rem;
+            font-weight: 700;
         }
 
         .loading {
+            padding: 8px 0;
+            color: var(--muted);
+        }
+
+        .site-footer {
+            margin-top: 48px;
+            padding-top: 24px;
+            border-top: 1px solid var(--line);
+            color: var(--muted);
+            font-size: 0.85rem;
             text-align: center;
-            color: var(--dim);
-            padding: 20px;
-            font-size: 0.9rem;
+            animation: fadeUp 0.7s ease-out 0.45s backwards;
         }
 
-        .video-embed {
-            position: relative;
-            width: 100%;
-            padding-bottom: 56.25%;
-            margin-bottom: 15px;
-            overflow: hidden;
-            border: 1px solid rgba(0, 255, 156, 0.3);
-            clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px);
-        }
-
-        .video-embed iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-
-        .links-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .link-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px;
-            background: rgba(0, 240, 255, 0.05);
-            border-left: 3px solid var(--c);
-            transition: all 0.2s;
-        }
-
-        .link-item:hover {
-            background: rgba(0, 240, 255, 0.15);
-            transform: translateX(5px);
-        }
-
-        .link-item a {
-            color: var(--c);
-            text-decoration: none;
-            flex: 1;
-            font-size: 0.9rem;
-        }
-
-        .link-item a:hover {
-            text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
-        }
-
-        footer {
-            text-align: center;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(0, 255, 156, 0.2);
-            color: var(--dim);
-            font-size: 0.8rem;
+        .site-footer p {
+            margin: 4px 0;
         }
 
         .footer-link {
-            color: var(--c);
+            color: var(--accent-2);
             text-decoration: none;
-            transition: all 0.2s;
         }
 
         .footer-link:hover {
-            text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+            text-decoration: underline;
         }
 
-        @media (max-width: 768px) {
-            .logo {
-                font-size: 1.8rem;
-            }
-            .games-grid,
-            .content-grid {
+        @media (max-width: 860px) {
+            .hub {
                 grid-template-columns: 1fr;
-                gap: 15px;
             }
-            .game-card,
-            .content-card {
-                padding: 15px;
+        }
+
+        @media (max-width: 560px) {
+            .page {
+                padding: 36px 16px 48px;
             }
-            .section-title {
-                font-size: 1.2rem;
+            .tiles {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation: none !important;
+                transition: none !important;
             }
         }
     </style>
 </head>
 <body>
-    <div id="scan"></div>
+    <div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
 
-    <div class="container">
-        <header>
-            <h1 class="logo">ATELIER DE TAKI</h1>
-            <p class="tagline">GAMES COLLECTION · ROOT@TAKIWALTEK.FR/GAMES</p>
+    <main class="page">
+        <header class="hero">
+            <span class="eyebrow">Games collection</span>
+            <h1 class="logo">Atelier de Taki</h1>
+            <p class="tagline">root@takiwaltek.fr/games</p>
+            <div class="hero-bar" aria-hidden="true"></div>
         </header>
 
-        <!-- 4 BOUTONS + PETIT JEU -->
-        <div class="buttons-container">
-            <div style="display: grid; grid-template-columns: 1fr 250px; gap: 30px; align-items: center; max-width: 1200px; margin: 0 auto;">
-                <!-- Boutons -->
-                <div style="display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; animation: buttonsIn 0.8s ease-out 0.3s both;">
-                    <a href="https://www.youtube.com/@takiwaltek" target="_blank" class="simple-btn"><span class="btn-icon" aria-hidden="true">📹</span>VIDÉOS</a>
-                    <a href="https://soundcloud.com/takiwalte" target="_blank" class="simple-btn"><span class="btn-icon" aria-hidden="true">🎵</span>SON</a>
-                    <a href="https://www.caracterespeciaux.com/" target="_blank" class="simple-btn"><span class="btn-icon" aria-hidden="true">🔤</span>CARACTÈRES</a>
-                    <a href="https://www.dafont.com/fr/" target="_blank" class="simple-btn"><span class="btn-icon" aria-hidden="true">🔤</span>POLICES</a>
-                    <details class="sat-menu">
-                        <summary class="simple-btn"><span class="btn-icon" aria-hidden="true">🏭</span>SATISFACTORY <span class="sat-menu-arrow" aria-hidden="true">▼</span></summary>
-                        <div class="sat-menu-list">
-                            <a href="./calculateur/index.html"><span aria-hidden="true">🏭</span>CALCULATEUR</a>
-                            <a href="./carte/index.html"><span aria-hidden="true">🗺️</span>CARTE DE LA BASE</a>
-                            <a href="https://satisfactory-calculator.com/fr/interactive-map#3;49935;130005|gameLayer|limestonePure;ironPure;copperPure;cateriumPure;coalPure;oilPure;hardDrives" target="_blank" rel="noopener"><span aria-hidden="true">🛰️</span>CARTE OFFICIELLE</a>
-                        </div>
-                    </details>
-                </div>
-                <!-- Mini Jeu -->
-                <div class="mini-game-card">
-                    <h3>💻 NEON</h3>
-                    <p>Idle Game</p>
-                    <a href="./1/index.html" class="play-btn" style="padding: 10px 20px; font-size: 0.85rem;">JOUER ▶</a>
-                </div>
-            </div>
-        </div>
+        <section class="hub">
+            <nav class="tiles" aria-label="Liens">
+                <a class="tile" href="https://www.youtube.com/@takiwaltek" target="_blank" rel="noopener">Vidéos</a>
+                <a class="tile" href="https://soundcloud.com/takiwalte" target="_blank" rel="noopener">Son</a>
+                <a class="tile" href="https://www.caracterespeciaux.com/" target="_blank" rel="noopener">Caractères</a>
+                <a class="tile" href="https://www.dafont.com/fr/" target="_blank" rel="noopener">Polices</a>
+                <details class="sat-menu">
+                    <summary class="tile">Satisfactory</summary>
+                    <div class="sat-menu-list">
+                        <a href="./calculateur/index.html">Calculateur</a>
+                        <a href="./carte/index.html">Carte de la base</a>
+                        <a href="https://satisfactory-calculator.com/fr/interactive-map#3;49935;130005|gameLayer|limestonePure;ironPure;copperPure;cateriumPure;coalPure;oilPure;hardDrives" target="_blank" rel="noopener">Carte officielle</a>
+                    </div>
+                </details>
+            </nav>
 
-        <!-- STEAM NOUVEAUTÉS -->
-        <section class="steam-panel" aria-labelledby="steam-title">
-            <div class="steam-panel-bar">
-                <span class="steam-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-                <h2 class="steam-title" id="steam-title">🎮 NOUVEAUTÉS STEAM</h2>
+            <aside class="arcade">
+                <h3>NEON</h3>
+                <p>Idle game</p>
+                <a href="./1/index.html" class="btn-primary">Jouer →</a>
+            </aside>
+        </section>
+
+        <section class="steam" aria-labelledby="steam-title">
+            <div class="steam-head">
+                <h2 class="steam-title" id="steam-title">Nouveautés Steam</h2>
                 <span class="steam-updated" id="steam-updated"></span>
             </div>
             <div class="steam-list" id="steam-grid">
@@ -664,11 +526,11 @@
             </div>
         </section>
 
-        <footer>
+        <footer class="site-footer">
             <p>© 2025 Atelier de Taki · Tous droits réservés</p>
             <p>Développé avec passion · <a href="https://github.com/Takiwaltek/Games" class="footer-link">GitHub</a></p>
         </footer>
-    </div>
+    </main>
 
     <script>
         // Nouveautés Steam : fichier généré par scripts/fetch-steam-news.mjs au déploiement
