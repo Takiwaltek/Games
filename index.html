@@ -34,6 +34,17 @@
             overflow-x: hidden;
         }
 
+        .bg-photo {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(180deg, rgba(10, 12, 16, 0.55), rgba(10, 12, 16, 0.92)),
+                url('takiwaltek-logo.webp') center / cover no-repeat;
+            opacity: 0.6;
+        }
+
         .bg-orbs {
             position: fixed;
             inset: 0;
@@ -483,6 +494,7 @@
     </style>
 </head>
 <body>
+    <div class="bg-photo" aria-hidden="true"></div>
     <div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
 
     <main class="page">
