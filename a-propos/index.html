@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>À propos · Atelier de Takiwaltek</title>
+    <style>
+        @font-face {
+            font-family: "Astral Delight";
+            src: url('../fonts/AstralDelight-Black.ttf') format('truetype');
+            font-weight: 900;
+            font-display: swap;
+        }
+
+        :root {
+            --bg: #0a0c10;
+            --panel: #121620;
+            --line: #252c3b;
+            --text: #e6edf3;
+            --muted: #8b96a8;
+            --accent: #00e08a;
+            --accent-2: #38bdf8;
+            --font: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .bg-photo {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(180deg, rgba(10, 12, 16, 0.6), rgba(10, 12, 16, 0.94)),
+                url('../takiwaltek-logo.webp') center / cover no-repeat;
+            opacity: 0.5;
+        }
+
+        .page {
+            position: relative;
+            z-index: 1;
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 40px 24px 64px;
+        }
+
+        .back {
+            display: inline-block;
+            margin-bottom: 28px;
+            color: var(--accent);
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .back:hover { text-decoration: underline; }
+
+        h1 {
+            margin: 0 0 8px;
+            font-family: "Astral Delight", var(--font);
+            font-size: clamp(2.2rem, 6vw, 3.4rem);
+            font-weight: 900;
+            line-height: 1.1;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, var(--text), var(--accent), var(--accent-2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .lead {
+            margin: 0 0 32px;
+            color: var(--muted);
+            font-size: 1.05rem;
+        }
+
+        h2 {
+            margin: 36px 0 12px;
+            color: var(--accent);
+            font-size: 1.15rem;
+        }
+
+        .card {
+            display: block;
+            margin-bottom: 12px;
+            padding: 16px 18px;
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            background: var(--panel);
+            color: inherit;
+            text-decoration: none;
+            transition: border-color 0.15s ease, transform 0.15s ease;
+        }
+
+        .card:hover {
+            border-color: var(--accent-2);
+            transform: translateY(-2px);
+        }
+
+        .card strong {
+            display: block;
+            color: var(--text);
+        }
+
+        .card span {
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        footer {
+            margin-top: 48px;
+            padding-top: 20px;
+            border-top: 1px solid var(--line);
+            color: var(--muted);
+            font-size: 0.85rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-photo" aria-hidden="true"></div>
+
+    <main class="page">
+        <a class="back" href="../index.html">← Retour à l'accueil</a>
+
+        <h1>À propos</h1>
+        <p class="lead">Atelier de Takiwaltek est un petit coin du web qui regroupe mes projets, mes outils et quelques liens utiles.</p>
+
+        <h2>Ce que vous trouverez</h2>
+
+        <a class="card" href="../calculateur/index.html">
+            <strong>Calculateur Satisfactory</strong>
+            <span>Outil de calcul de production pour Satisfactory.</span>
+        </a>
+
+        <a class="card" href="../carte/index.html">
+            <strong>Carte de la base</strong>
+            <span>Plan de ma base dans Satisfactory.</span>
+        </a>
+
+        <a class="card" href="../1/index.html">
+            <strong>NEON</strong>
+            <span>Un idle game à jouer dans le navigateur.</span>
+        </a>
+
+        <a class="card" href="https://www.youtube.com/@takiwaltek" target="_blank" rel="noopener">
+            <strong>Vidéos</strong>
+            <span>Ma chaîne YouTube.</span>
+        </a>
+
+        <a class="card" href="https://soundcloud.com/takiwalte" target="_blank" rel="noopener">
+            <strong>Son</strong>
+            <span>Mon profil SoundCloud.</span>
+        </a>
+
+        <a class="card" href="https://www.dafont.com/fr/" target="_blank" rel="noopener">
+            <strong>Ressources</strong>
+            <span>Sites de polices et de caractères spéciaux.</span>
+        </a>
+
+        <footer>
+            <p>© 2025 Atelier de Takiwaltek · Tous droits réservés</p>
+        </footer>
+    </main>
+</body>
+</html>

@@ -548,6 +548,54 @@
             }
         }
 
+        .intro {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            background:
+                radial-gradient(circle at 50% 40%, rgba(0, 224, 138, 0.12), transparent 60%),
+                var(--bg);
+            transition: opacity 0.5s ease, visibility 0.5s;
+        }
+
+        .intro[hidden] {
+            display: none;
+        }
+
+        .intro.leaving {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .intro-inner {
+            text-align: center;
+            animation: fadeUp 0.7s ease-out backwards;
+        }
+
+        .intro .logo {
+            font-size: clamp(2.4rem, 8vw, 5rem);
+        }
+
+        .intro .hero-bar {
+            margin: 24px auto 36px;
+        }
+
+        .intro-btn {
+            border: 0;
+            font: inherit;
+            font-size: 1.05rem;
+            cursor: pointer;
+        }
+
+        .intro-btn:focus-visible {
+            outline: 3px solid var(--accent-2);
+            outline-offset: 4px;
+        }
+
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
                 animation: none !important;
@@ -557,6 +605,14 @@
     </style>
 </head>
 <body>
+    <div class="intro" id="intro" hidden>
+        <div class="intro-inner">
+            <p class="logo">Atelier de Takiwaltek</p>
+            <div class="hero-bar" aria-hidden="true"></div>
+            <button type="button" class="btn-primary intro-btn" id="intro-enter">Entrer →</button>
+        </div>
+    </div>
+
     <div class="bg-photo" aria-hidden="true"></div>
     <div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
 
@@ -607,6 +663,7 @@
 
         <footer class="site-footer">
             <p>© 2025 Atelier de Takiwaltek · Tous droits réservés</p>
+            <p><a href="./a-propos/index.html" class="footer-link">À propos</a></p>
             <p>Développé avec passion · <a href="https://github.com/Takiwaltek/Games" class="footer-link">GitHub</a></p>
         </footer>
     </main>
@@ -667,7 +724,26 @@
             }
         }
 
-        document.addEventListener('DOMContentLoaded', loadSteamNews);
+        // Écran d'accueil affiché une fois par session de navigation
+        function setupIntro() {
+            if (sessionStorage.getItem('intro-seen')) return;
+
+            const intro = document.getElementById('intro');
+            const enter = document.getElementById('intro-enter');
+            intro.hidden = false;
+            enter.focus();
+
+            enter.addEventListener('click', () => {
+                sessionStorage.setItem('intro-seen', '1');
+                intro.classList.add('leaving');
+                setTimeout(() => { intro.hidden = true; }, 500);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            setupIntro();
+            loadSteamNews();
+        });
     </script>
 </body>
 </html>
