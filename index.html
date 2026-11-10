@@ -12,6 +12,13 @@
             font-display: swap;
         }
 
+        @font-face {
+            font-family: "Broadway";
+            src: url('fonts/Broadway-Regular.ttf') format('truetype');
+            font-weight: 400;
+            font-display: swap;
+        }
+
         :root {
             --bg: #0a0c10;
             --panel: #121620;
@@ -199,8 +206,9 @@
             border: 1px solid var(--line);
             border-radius: var(--radius);
             color: var(--text);
-            font-size: 1rem;
-            font-weight: 600;
+            font-family: "Broadway", var(--font);
+            font-size: 1.25rem;
+            font-weight: 400;
             text-decoration: none;
             cursor: pointer;
             transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
@@ -292,7 +300,9 @@
             padding: 12px 14px;
             border-radius: 10px;
             color: var(--text);
-            font-weight: 600;
+            font-family: "Broadway", var(--font);
+            font-size: 1.15rem;
+            font-weight: 400;
             text-decoration: none;
             transition: background 0.2s ease, color 0.2s ease, padding-left 0.2s ease;
         }
