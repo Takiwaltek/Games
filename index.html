@@ -181,10 +181,17 @@
         }
 
         .tiles {
+            --c: #10b981;
+            --d: #065f46;
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             gap: 14px;
         }
+
+        .tiles > :nth-child(1) { --c: #e11d48; --d: #9f1239; }
+        .tiles > :nth-child(2) { --c: #0ea5e9; --d: #075985; }
+        .tiles > :nth-child(3) { --c: #8b5cf6; --d: #4c1d95; }
+        .tiles > :nth-child(4) { --c: #10b981; --d: #065f46; }
 
         .tiles > * {
             animation: fadeUp 0.6s ease-out backwards;
@@ -202,34 +209,40 @@
             justify-content: space-between;
             gap: 12px;
             padding: 20px 22px;
-            background: var(--panel);
-            border: 1px solid var(--line);
+            background: linear-gradient(180deg, var(--c), var(--d));
+            border: 1px solid rgba(255, 255, 255, 0.18);
             border-radius: var(--radius);
-            color: var(--text);
+            color: #fff;
             font-family: "Batman Forever", var(--font);
             font-size: 1.25rem;
             font-weight: 400;
             text-decoration: none;
+            text-shadow: 0 3px 0 var(--d);
             cursor: pointer;
-            transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease;
+            box-shadow: 0 6px 0 var(--d), 0 14px 24px rgba(0, 0, 0, 0.45);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.2s ease;
         }
 
         .tile::after {
             content: "→";
-            color: var(--muted);
-            transition: transform 0.25s ease, color 0.25s ease;
+            color: #fff;
+            text-shadow: 0 3px 0 var(--d);
+            transition: transform 0.25s ease;
         }
 
         .tile:hover {
-            transform: translateY(-4px);
-            border-color: var(--accent);
-            background: var(--panel-2);
-            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+            transform: translateY(-3px);
+            filter: brightness(1.08);
+            box-shadow: 0 9px 0 var(--d), 0 18px 30px rgba(0, 0, 0, 0.5);
         }
 
         .tile:hover::after {
             transform: translateX(4px);
-            color: var(--accent);
+        }
+
+        .tile:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 var(--d), 0 6px 12px rgba(0, 0, 0, 0.4);
         }
 
         .sat-menu {
@@ -237,15 +250,10 @@
         }
 
         .menu-title {
-            background: linear-gradient(90deg, var(--accent), var(--accent-2), #a78bfa, var(--accent));
-            background-size: 300% 100%;
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
+            color: #fff;
             font-weight: 800;
             letter-spacing: 0.14em;
             text-transform: uppercase;
-            animation: shine 6s linear infinite;
         }
 
         .sat-menu > summary {
@@ -277,8 +285,8 @@
             right: 0;
             z-index: 30;
             display: grid;
-            gap: 4px;
-            padding: 8px;
+            gap: 10px;
+            padding: 10px;
             background: var(--panel-2);
             border: 1px solid var(--line);
             border-radius: 14px;
@@ -299,18 +307,26 @@
             display: block;
             padding: 12px 14px;
             border-radius: 10px;
-            color: var(--text);
+            background: linear-gradient(180deg, var(--c), var(--d));
+            color: #fff;
             font-family: "Batman Forever", var(--font);
             font-size: 1.15rem;
             font-weight: 400;
             text-decoration: none;
-            transition: background 0.2s ease, color 0.2s ease, padding-left 0.2s ease;
+            text-shadow: 0 2px 0 var(--d);
+            box-shadow: 0 4px 0 var(--d);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.2s ease;
         }
 
         .sat-menu-list a:hover {
-            padding-left: 20px;
-            background: rgba(0, 224, 138, 0.12);
-            color: var(--accent);
+            transform: translateY(-2px);
+            filter: brightness(1.08);
+            box-shadow: 0 6px 0 var(--d);
+        }
+
+        .sat-menu-list a:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 var(--d);
         }
 
         .arcade {
@@ -359,21 +375,29 @@
         }
 
         .btn-primary {
+            --c: #00e08a;
+            --d: #00704a;
             display: inline-flex;
             align-items: center;
             gap: 8px;
             padding: 11px 18px;
             border-radius: 10px;
-            background: var(--accent);
+            background: linear-gradient(180deg, var(--c), #00b872);
             color: #04120b;
             font-weight: 700;
             text-decoration: none;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            box-shadow: 0 5px 0 var(--d);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 24px rgba(0, 224, 138, 0.3);
+            box-shadow: 0 7px 0 var(--d), 0 10px 24px rgba(0, 224, 138, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 var(--d);
         }
 
         .steam {
@@ -415,6 +439,8 @@
         }
 
         .steam-item {
+            --c: #0ea5e9;
+            --d: #075985;
             flex: 0 0 200px;
             display: flex;
             flex-direction: column;
@@ -426,12 +452,14 @@
             border-radius: 12px;
             color: inherit;
             text-decoration: none;
-            transition: transform 0.25s ease, border-color 0.25s ease;
+            box-shadow: 0 5px 0 var(--d);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.25s ease;
         }
 
         .steam-item:hover {
-            transform: translateY(-4px);
-            border-color: var(--accent-2);
+            transform: translateY(-3px);
+            border-color: var(--c);
+            box-shadow: 0 8px 0 var(--d);
         }
 
         .steam-item img {
@@ -487,12 +515,17 @@
         }
 
         .footer-link {
-            color: var(--accent-2);
+            --c: #38bdf8;
+            --d: #075985;
+            color: var(--c);
+            font-weight: 700;
             text-decoration: none;
+            text-shadow: 0 2px 0 var(--d);
         }
 
         .footer-link:hover {
             text-decoration: underline;
+            filter: brightness(1.15);
         }
 
         @media (max-width: 860px) {
@@ -506,7 +539,12 @@
                 padding: 36px 16px 48px;
             }
             .tiles {
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .tile {
+                gap: 8px;
+                padding: 18px 12px;
+                font-size: 0.8rem;
             }
         }
 
