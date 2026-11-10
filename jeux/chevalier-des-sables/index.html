@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chevalier des sables · Atelier de Takiwaltek</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #070b16;
+            color: #e2e8f0;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+        header {
+            width: min(94vw, 640px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 0 10px;
+        }
+        header a { color: #67e8f9; text-decoration: none; font-weight: 600; }
+        h1 { margin: 0; font-size: 1.25rem; }
+        .hud {
+            width: min(94vw, 640px);
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+        .stage { position: relative; width: min(94vw, 640px); }
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: #000;
+            border: 2px solid #1e293b;
+            border-radius: 10px;
+            touch-action: none;
+        }
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 16px;
+            text-align: center;
+            background: rgba(7, 11, 22, 0.8);
+            border-radius: 10px;
+        }
+        .overlay[hidden] { display: none; }
+        .overlay p { margin: 0; line-height: 1.5; white-space: pre-line; }
+        button {
+            font: inherit;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(180deg, #22d3ee, #0e7490);
+            border: 0;
+            border-radius: 10px;
+            padding: 12px 22px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #155e75;
+        }
+        button:active { transform: translateY(3px); box-shadow: 0 2px 0 #155e75; }
+        .pad {
+            margin-top: 14px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .pad button {
+            width: 78px;
+            height: 58px;
+            padding: 0;
+            font-size: 1.3rem;
+            background: #1e293b;
+            box-shadow: 0 5px 0 #0f172a;
+            user-select: none;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .pad { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="../../index.html">← Accueil</a>
+        <h1>Chevalier des sables</h1>
+    </header>
+
+    <div class="hud">
+        <span id="score">Score : 0</span>
+        <span id="gems">Gemmes : 0/9</span>
+        <span id="lives">♥♥♥</span>
+    </div>
+
+    <div class="stage">
+        <canvas id="game" width="640" height="384" aria-label="Jeu Chevalier des sables"></canvas>
+        <div class="overlay" id="overlay">
+            <p id="msg"></p>
+            <button id="start" type="button">Commencer</button>
+        </div>
+    </div>
+
+    <div class="pad" aria-hidden="true">
+        <button type="button" data-key="left">◀</button>
+        <button type="button" data-key="jump">⤒</button>
+        <button type="button" data-key="right">▶</button>
+    </div>
+
+    <script>
+    (() => {
+        const T = 32;
+        const COLS = 50;
+        const ROWS = 12;
+        const VW = 640;
+        const VH = 384;
+        const PW = 22;
+        const PH = 28;
+        const GRAV = 0.55;
+        const JUMP = -11;
+        const MAXVY = 14;
+        const ACC = 0.7;
+        const MAXVX = 4.2;
+        const EW = 28;
+        const EH = 28;
+
+        const SOLID_RECTS = [
+            [0, 0, 1, 10],
+            [49, 0, 1, 10],
+            [0, 10, 12, 2],
+            [16, 10, 8, 2],
+            [28, 10, 22, 2],
+            [4, 7, 4, 1],
+            [10, 4, 3, 1],
+            [20, 7, 4, 1],
+            [30, 7, 3, 1],
+            [36, 4, 4, 1],
+            [44, 7, 4, 1]
+        ];
+        const SPIKES = [[7, 9], [8, 9], [31, 9], [32, 9]];
+        const CHECKPOINTS = [[19, 9], [40, 9]];
+        const EXIT = [46, 9];
+        const GEMS = [[5, 6], [6, 6], [11, 3], [19, 8], [21, 6], [31, 6], [37, 3], [38, 3], [45, 6]];
+        const ENEMY_DEFS = [
+            { tx: 33, top: 10, min: 28, max: 40 },
+            { tx: 5, top: 7, min: 4, max: 7 },
+            { tx: 44, top: 10, min: 41, max: 48 }
+        ];
+        const START = { tx: 3, top: 10 };
+
+        const canvas = document.getElementById("game");
+        const ctx = canvas.getContext("2d");
+        const scoreEl = document.getElementById("score");
+        const gemsEl = document.getElementById("gems");
+        const livesEl = document.getElementById("lives");
+        const overlay = document.getElementById("overlay");
+        const msgEl = document.getElementById("msg");
+        const startBtn = document.getElementById("start");
+
+        const solid = new Uint8Array(COLS * ROWS);
+        for (const [x, y, w, h] of SOLID_RECTS) {
+            for (let j = y; j < y + h; j++) {
+                for (let i = x; i < x + w; i++) {
+                    if (i >= 0 && i < COLS && j >= 0 && j < ROWS) solid[j * COLS + i] = 1;
+                }
+            }
+        }
+
+        const solidAt = (tx, ty) => {
+            if (tx < 0 || tx >= COLS) return true;
+            if (ty < 0 || ty >= ROWS) return false;
+            return solid[ty * COLS + tx] === 1;
+        };
+
+        const collides = (x, y) => {
+            const x0 = Math.floor(x / T);
+            const x1 = Math.floor((x + PW - 1) / T);
+            const y0 = Math.floor(y / T);
+            const y1 = Math.floor((y + PH - 1) / T);
+            for (let ty = y0; ty <= y1; ty++) {
+                for (let tx = x0; tx <= x1; tx++) {
+                    if (solidAt(tx, ty)) return true;
+                }
+            }
+            return false;
+        };
+
+        const overlaps = (ax, ay, aw, ah, bx, by, bw, bh) =>
+            ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+
+        const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+        const keys = { left: false, right: false };
+        let jumpQueued = false;
+        let p, spawn, enemies, gems, checkpointsOn, score, lives, state, won, inv, camX;
+
+        function resetLevel(full) {
+            spawn = { x: START.tx * T, y: START.top * T - PH };
+            p = { x: spawn.x, y: spawn.y, vx: 0, vy: 0, onGround: false };
+            enemies = ENEMY_DEFS.map(d => ({
+                x: d.tx * T,
+                y: d.top * T - EH,
+                dir: 1,
+                min: d.min * T,
+                max: d.max * T - EW,
+                alive: true
+            }));
+            if (full) {
+                gems = GEMS.map(([tx, ty]) => ({ tx, ty, got: false }));
+                checkpointsOn = CHECKPOINTS.map(() => false);
+                score = 0;
+                lives = 3;
+            }
+            inv = 0;
+            won = false;
+            camX = 0;
+        }
+
+        function updateHud() {
+            scoreEl.textContent = "Score : " + score;
+            gemsEl.textContent = "Gemmes : " + gems.filter(g => g.got).length + "/" + GEMS.length;
+            livesEl.textContent = "♥".repeat(Math.max(lives, 0));
+        }
+
+        function showOverlay(text, button) {
+            msgEl.textContent = text;
+            startBtn.textContent = button;
+            overlay.hidden = false;
+        }
+
+        function newGame() {
+            resetLevel(true);
+            state = "playing";
+            overlay.hidden = true;
+            updateHud();
+        }
+
+        function hurt() {
+            lives--;
+            updateHud();
+            if (lives <= 0) {
+                state = "over";
+                showOverlay("Le chevalier est tombé. Score : " + score, "Rejouer");
+                return;
+            }
+            p.x = spawn.x;
+            p.y = spawn.y;
+            p.vx = 0;
+            p.vy = 0;
+            inv = 90;
+        }
+
+        function winLevel() {
+            state = "won";
+            showOverlay("Bravo ! Le chevalier a traversé les sables.\nScore : " + score, "Rejouer");
+        }
+
+        function moveX() {
+            const n = Math.ceil(Math.abs(p.vx));
+            if (n === 0) return;
+            const step = p.vx / n;
+            for (let i = 0; i < n; i++) {
+                p.x += step;
+                if (collides(p.x, p.y)) {
+                    p.x -= step;
+                    p.vx = 0;
+                    break;
+                }
+            }
+        }
+
+        function moveY() {
+            const n = Math.ceil(Math.abs(p.vy));
+            if (n === 0) return;
+            const step = p.vy / n;
+            for (let i = 0; i < n; i++) {
+                p.y += step;
+                if (collides(p.x, p.y)) {
+                    p.y -= step;
+                    p.vy = 0;
+                    break;
+                }
+            }
+        }
+
+        function update() {
+            if (inv > 0) inv--;
+
+            if (keys.right) p.vx += ACC;
+            if (keys.left) p.vx -= ACC;
+            if (!keys.left && !keys.right) p.vx *= p.onGround ? 0.6 : 0.95;
+            p.vx = clamp(p.vx, -MAXVX, MAXVX);
+            if (Math.abs(p.vx) < 0.05) p.vx = 0;
+
+            if (jumpQueued && p.onGround) {
+                p.vy = JUMP;
+            }
+            jumpQueued = false;
+
+            p.vy = Math.min(p.vy + GRAV, MAXVY);
+            moveX();
+            moveY();
+            p.onGround = collides(p.x, p.y + 1);
+
+            for (const e of enemies) {
+                if (!e.alive) continue;
+                e.x += e.dir * 1.1;
+                if (e.x <= e.min) { e.x = e.min; e.dir = 1; }
+                if (e.x >= e.max) { e.x = e.max; e.dir = -1; }
+            }
+
+            for (const e of enemies) {
+                if (!e.alive) continue;
+                if (overlaps(p.x, p.y, PW, PH, e.x, e.y, EW, EH)) {
+                    if (p.vy > 0 && p.y + PH - e.y < 16) {
+                        e.alive = false;
+                        p.vy = -8;
+                        score += 50;
+                    } else if (inv === 0) {
+                        hurt();
+                        updateHud();
+                        return;
+                    }
+                }
+            }
+
+            for (const [tx, ty] of SPIKES) {
+                if (overlaps(p.x, p.y, PW, PH, tx * T + 4, ty * T + 8, T - 8, T - 8) && inv === 0) {
+                    hurt();
+                    updateHud();
+                    return;
+                }
+            }
+
+            if (p.y > VH + 40 && inv === 0) {
+                hurt();
+                updateHud();
+                return;
+            }
+
+            CHECKPOINTS.forEach(([tx, ty], i) => {
+                if (!checkpointsOn[i] && overlaps(p.x, p.y, PW, PH, tx * T, ty * T, T, T)) {
+                    checkpointsOn[i] = true;
+                    spawn = { x: tx * T, y: START.top * T - PH };
+                }
+            });
+
+            for (const g of gems) {
+                if (!g.got && overlaps(p.x, p.y, PW, PH, g.tx * T + 8, g.ty * T + 8, T - 16, T - 16)) {
+                    g.got = true;
+                    score += 10;
+                }
+            }
+
+            if (overlaps(p.x, p.y, PW, PH, EXIT[0] * T, EXIT[1] * T, T, T)) {
+                winLevel();
+                return;
+            }
+
+            camX = clamp(p.x + PW / 2 - VW / 2, 0, COLS * T - VW);
+            updateHud();
+        }
+
+        function drawBackground(now) {
+            const grad = ctx.createLinearGradient(0, 0, 0, VH);
+            grad.addColorStop(0, "#7dd3fc");
+            grad.addColorStop(1, "#fde68a");
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, VW, VH);
+
+            ctx.fillStyle = "#f5c46b";
+            for (let i = 0; i < 8; i++) {
+                const span = 1100;
+                const bx = (((i * 240 - camX * 0.35) % span) + span) % span - 200;
+                ctx.beginPath();
+                ctx.ellipse(bx, VH - 40, 200, 110, 0, Math.PI, 0);
+                ctx.fill();
+            }
+        }
+
+        function drawWorld(now) {
+            for (let ty = 0; ty < ROWS; ty++) {
+                for (let tx = 0; tx < COLS; tx++) {
+                    if (!solidAt(tx, ty)) continue;
+                    const x = tx * T;
+                    const y = ty * T;
+                    ctx.fillStyle = "#b45309";
+                    ctx.fillRect(x, y, T, T);
+                    ctx.fillStyle = "rgba(0,0,0,0.12)";
+                    ctx.fillRect(x, y + T / 2, T, 2);
+                    if (!solidAt(tx, ty - 1)) {
+                        ctx.fillStyle = "#f59e0b";
+                        ctx.fillRect(x, y, T, 6);
+                    }
+                }
+            }
+
+            ctx.fillStyle = "#e2e8f0";
+            for (const [tx, ty] of SPIKES) {
+                const x = tx * T;
+                const base = ty * T + T;
+                for (let k = 0; k < 3; k++) {
+                    const sx = x + k * (T / 3);
+                    ctx.beginPath();
+                    ctx.moveTo(sx, base);
+                    ctx.lineTo(sx + T / 6, base - T * 0.6);
+                    ctx.lineTo(sx + T / 3, base);
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            }
+
+            CHECKPOINTS.forEach(([tx, ty], i) => {
+                const x = tx * T + T / 2;
+                const y = ty * T;
+                ctx.fillStyle = "#475569";
+                ctx.fillRect(x - 1.5, y - 22, 3, 32);
+                ctx.fillStyle = checkpointsOn[i] ? "#22c55e" : "#94a3b8";
+                ctx.beginPath();
+                ctx.moveTo(x + 1.5, y - 22);
+                ctx.lineTo(x + 16, y - 16);
+                ctx.lineTo(x + 1.5, y - 10);
+                ctx.closePath();
+                ctx.fill();
+            });
+
+            const ex = EXIT[0] * T;
+            const ey = EXIT[1] * T;
+            ctx.fillStyle = "#7c2d12";
+            ctx.fillRect(ex + 4, ey - 6, T - 8, T + 6);
+            ctx.fillStyle = "#fde047";
+            ctx.beginPath();
+            ctx.arc(ex + T / 2, ey - 6, T / 2 - 4, Math.PI, 0);
+            ctx.fill();
+
+            for (const g of gems) {
+                if (g.got) continue;
+                const cx = g.tx * T + T / 2;
+                const cy = g.ty * T + T / 2 + Math.sin(performance.now() / 300 + g.tx) * 2;
+                ctx.fillStyle = "#22d3ee";
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - 8);
+                ctx.lineTo(cx + 6, cy);
+                ctx.lineTo(cx, cy + 8);
+                ctx.lineTo(cx - 6, cy);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            for (const e of enemies) {
+                if (!e.alive) continue;
+                const cx = e.x + EW / 2;
+                const cy = e.y + EH / 2 + 2;
+                ctx.strokeStyle = "#451a03";
+                ctx.lineWidth = 2;
+                for (let k = -1; k <= 1; k++) {
+                    ctx.beginPath();
+                    ctx.moveTo(cx - 6, cy + k * 4);
+                    ctx.lineTo(cx - 14, cy + k * 4 + (k === 0 ? 0 : 3));
+                    ctx.moveTo(cx + 6, cy + k * 4);
+                    ctx.lineTo(cx + 14, cy + k * 4 + (k === 0 ? 0 : 3));
+                    ctx.stroke();
+                }
+                ctx.fillStyle = "#78350f";
+                ctx.beginPath();
+                ctx.ellipse(cx, cy, 11, 10, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = "#fde68a";
+                ctx.fillRect(cx + (e.dir > 0 ? 3 : -6), cy - 4, 3, 3);
+            }
+        }
+
+        function drawKnight(now) {
+            if (inv > 0 && Math.floor(now / 80) % 2 === 0) return;
+            const x = p.x;
+            const y = p.y;
+            const face = keys.left && !keys.right ? -1 : 1;
+            ctx.fillStyle = "#1d4ed8";
+            ctx.fillRect(x + 2, y + 12, PW - 4, PH - 12);
+            ctx.fillStyle = "#cbd5e1";
+            ctx.beginPath();
+            ctx.arc(x + PW / 2, y + 9, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#ef4444";
+            ctx.beginPath();
+            ctx.moveTo(x + PW / 2 - face * 2, y + 3);
+            ctx.lineTo(x + PW / 2 - face * 12, y - 2);
+            ctx.lineTo(x + PW / 2 - face * 2, y + 6);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = "#e2e8f0";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x + PW / 2 + face * 6, y + 16);
+            ctx.lineTo(x + PW / 2 + face * 18, y + 10);
+            ctx.stroke();
+        }
+
+        function draw(now) {
+            drawBackground(now);
+            ctx.save();
+            ctx.translate(-camX, 0);
+            drawWorld(now);
+            drawKnight(now);
+            ctx.restore();
+        }
+
+        let acc = 0;
+        let last = 0;
+        function frame(now) {
+            if (!last) last = now;
+            acc += now - last;
+            last = now;
+            if (state === "playing") {
+                while (acc >= 1000 / 60) {
+                    update();
+                    acc -= 1000 / 60;
+                    if (state !== "playing") break;
+                }
+            } else {
+                acc = 0;
+            }
+            draw(now);
+            requestAnimationFrame(frame);
+        }
+
+        const KEY_MAP = {
+            ArrowLeft: "left", a: "left", A: "left",
+            ArrowRight: "right", d: "right", D: "right",
+            ArrowUp: "jump", w: "jump", W: "jump", " ": "jump"
+        };
+
+        window.addEventListener("keydown", e => {
+            const k = KEY_MAP[e.key];
+            if (!k) return;
+            e.preventDefault();
+            if (k === "jump") {
+                if (!e.repeat) jumpQueued = true;
+            } else {
+                keys[k] = true;
+            }
+        });
+
+        window.addEventListener("keyup", e => {
+            const k = KEY_MAP[e.key];
+            if (k === "left" || k === "right") keys[k] = false;
+        });
+
+        document.querySelectorAll(".pad button").forEach(b => {
+            const k = b.dataset.key;
+            b.addEventListener("pointerdown", e => {
+                e.preventDefault();
+                if (k === "jump") jumpQueued = true;
+                else keys[k] = true;
+            });
+            const release = () => {
+                if (k === "left" || k === "right") keys[k] = false;
+            };
+            b.addEventListener("pointerup", release);
+            b.addEventListener("pointerleave", release);
+            b.addEventListener("pointercancel", release);
+        });
+
+        startBtn.addEventListener("click", newGame);
+
+        resetLevel(true);
+        state = "idle";
+        updateHud();
+        showOverlay("Traverse les dunes, ramasse les gemmes et évite les pointes.\nFlèches ou A/D pour marcher, espace ou ↑ pour sauter.\nSaute sur les scarabées pour les écraser.", "Commencer");
+        requestAnimationFrame(frame);
+    })();
+    </script>
+</body>
+</html>

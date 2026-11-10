@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Briques tombantes · Atelier de Takiwaltek</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #070b16;
+            color: #e2e8f0;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+        header {
+            width: min(94vw, 640px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 0 10px;
+        }
+        header a { color: #67e8f9; text-decoration: none; font-weight: 600; }
+        h1 { margin: 0; font-size: 1.25rem; }
+        .layout {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 16px;
+        }
+        .stage { position: relative; width: min(78vw, 300px); }
+        canvas#board {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: #000;
+            border: 2px solid #1e293b;
+            border-radius: 10px;
+            touch-action: none;
+        }
+        .side {
+            width: 150px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .panel {
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+        }
+        .panel span { display: block; font-size: 0.8rem; color: #94a3b8; }
+        .panel strong { font-size: 1.2rem; }
+        canvas#next {
+            display: block;
+            margin: 6px auto 0;
+            width: 96px;
+            height: 96px;
+            background: #000;
+            border-radius: 8px;
+        }
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 16px;
+            text-align: center;
+            background: rgba(7, 11, 22, 0.82);
+            border-radius: 10px;
+        }
+        .overlay[hidden] { display: none; }
+        .overlay p { margin: 0; line-height: 1.5; white-space: pre-line; }
+        button {
+            font: inherit;
+            font-weight: 700;
+            color: #fff;
+            background: linear-gradient(180deg, #22d3ee, #0e7490);
+            border: 0;
+            border-radius: 10px;
+            padding: 12px 22px;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #155e75;
+        }
+        button:active { transform: translateY(3px); box-shadow: 0 2px 0 #155e75; }
+        .pad {
+            display: grid;
+            grid-template-columns: repeat(3, 56px);
+            gap: 8px;
+            justify-content: center;
+            margin-top: 14px;
+        }
+        .pad button {
+            padding: 0;
+            height: 52px;
+            font-size: 1.2rem;
+            background: #1e293b;
+            box-shadow: 0 5px 0 #0f172a;
+            user-select: none;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .pad { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <a href="../../index.html">← Accueil</a>
+        <h1>Briques tombantes</h1>
+    </header>
+
+    <div class="layout">
+        <div class="stage">
+            <canvas id="board" width="240" height="480" aria-label="Plateau de jeu"></canvas>
+            <div class="overlay" id="overlay">
+                <p id="msg"></p>
+                <button id="start" type="button">Commencer</button>
+            </div>
+        </div>
+
+        <aside class="side">
+            <div class="panel">
+                <span>Pièce suivante</span>
+                <canvas id="next" width="96" height="96"></canvas>
+            </div>
+            <div class="panel"><span>Score</span><strong id="score">0</strong></div>
+            <div class="panel"><span>Lignes</span><strong id="lines">0</strong></div>
+            <div class="panel"><span>Niveau</span><strong id="level">1</strong></div>
+        </aside>
+    </div>
+
+    <div class="pad" aria-hidden="true">
+        <span></span>
+        <button type="button" data-act="rot">⟳</button>
+        <span></span>
+        <button type="button" data-act="left">◀</button>
+        <button type="button" data-act="down">▼</button>
+        <button type="button" data-act="right">▶</button>
+        <span></span>
+        <button type="button" data-act="drop" style="grid-column: 2;">⤓</button>
+        <span></span>
+    </div>
+
+    <script>
+    (() => {
+        const COLS = 10;
+        const ROWS = 20;
+        const S = 24;
+        const SHAPES = [
+            { color: "#22d3ee", m: [[1, 1, 1, 1]] },
+            { color: "#facc15", m: [[1, 1], [1, 1]] },
+            { color: "#c084fc", m: [[0, 1, 0], [1, 1, 1]] },
+            { color: "#fb923c", m: [[1, 0], [1, 0], [1, 1]] },
+            { color: "#60a5fa", m: [[0, 1], [0, 1], [1, 1]] },
+            { color: "#4ade80", m: [[0, 1, 1], [1, 1, 0]] },
+            { color: "#f87171", m: [[1, 1, 0], [0, 1, 1]] }
+        ];
+        const POINTS = [0, 100, 300, 500, 800];
+
+        const board = document.getElementById("board");
+        const ctx = board.getContext("2d");
+        const nextCanvas = document.getElementById("next");
+        const nctx = nextCanvas.getContext("2d");
+        const overlay = document.getElementById("overlay");
+        const msgEl = document.getElementById("msg");
+        const startBtn = document.getElementById("start");
+        const scoreEl = document.getElementById("score");
+        const linesEl = document.getElementById("lines");
+        const levelEl = document.getElementById("level");
+
+        let grid, cur, nxt, score, lines, level, state, lastDrop;
+
+        const rotate = m => m[0].map((_, c) => m.map(row => row[c]).reverse());
+
+        function makePiece() {
+            const s = SHAPES[Math.floor(Math.random() * SHAPES.length)];
+            return { m: s.m.map(r => r.slice()), color: s.color, x: 0, y: 0 };
+        }
+
+        function collides(m, x, y) {
+            for (let r = 0; r < m.length; r++) {
+                for (let c = 0; c < m[r].length; c++) {
+                    if (!m[r][c]) continue;
+                    const nx = x + c;
+                    const ny = y + r;
+                    if (nx < 0 || nx >= COLS || ny >= ROWS) return true;
+                    if (ny >= 0 && grid[ny][nx]) return true;
+                }
+            }
+            return false;
+        }
+
+        function dropDistance() {
+            let y = cur.y;
+            while (!collides(cur.m, cur.x, y + 1)) y++;
+            return y;
+        }
+
+        function spawn() {
+            cur = nxt || makePiece();
+            nxt = makePiece();
+            cur.x = Math.floor((COLS - cur.m[0].length) / 2);
+            cur.y = 0;
+            if (collides(cur.m, cur.x, cur.y)) {
+                state = "over";
+                showOverlay("Le tas est plein. Score final : " + score, "Rejouer");
+            }
+        }
+
+        function lock() {
+            cur.m.forEach((row, r) => row.forEach((v, c) => {
+                if (v && cur.y + r >= 0) grid[cur.y + r][cur.x + c] = cur.color;
+            }));
+            let cleared = 0;
+            for (let r = ROWS - 1; r >= 0; r--) {
+                if (grid[r].every(v => v)) {
+                    grid.splice(r, 1);
+                    grid.unshift(new Array(COLS).fill(null));
+                    cleared++;
+                    r++;
+                }
+            }
+            if (cleared) {
+                score += POINTS[cleared] * level;
+                lines += cleared;
+                level = Math.floor(lines / 10) + 1;
+            }
+            spawn();
+            updateHud();
+        }
+
+        function stepDown() {
+            if (!collides(cur.m, cur.x, cur.y + 1)) {
+                cur.y++;
+            } else {
+                lock();
+            }
+        }
+
+        function dropMs() {
+            return Math.max(90, 800 - (level - 1) * 70);
+        }
+
+        function updateHud() {
+            scoreEl.textContent = score;
+            linesEl.textContent = lines;
+            levelEl.textContent = level;
+        }
+
+        function showOverlay(text, button) {
+            msgEl.textContent = text;
+            startBtn.textContent = button;
+            overlay.hidden = false;
+        }
+
+        function newGame(now) {
+            grid = Array.from({ length: ROWS }, () => new Array(COLS).fill(null));
+            nxt = null;
+            score = 0;
+            lines = 0;
+            level = 1;
+            state = "playing";
+            spawn();
+            lastDrop = now;
+            overlay.hidden = true;
+            updateHud();
+        }
+
+        function act(name) {
+            if (state !== "playing") return;
+            if (name === "left" && !collides(cur.m, cur.x - 1, cur.y)) cur.x--;
+            if (name === "right" && !collides(cur.m, cur.x + 1, cur.y)) cur.x++;
+            if (name === "down") {
+                if (!collides(cur.m, cur.x, cur.y + 1)) {
+                    cur.y++;
+                    score += 1;
+                    updateHud();
+                }
+            }
+            if (name === "drop") {
+                const landing = dropDistance();
+                score += (landing - cur.y) * 2;
+                cur.y = landing;
+                lock();
+            }
+            if (name === "rot") {
+                const m = rotate(cur.m);
+                for (const kick of [0, -1, 1, -2, 2]) {
+                    if (!collides(m, cur.x + kick, cur.y)) {
+                        cur.m = m;
+                        cur.x += kick;
+                        break;
+                    }
+                }
+            }
+        }
+
+        function drawCell(c, x, y, size, color, alpha = 1) {
+            c.globalAlpha = alpha;
+            c.fillStyle = color;
+            c.fillRect(x + 1, y + 1, size - 2, size - 2);
+            c.fillStyle = "rgba(255,255,255,0.35)";
+            c.fillRect(x + 1, y + 1, size - 2, 4);
+            c.globalAlpha = 1;
+        }
+
+        function draw() {
+            ctx.fillStyle = "#000";
+            ctx.fillRect(0, 0, board.width, board.height);
+            ctx.strokeStyle = "rgba(148,163,184,0.08)";
+            for (let x = 0; x <= COLS; x++) {
+                ctx.beginPath();
+                ctx.moveTo(x * S, 0);
+                ctx.lineTo(x * S, ROWS * S);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= ROWS; y++) {
+                ctx.beginPath();
+                ctx.moveTo(0, y * S);
+                ctx.lineTo(COLS * S, y * S);
+                ctx.stroke();
+            }
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (grid[r][c]) drawCell(ctx, c * S, r * S, S, grid[r][c]);
+                }
+            }
+            if (state === "playing" || state === "over") {
+                if (cur && state === "playing") {
+                    const landing = dropDistance();
+                    cur.m.forEach((row, r) => row.forEach((v, c) => {
+                        if (v && landing + r >= 0) {
+                            drawCell(ctx, (cur.x + c) * S, (landing + r) * S, S, cur.color, 0.25);
+                        }
+                    }));
+                    cur.m.forEach((row, r) => row.forEach((v, c) => {
+                        if (v && cur.y + r >= 0) drawCell(ctx, (cur.x + c) * S, (cur.y + r) * S, S, cur.color);
+                    }));
+                }
+            }
+
+            nctx.fillStyle = "#000";
+            nctx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
+            if (nxt) {
+                const cell = 20;
+                const w = nxt.m[0].length * cell;
+                const h = nxt.m.length * cell;
+                const ox = (nextCanvas.width - w) / 2;
+                const oy = (nextCanvas.height - h) / 2;
+                nxt.m.forEach((row, r) => row.forEach((v, c) => {
+                    if (v) drawCell(nctx, ox + c * cell, oy + r * cell, cell, nxt.color);
+                }));
+            }
+        }
+
+        function frame(now) {
+            if (state === "playing" && now - lastDrop >= dropMs()) {
+                lastDrop = now;
+                stepDown();
+            }
+            draw();
+            requestAnimationFrame(frame);
+        }
+
+        const KEY_ACTS = {
+            ArrowLeft: "left",
+            ArrowRight: "right",
+            ArrowDown: "down",
+            ArrowUp: "rot",
+            " ": "drop",
+            w: "rot",
+            a: "left",
+            d: "right",
+            s: "down"
+        };
+
+        window.addEventListener("keydown", e => {
+            const name = KEY_ACTS[e.key];
+            if (!name) return;
+            e.preventDefault();
+            if (!e.repeat || name === "left" || name === "right" || name === "down") act(name);
+        });
+
+        document.querySelectorAll(".pad button").forEach(b => {
+            let timer = null;
+            const name = b.dataset.act;
+            const stop = () => {
+                clearTimeout(timer);
+                clearInterval(timer);
+                timer = null;
+            };
+            b.addEventListener("pointerdown", e => {
+                e.preventDefault();
+                act(name);
+                if (name === "left" || name === "right" || name === "down") {
+                    timer = setTimeout(() => {
+                        timer = setInterval(() => act(name), 110);
+                    }, 220);
+                }
+            });
+            b.addEventListener("pointerup", stop);
+            b.addEventListener("pointerleave", stop);
+            b.addEventListener("pointercancel", stop);
+        });
+
+        startBtn.addEventListener("click", () => newGame(performance.now()));
+
+        grid = Array.from({ length: ROWS }, () => new Array(COLS).fill(null));
+        cur = makePiece();
+        nxt = makePiece();
+        score = 0;
+        lines = 0;
+        level = 1;
+        state = "idle";
+        updateHud();
+        showOverlay("Empile les briques et fais disparaître les lignes complètes.\nFlèches pour bouger, ↑ pour tourner, espace pour lâcher.", "Commencer");
+        requestAnimationFrame(frame);
+    })();
+    </script>
+</body>
+</html>
