@@ -17,7 +17,7 @@
             font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
         }
         header {
-            width: min(94vw, 600px);
+            width: min(94vw, 760px);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -27,13 +27,13 @@
         header a { color: #67e8f9; text-decoration: none; font-weight: 600; }
         h1 { margin: 0; font-size: 1.25rem; }
         .hud {
-            width: min(94vw, 570px);
+            width: min(94vw, 760px);
             display: flex;
             justify-content: space-between;
             font-weight: 700;
             margin-bottom: 8px;
         }
-        .stage { position: relative; width: min(94vw, 570px); }
+        .stage { position: relative; width: min(94vw, 760px); }
         canvas {
             display: block;
             width: 100%;
@@ -106,7 +106,7 @@
     </div>
 
     <div class="stage">
-        <canvas id="game" width="570" height="450" aria-label="Jeu Chasse Pixels"></canvas>
+        <canvas id="game" width="760" height="600" aria-label="Jeu Chasse Pixels"></canvas>
         <div class="overlay" id="overlay">
             <p id="msg">Mange tous les points sans te faire attraper.<br>Flèches ou WASD pour bouger.</p>
             <button id="start" type="button">Commencer</button>
@@ -122,7 +122,7 @@
 
     <script>
     (() => {
-        const T = 30;
+        const T = 40;
         const W = 19;
         const H = 15;
         const TOP = [
@@ -162,6 +162,7 @@
         const startBtn = document.getElementById("start");
 
         let grid, dotsLeft, px, py, pdx, pdy, wdx, wdy, ghosts;
+        let fpx = 0, fpy = 0, lastStepAt = 0;
         let score = 0, lives = 3, level = 1;
         let powerUntil = 0, freezeUntil = 0, nextStep = 0;
         let state = "idle";
@@ -175,7 +176,8 @@
             const dx = Math.abs(ax - bx);
             return Math.min(dx, W - dx) + Math.abs(ay - by);
         };
-        const stepMs = () => Math.max(95, 150 - (level - 1) * 10);
+        const stepMs = () => Math.max(150, 230 - (level - 1) * 10);
+        const mix = (to, from, t) => (Math.abs(to - from) > 1 ? to : from + (to - from) * t);
 
         function resetPositions(now) {
             px = PLAYER_START[0];
@@ -184,7 +186,9 @@
             pdy = 0;
             wdx = 0;
             wdy = 0;
-            ghosts = GHOST_HOME.map(([x, y]) => ({ x, y, dx: 0, dy: 0, home: [x, y] }));
+            ghosts = GHOST_HOME.map(([x, y]) => ({ x, y, fx: x, fy: y, dx: 0, dy: 0, home: [x, y] }));
+            fpx = px;
+            fpy = py;
             freezeUntil = now + 2000;
         }
 
@@ -247,6 +251,8 @@
                 const rank = o => dist(g.x + o.dx, g.y + o.dy, px, py) * (scared ? -1 : 1);
                 pick = opts.reduce((best, o) => (rank(o) < rank(best) ? o : best));
             }
+            g.fx = g.x;
+            g.fy = g.y;
             g.x = wrap(g.x + pick.dx);
             g.y += pick.dy;
             g.dx = pick.dx;
@@ -258,6 +264,8 @@
                 pdx = wdx;
                 pdy = wdy;
             }
+            fpx = px;
+            fpy = py;
             if (open(px + pdx, py + pdy)) {
                 px = wrap(px + pdx);
                 py += pdy;
@@ -282,6 +290,8 @@
                         score += 200;
                         g.x = g.home[0];
                         g.y = g.home[1];
+                        g.fx = g.x;
+                        g.fy = g.y;
                         g.dx = 0;
                         g.dy = 0;
                     } else {
@@ -348,24 +358,27 @@
                     } else if (c === ".") {
                         ctx.fillStyle = "#fde68a";
                         ctx.beginPath();
-                        ctx.arc(cx, cy, 3, 0, Math.PI * 2);
+                        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
                         ctx.fill();
                     } else if (c === "o") {
                         ctx.fillStyle = "#fef3c7";
                         ctx.beginPath();
-                        ctx.arc(cx, cy, 7 + Math.sin(now / 120) * 1.5, 0, Math.PI * 2);
+                        ctx.arc(cx, cy, 10 + Math.sin(now / 120) * 2, 0, Math.PI * 2);
                         ctx.fill();
                     }
                 }
             }
 
             const scared = now < powerUntil;
+            const t = Math.min(1, Math.max(0, (now - lastStepAt) / stepMs()));
             ghosts.forEach((g, i) => {
-                drawGhost(g, GHOST_COLORS[i], g.x * T + T / 2, g.y * T + T / 2, now, scared);
+                const gx = mix(g.x, g.fx, t);
+                const gy = mix(g.y, g.fy, t);
+                drawGhost(g, GHOST_COLORS[i], gx * T + T / 2, gy * T + T / 2, now, scared);
             });
 
-            const pcx = px * T + T / 2;
-            const pcy = py * T + T / 2;
+            const pcx = mix(px, fpx, t) * T + T / 2;
+            const pcy = mix(py, fpy, t) * T + T / 2;
             ctx.fillStyle = "#2dd4bf";
             ctx.beginPath();
             ctx.arc(pcx, pcy, T / 2 - 3, 0, Math.PI * 2);
@@ -380,6 +393,7 @@
         function frame(now) {
             if (state === "playing" && now >= nextStep) {
                 nextStep = now + stepMs();
+                lastStepAt = now;
                 update(now);
                 if (state !== "playing") nextStep = Infinity;
             }
