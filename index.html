@@ -505,6 +505,93 @@
             font-weight: 700;
         }
 
+        .chat-status {
+            margin: 14px 22px 0;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .chat-log {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            height: 300px;
+            margin: 12px 22px 0;
+            padding: 12px;
+            overflow-y: auto;
+            overflow-wrap: anywhere;
+            background: var(--panel-2);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            font-size: 0.92rem;
+        }
+
+        .chat-msg {
+            line-height: 1.4;
+        }
+
+        .chat-msg strong {
+            color: var(--accent);
+        }
+
+        .chat-msg time {
+            margin-left: 6px;
+            color: var(--muted);
+            font-size: 0.75rem;
+        }
+
+        .chat-form,
+        .chat-name {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 12px 22px 0;
+        }
+
+        .chat-form input,
+        .chat-name input {
+            flex: 1 1 200px;
+            min-width: 0;
+            padding: 10px 12px;
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            font: inherit;
+        }
+
+        .chat-form button,
+        .chat-name button {
+            padding: 10px 18px;
+            background: var(--accent);
+            color: #04120b;
+            border: 0;
+            border-radius: 10px;
+            font: inherit;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .chat-form button:disabled {
+            opacity: 0.5;
+            cursor: wait;
+        }
+
+        .chat-error {
+            min-height: 1em;
+            margin: 8px 22px 0;
+            color: #ff6b6b;
+            font-size: 0.85rem;
+        }
+
+        .chat-body {
+            padding-bottom: 22px;
+        }
+
+        .chat [hidden] {
+            display: none !important;
+        }
+
         .loading {
             padding: 8px 0;
             color: var(--muted);
@@ -680,6 +767,26 @@
             </div>
         </section>
 
+        <section class="steam chat" aria-labelledby="chat-title">
+            <div class="steam-head">
+                <h2 class="steam-title" id="chat-title">Tchat</h2>
+                <span class="steam-updated">Ouvert à tous, 40 derniers messages</span>
+            </div>
+            <div class="chat-body">
+                <p class="chat-status" id="chat-status">Chargement du tchat...</p>
+                <div class="chat-log" id="chat-log" aria-live="polite"></div>
+                <form class="chat-form" id="chat-form" hidden>
+                    <input id="chat-text" maxlength="300" placeholder="Écris ton message (300 caractères max)" autocomplete="off" required>
+                    <button type="submit" id="chat-send">Envoyer</button>
+                </form>
+                <form class="chat-name" id="chat-name-form" hidden>
+                    <input id="chat-name" minlength="2" maxlength="20" placeholder="Ton pseudo (2 à 20 caractères)" autocomplete="nickname" required>
+                    <button type="submit">Entrer dans le tchat</button>
+                </form>
+                <p class="chat-error" id="chat-error" role="alert"></p>
+            </div>
+        </section>
+
         <footer class="site-footer">
             <p>© 2025 Atelier de Takiwaltek · Tous droits réservés</p>
             <p><a href="./a-propos/index.html" class="footer-link">À propos</a></p>
@@ -763,6 +870,158 @@
             setupIntro();
             loadSteamNews();
         });
+    </script>
+
+    <script type="module">
+        // Configuration Firebase (Realtime Database). Remplace les valeurs REMPLACER par celles de ta console Firebase.
+        const FIREBASE_CONFIG = {
+            apiKey: "REMPLACER",
+            authDomain: "REMPLACER.firebaseapp.com",
+            databaseURL: "https://REMPLACER-default-rtdb.firebaseio.com",
+            projectId: "REMPLACER",
+            appId: "REMPLACER"
+        };
+
+        const MAX_MESSAGES = 40;
+        const MAX_TEXT = 300;
+        const COOLDOWN_MS = 4000;
+        const NAME_MIN = 2;
+        const NAME_MAX = 20;
+        // Liste de mots interdits (exemple) : à compléter selon tes besoins.
+        const BANNED = ['con', 'connard', 'connasse', 'merde', 'salope', 'pute', 'enculé', 'nique'];
+
+        const statusEl = document.getElementById('chat-status');
+        const logEl = document.getElementById('chat-log');
+        const errorEl = document.getElementById('chat-error');
+        const chatForm = document.getElementById('chat-form');
+        const chatText = document.getElementById('chat-text');
+        const sendBtn = document.getElementById('chat-send');
+        const nameForm = document.getElementById('chat-name-form');
+        const nameInput = document.getElementById('chat-name');
+
+        let pseudo = localStorage.getItem('chat-pseudo') || '';
+        let lastSent = 0;
+
+        function normalize(s) {
+            return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        }
+
+        function isClean(s) {
+            const n = normalize(s);
+            return !BANNED.some(w => new RegExp('(^|[^a-z])' + w + '([^a-z]|$)').test(n));
+        }
+
+        function showError(msg) {
+            errorEl.textContent = msg;
+        }
+
+        function showPseudoStep() {
+            chatForm.hidden = true;
+            nameForm.hidden = false;
+            nameInput.value = pseudo;
+            nameInput.focus();
+        }
+
+        function showChatStep() {
+            nameForm.hidden = true;
+            chatForm.hidden = false;
+            chatText.focus();
+        }
+
+        function addMessage(msg) {
+            if (!msg) return;
+            const row = document.createElement('div');
+            row.className = 'chat-msg';
+
+            const who = document.createElement('strong');
+            who.textContent = String(msg.name || '');
+
+            const txt = document.createElement('span');
+            txt.textContent = ' ' + String(msg.text || '');
+
+            row.append(who, txt);
+
+            if (typeof msg.time === 'number') {
+                const date = new Date(msg.time);
+                const t = document.createElement('time');
+                t.dateTime = date.toISOString();
+                t.textContent = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                row.append(t);
+            }
+
+            const atBottom = logEl.scrollHeight - logEl.scrollTop - logEl.clientHeight < 60;
+            logEl.append(row);
+            while (logEl.children.length > MAX_MESSAGES) logEl.firstElementChild.remove();
+            if (atBottom) logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        async function startChat() {
+            const [{ initializeApp }, db] = await Promise.all([
+                import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'),
+                import('https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js')
+            ]);
+            const app = initializeApp(FIREBASE_CONFIG);
+            const database = db.getDatabase(app);
+            const chatRef = db.ref(database, 'chat');
+            const recent = db.query(chatRef, db.orderByKey(), db.limitToLast(MAX_MESSAGES));
+
+            // Garde la liste à 40 messages : supprime le plus ancien quand un nouveau arrive.
+            async function trimOldest() {
+                const snap = await db.get(db.query(chatRef, db.orderByKey(), db.limitToLast(MAX_MESSAGES + 1)));
+                if (snap.size <= MAX_MESSAGES) return;
+                let oldest = null;
+                snap.forEach(child => { if (oldest === null) oldest = child.key; });
+                if (oldest) await db.remove(db.ref(database, 'chat/' + oldest));
+            }
+
+            db.onChildAdded(recent, snap => addMessage(snap.val()), () => {
+                statusEl.textContent = 'Connexion au tchat impossible pour le moment.';
+            });
+
+            statusEl.textContent = 'Tchat en direct.';
+
+            chatForm.addEventListener('submit', e => {
+                e.preventDefault();
+                showError('');
+                const text = chatText.value.trim();
+                if (!text) return;
+                if (text.length > MAX_TEXT) return showError(`Message trop long (${MAX_TEXT} caractères max).`);
+                if (!isClean(text)) return showError('Message refusé : langage non autorisé.');
+
+                const now = Date.now();
+                const wait = COOLDOWN_MS - (now - lastSent);
+                if (wait > 0) return showError(`Attends encore ${Math.ceil(wait / 1000)} s avant d'envoyer.`);
+
+                lastSent = now;
+                const pending = db.push(chatRef, { name: pseudo, text, time: db.serverTimestamp() });
+                chatText.value = '';
+                sendBtn.disabled = true;
+                setTimeout(() => { sendBtn.disabled = false; }, COOLDOWN_MS);
+                pending.then(trimOldest).catch(() => showError('Envoi refusé ou impossible pour le moment.'));
+            });
+        }
+
+        nameForm.addEventListener('submit', e => {
+            e.preventDefault();
+            showError('');
+            const value = nameInput.value.trim();
+            if (value.length < NAME_MIN || value.length > NAME_MAX) {
+                return showError(`Le pseudo doit faire entre ${NAME_MIN} et ${NAME_MAX} caractères.`);
+            }
+            if (!isClean(value)) return showError('Pseudo refusé : choisis-en un autre.');
+            pseudo = value;
+            localStorage.setItem('chat-pseudo', pseudo);
+            showChatStep();
+        });
+
+        if (FIREBASE_CONFIG.databaseURL.includes('REMPLACER')) {
+            statusEl.textContent = 'Tchat non configuré : ajoute la configuration Firebase dans index.html.';
+        } else {
+            if (pseudo) showChatStep(); else showPseudoStep();
+            startChat().catch(() => {
+                statusEl.textContent = 'Tchat indisponible pour le moment.';
+            });
+        }
     </script>
 </body>
 </html>
