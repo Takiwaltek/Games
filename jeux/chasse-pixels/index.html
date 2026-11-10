@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chasse Pixels · Atelier de Takiwaltek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; }
         body {
@@ -12,9 +15,12 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            background: #070b16;
+            background:
+                radial-gradient(ellipse at 50% 0%, #2e1065 0%, transparent 55%),
+                radial-gradient(ellipse at 50% 100%, #0c4a6e 0%, transparent 60%),
+                #05020f;
             color: #e2e8f0;
-            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            font-family: "Press Start 2P", system-ui, -apple-system, "Segoe UI", sans-serif;
         }
         header {
             width: min(94vw, 760px);
@@ -24,23 +30,52 @@
             gap: 12px;
             padding: 16px 0 10px;
         }
-        header a { color: #67e8f9; text-decoration: none; font-weight: 600; }
-        h1 { margin: 0; font-size: 1.25rem; }
+        header a {
+            color: #67e8f9;
+            text-decoration: none;
+            font-size: 0.6rem;
+            text-shadow: 0 0 6px #22d3ee, 0 0 14px #0891b2;
+        }
+        h1 {
+            margin: 0;
+            font-size: 1rem;
+            color: #fdf4ff;
+            text-shadow: 0 0 4px #f0abfc, 0 0 12px #d946ef, 0 0 22px #a21caf;
+        }
         .hud {
             width: min(94vw, 760px);
             display: flex;
             justify-content: space-between;
-            font-weight: 700;
-            margin-bottom: 8px;
+            font-size: 0.7rem;
+            margin-bottom: 10px;
         }
+        #score { color: #fde047; text-shadow: 0 0 6px #facc15; }
+        #lives { color: #fb7185; text-shadow: 0 0 6px #f43f5e; }
+        #level { color: #67e8f9; text-shadow: 0 0 6px #22d3ee; }
         .stage { position: relative; width: min(94vw, 760px); }
+        .stage::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 10px;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                to bottom,
+                rgba(0, 0, 0, 0) 0,
+                rgba(0, 0, 0, 0) 2px,
+                rgba(0, 0, 0, 0.22) 3px,
+                rgba(0, 0, 0, 0) 4px
+            );
+        }
         canvas {
             display: block;
             width: 100%;
             height: auto;
-            background: #000;
-            border: 2px solid #1e293b;
+            background: #03010a;
+            border: 2px solid #22d3ee;
             border-radius: 10px;
+            box-shadow: 0 0 6px #22d3ee, 0 0 26px rgba(217, 70, 239, 0.45), inset 0 0 30px rgba(34, 211, 238, 0.12);
+            image-rendering: pixelated;
             touch-action: none;
         }
         .overlay {
@@ -50,26 +85,34 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            gap: 18px;
             padding: 16px;
             text-align: center;
-            background: rgba(7, 11, 22, 0.8);
+            background: rgba(3, 1, 10, 0.85);
             border-radius: 10px;
         }
         .overlay[hidden] { display: none; }
-        .overlay p { margin: 0; line-height: 1.5; }
+        .overlay p {
+            margin: 0;
+            font-size: 0.6rem;
+            line-height: 2;
+            color: #e0f2fe;
+            text-shadow: 0 0 6px #38bdf8;
+        }
         button {
             font: inherit;
-            font-weight: 700;
-            color: #fff;
-            background: linear-gradient(180deg, #22d3ee, #0e7490);
-            border: 0;
-            border-radius: 10px;
-            padding: 12px 22px;
+            font-size: 0.7rem;
+            color: #fdf4ff;
+            background: rgba(217, 70, 239, 0.12);
+            border: 2px solid #e879f9;
+            border-radius: 4px;
+            padding: 14px 20px;
             cursor: pointer;
-            box-shadow: 0 5px 0 #155e75;
+            text-shadow: 0 0 6px #e879f9;
+            box-shadow: 0 0 10px rgba(232, 121, 249, 0.6), inset 0 0 10px rgba(232, 121, 249, 0.25);
         }
-        button:active { transform: translateY(3px); box-shadow: 0 2px 0 #155e75; }
+        button:hover { background: rgba(217, 70, 239, 0.3); }
+        button:active { transform: translateY(2px); }
         .pad {
             margin-top: 14px;
             display: grid;
@@ -79,9 +122,10 @@
         }
         .pad button {
             padding: 0;
-            font-size: 1.4rem;
-            background: #1e293b;
-            box-shadow: 0 5px 0 #0f172a;
+            font-size: 1.2rem;
+            background: rgba(34, 211, 238, 0.1);
+            border-color: #22d3ee;
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.5), inset 0 0 8px rgba(34, 211, 238, 0.25);
             user-select: none;
         }
         .pad .up { grid-column: 2; grid-row: 1; }
@@ -123,8 +167,6 @@
     <script>
     (() => {
         const T = 40;
-        const W = 19;
-        const H = 15;
         const TOP = [
             ".......#.#.......",
             ".#####.#.#.#####.",
@@ -133,17 +175,65 @@
             "....#.......#....",
             "##.##.#####.##.##"
         ];
-        const ROWS = [
-            "#".repeat(W),
-            ...TOP.map(r => "#" + r + "#"),
-            ".".repeat(W),
-            ...TOP.slice().reverse().map(r => "#" + r + "#"),
-            "#".repeat(W)
+        const LEVELS = [
+            {
+                rows: [
+                    "#".repeat(19),
+                    ...TOP.map(r => "#" + r + "#"),
+                    ".".repeat(19),
+                    ...TOP.slice().reverse().map(r => "#" + r + "#"),
+                    "#".repeat(19)
+                ],
+                power: [[1, 1], [17, 1], [1, 13], [17, 13]],
+                start: [9, 7],
+                cages: [
+                    { cells: [[9, 1], [9, 2]], door: [9, 3] },
+                    { cells: [[9, 12], [9, 13]], door: [9, 11] }
+                ],
+                ghosts: [
+                    { cage: 0, slot: 0, delay: 0 },
+                    { cage: 0, slot: 1, delay: 0 },
+                    { cage: 1, slot: 0, delay: 20000 }
+                ]
+            },
+            {
+                rows: [
+                    "#########################",
+                    "#.....#...........#.....#",
+                    "#.##.#...#.....#...#.##.#",
+                    "#...#...#.......#...#...#",
+                    "##.##.###.......###.##.##",
+                    "#.........#...#.........#",
+                    "#.#.#.#.#.......#.#.#.#.#",
+                    "#.......................#",
+                    "##.##.#.#.## ##.#.#.##.##",
+                    "..........#   #..........",
+                    "##.##.#.#.#   #.#.#.##.##",
+                    "#..........###..........#",
+                    "#.#.#.#.#.......#.#.#.#.#",
+                    "#.........#...#.........#",
+                    "##.##.###.......###.##.##",
+                    "#...#...#.......#...#...#",
+                    "#.##.#...#.....#...#.##.#",
+                    "#.....#...........#.....#",
+                    "#########################"
+                ],
+                power: [[1, 1], [23, 1], [1, 17], [23, 17]],
+                start: [12, 15],
+                cages: [
+                    { cells: [[11, 9], [12, 9], [13, 9], [11, 10], [12, 10], [13, 10]], door: [12, 8] }
+                ],
+                ghosts: [
+                    { cage: 0, slot: 0, delay: 0 },
+                    { cage: 0, slot: 1, delay: 0 },
+                    { cage: 0, slot: 2, delay: 20000 },
+                    { cage: 0, slot: 3, delay: 40000 }
+                ]
+            }
         ];
-        const POWER = [[1, 1], [17, 1], [1, 13], [17, 13]];
-        const PLAYER_START = [9, 7];
-        const GHOST_HOME = [[9, 1], [9, 13], [17, 7]];
-        const GHOST_COLORS = ["#f472b6", "#fb923c", "#a3e635"];
+        let W, H, ROWS, POWER, PLAYER_START, CAGES, GHOST_HOME;
+        const GHOST_COLORS = ["#ff2bd6", "#ff9f1c", "#39ff14", "#ef4444"];
+        const PANIC_DIST = 2.5;
         const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
         const KEYS = {
             ArrowUp: [0, -1], w: [0, -1], W: [0, -1],
@@ -162,22 +252,137 @@
         const startBtn = document.getElementById("start");
 
         let grid, dotsLeft, px, py, pdx, pdy, wdx, wdy, ghosts;
-        let fpx = 0, fpy = 0, lastStepAt = 0;
+        let powerRespawns = [];
         let score = 0, lives = 3, level = 1;
-        let powerUntil = 0, freezeUntil = 0, nextStep = 0;
+        let powerUntil = 0, freezeUntil = 0;
+        let lastFrame = 0, chompAt = -1e9;
         let state = "idle";
+
+        let audioCtx = null;
+        let muted = false;
+        let chompToggle = false;
+
+        function unlockAudio() {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return;
+            if (!audioCtx) audioCtx = new AC();
+            if (audioCtx.state === "suspended") audioCtx.resume();
+        }
+
+        function playTone(freq, dur, type, vol, slideTo, delay) {
+            if (muted || !audioCtx) return;
+            const t0 = audioCtx.currentTime + (delay || 0);
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, t0);
+            if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+            gain.gain.setValueAtTime(vol, t0);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+            osc.connect(gain).connect(audioCtx.destination);
+            osc.start(t0);
+            osc.stop(t0 + dur);
+        }
+
+        const sfx = {
+            chomp() {
+                chompToggle = !chompToggle;
+                playTone(chompToggle ? 260 : 200, 0.09, "triangle", 0.12);
+            },
+            power() { playTone(180, 0.35, "sawtooth", 0.07, 720); },
+            eatGhost() { playTone(400, 0.25, "square", 0.08, 1600); },
+            death() { playTone(600, 0.9, "square", 0.09, 80); },
+            levelUp() { [523, 659, 784, 1046].forEach((f, i) => playTone(f, 0.15, "square", 0.07, null, i * 0.12)); },
+            gameOver() { [392, 330, 262, 196].forEach((f, i) => playTone(f, 0.3, "triangle", 0.1, null, i * 0.25)); },
+        };
+
+        const CHIP_BARS = [
+            [[440, 2], [523, 2], [659, 4]],
+            [[587, 2], [523, 2], [440, 2], [349, 2]],
+            [[392, 2], [523, 2], [659, 2], [784, 2]],
+            [[587, 4], [494, 2], [392, 2]],
+            [[659, 2], [880, 2], [784, 2], [659, 2]],
+            [[698, 4], [659, 2], [523, 2]],
+            [[587, 2], [659, 2], [784, 2], [659, 2]],
+            [[587, 2], [523, 2], [494, 4]],
+        ];
+        const CHIP_BASS = [110, 87.3, 130.8, 98, 110, 87.3, 98, 82.4];
+        const chipEvents = [];
+        CHIP_BARS.forEach((bar, b) => {
+            let s = b * 8;
+            for (const [f, n] of bar) {
+                chipEvents[s] = { f, n };
+                s += n;
+            }
+        });
+
+        const TRACKS = {
+            chip: {
+                step: 0.18,
+                length: 64,
+                play(i, t) {
+                    const ev = chipEvents[i];
+                    if (ev) playTone(ev.f, ev.n * 0.18 * 0.9, "square", 0.03, null, t);
+                    if (i % 4 === 0) playTone(CHIP_BASS[i >> 3], 0.3, "triangle", 0.05, null, t);
+                },
+            },
+            techno: {
+                step: 0.117,
+                length: 16,
+                play(i, t) {
+                    if (i % 4 === 0) playTone(120, 0.14, "sine", 0.2, 40, t);
+                    if (i % 4 === 2) playTone(8000, 0.03, "triangle", 0.02, null, t);
+                    const bass = [55, 0, 55, 0, 55, 0, 73, 0, 55, 0, 55, 0, 49, 0, 65, 0];
+                    if (bass[i]) playTone(bass[i], 0.1, "sawtooth", 0.035, null, t);
+                    const stab = [880, 0, 0, 0, 0, 0, 1047, 0, 0, 0, 0, 0, 880, 0, 0, 0];
+                    if (stab[i]) playTone(stab[i], 0.08, "square", 0.02, null, t);
+                },
+            },
+        };
+        let musicTrack = "chip";
+        let musicTimer = null;
+        let musicStep = 0;
+        let musicNext = 0;
+
+        function setMusicTrack(name) {
+            if (musicTrack === name) return;
+            musicTrack = name;
+            musicStep = 0;
+        }
+
+        function scheduleMusic() {
+            const track = TRACKS[musicTrack];
+            const horizon = audioCtx.currentTime + 0.3;
+            while (musicNext < horizon) {
+                const delay = Math.max(0, musicNext - audioCtx.currentTime);
+                track.play(musicStep % track.length, delay);
+                musicNext += track.step;
+                musicStep++;
+            }
+        }
+
+        function startMusic() {
+            if (!audioCtx || musicTimer) return;
+            musicTrack = "chip";
+            musicStep = 0;
+            musicNext = audioCtx.currentTime + 0.05;
+            scheduleMusic();
+            musicTimer = setInterval(scheduleMusic, 100);
+        }
+
+        function stopMusic() {
+            clearInterval(musicTimer);
+            musicTimer = null;
+        }
 
         const wrap = x => (x + W) % W;
         const open = (x, y) => {
             if (y < 0 || y >= H) return false;
             return grid[y][wrap(x)] !== "#";
         };
-        const dist = (ax, ay, bx, by) => {
-            const dx = Math.abs(ax - bx);
-            return Math.min(dx, W - dx) + Math.abs(ay - by);
-        };
-        const stepMs = () => Math.max(150, 230 - (level - 1) * 10);
-        const mix = (to, from, t) => (Math.abs(to - from) > 1 ? to : from + (to - from) * t);
+        const playerSpeed = () => 1000 / Math.max(150, 230 - (level - 1) * 10);
+        const isCenter = v => Math.abs(v - Math.round(v)) < 1e-6;
+        const distAt = (map, x, y) => (y < 0 || y >= H ? -1 : map[y][wrap(x)]);
 
         function resetPositions(now) {
             px = PLAYER_START[0];
@@ -186,15 +391,35 @@
             pdy = 0;
             wdx = 0;
             wdy = 0;
-            ghosts = GHOST_HOME.map(([x, y]) => ({ x, y, fx: x, fy: y, dx: 0, dy: 0, home: [x, y] }));
-            fpx = px;
-            fpy = py;
+            const previous = ghosts || [];
+            ghosts = GHOST_HOME.map(({ cage, slot, delay }, i) => {
+                const old = previous[i];
+                if (old && old.cage !== null) return old;
+                return cagedGhost(cage, slot, now + delay);
+            });
             freezeUntil = now + 2000;
         }
 
+        function loadLevel(n) {
+            const L = LEVELS[Math.min(n, LEVELS.length) - 1];
+            ROWS = L.rows;
+            W = ROWS[0].length;
+            H = ROWS.length;
+            POWER = L.power;
+            PLAYER_START = L.start;
+            CAGES = L.cages;
+            GHOST_HOME = L.ghosts;
+            canvas.width = W * T;
+            canvas.height = H * T;
+        }
+
         function newLevel(now) {
+            loadLevel(level);
             grid = ROWS.map(r => r.split(""));
             for (const [x, y] of POWER) grid[y][x] = "o";
+            for (const cage of CAGES) for (const [x, y] of cage.cells) grid[y][x] = " ";
+            powerRespawns = [];
+            ghosts = [];
             dotsLeft = 0;
             for (const row of grid) {
                 for (const c of row) if (c === "." || c === "o") dotsLeft++;
@@ -215,12 +440,14 @@
         }
 
         function newGame(now) {
+            unlockAudio();
+            startMusic();
             score = 0;
             lives = 3;
             level = 1;
+            ghosts = [];
             newLevel(now);
             state = "playing";
-            nextStep = now + stepMs();
             overlay.hidden = true;
             updateHud();
         }
@@ -230,99 +457,239 @@
             updateHud();
             if (lives <= 0) {
                 state = "over";
+                stopMusic();
+                sfx.gameOver();
                 showOverlay("Perdu ! Score final : " + score, "Rejouer");
             } else {
+                sfx.death();
                 resetPositions(now);
             }
         }
 
-        function moveGhost(g, scared) {
-            let opts = DIRS
-                .filter(([dx, dy]) => open(g.x + dx, g.y + dy))
-                .map(([dx, dy]) => ({ dx, dy }));
-            const forward = opts.filter(o => !(o.dx === -g.dx && o.dy === -g.dy));
-            if (forward.length) opts = forward;
-            if (!opts.length) return;
-
-            let pick;
-            if (Math.random() < 0.25) {
-                pick = opts[Math.floor(Math.random() * opts.length)];
-            } else {
-                const rank = o => dist(g.x + o.dx, g.y + o.dy, px, py) * (scared ? -1 : 1);
-                pick = opts.reduce((best, o) => (rank(o) < rank(best) ? o : best));
-            }
-            g.fx = g.x;
-            g.fy = g.y;
-            g.x = wrap(g.x + pick.dx);
-            g.y += pick.dy;
-            g.dx = pick.dx;
-            g.dy = pick.dy;
-        }
-
-        function update(now) {
-            if ((wdx || wdy) && open(px + wdx, py + wdy)) {
-                pdx = wdx;
-                pdy = wdy;
-            }
-            fpx = px;
-            fpy = py;
-            if (open(px + pdx, py + pdy)) {
-                px = wrap(px + pdx);
-                py += pdy;
-            }
-
-            const c = grid[py][px];
-            if (c === "." || c === "o") {
-                score += c === "o" ? 50 : 10;
-                dotsLeft--;
-                grid[py][px] = " ";
-                if (c === "o") powerUntil = now + 6000;
-            }
-
-            if (now >= freezeUntil) {
-                const scared = now < powerUntil;
-                for (const g of ghosts) moveGhost(g, scared);
-            }
-
-            for (const g of ghosts) {
-                if (g.x === px && g.y === py) {
-                    if (now < powerUntil) {
-                        score += 200;
-                        g.x = g.home[0];
-                        g.y = g.home[1];
-                        g.fx = g.x;
-                        g.fy = g.y;
-                        g.dx = 0;
-                        g.dy = 0;
-                    } else {
-                        loseLife(now);
-                        return;
+        function distanceMap(sx, sy) {
+            const map = Array.from({ length: H }, () => Array(W).fill(-1));
+            const queue = [[sx, sy]];
+            map[sy][sx] = 0;
+            for (let i = 0; i < queue.length; i++) {
+                const [x, y] = queue[i];
+                for (const [dx, dy] of DIRS) {
+                    const nx = wrap(x + dx);
+                    const ny = y + dy;
+                    if (open(nx, ny) && map[ny][nx] < 0) {
+                        map[ny][nx] = map[y][x] + 1;
+                        queue.push([nx, ny]);
                     }
                 }
             }
+            return map;
+        }
 
-            if (dotsLeft <= 0) {
+        function isCageCell(x, y) {
+            return CAGES.some(c => c.cells.some(([cx, cy]) => cx === x && cy === y));
+        }
+
+        function cagedGhost(cage, slot, waitUntil) {
+            const [x, y] = CAGES[cage].cells[slot];
+            return { x, y, dx: 0, dy: 0, cage, slot, waitUntil };
+        }
+
+        function cageSpot() {
+            for (let cage = 0; cage < CAGES.length; cage++) {
+                const taken = ghosts.filter(g => g.cage === cage).map(g => g.slot);
+                const slot = CAGES[cage].cells.findIndex((_, i) => !taken.includes(i));
+                if (slot >= 0) return { cage, slot };
+            }
+            return null;
+        }
+
+        function releaseGhost(g) {
+            const [x, y] = CAGES[g.cage].door;
+            Object.assign(g, { x, y, dx: 0, dy: 0, cage: null });
+        }
+
+        function canStep(g, dx, dy) {
+            const nx = wrap(g.x + dx);
+            const ny = g.y + dy;
+            return open(nx, ny) && !isCageCell(nx, ny);
+        }
+
+        function chooseGhost(g, scared, map) {
+            const opts = DIRS.filter(([dx, dy]) => canStep(g, dx, dy));
+            const forward = opts.filter(([dx, dy]) => !(dx === -g.dx && dy === -g.dy));
+            const pool = forward.length ? forward : opts;
+            if (!pool.length) {
+                g.dx = 0;
+                g.dy = 0;
+                return;
+            }
+            const cost = ([dx, dy]) => {
+                const d = distAt(map, g.x + dx, g.y + dy);
+                return d < 0 ? 999 : d;
+            };
+            let best = pool[0];
+            for (const o of pool) {
+                if (scared ? cost(o) > cost(best) : cost(o) < cost(best)) best = o;
+            }
+            g.dx = best[0];
+            g.dy = best[1];
+        }
+
+        function choosePlayer(p) {
+            if ((wdx || wdy) && open(p.x + wdx, p.y + wdy)) {
+                p.dx = wdx;
+                p.dy = wdy;
+            } else if (!open(p.x + p.dx, p.y + p.dy)) {
+                p.dx = 0;
+                p.dy = 0;
+            }
+        }
+
+        function advance(e, budget, choose, onArrive) {
+            while (budget > 1e-9) {
+                if (isCenter(e.x) && isCenter(e.y)) {
+                    e.x = Math.round(e.x);
+                    e.y = Math.round(e.y);
+                    choose(e);
+                    if (!e.dx && !e.dy) return;
+                }
+                const horiz = e.dx !== 0;
+                const p = horiz ? e.x : e.y;
+                const d = horiz ? e.dx : e.dy;
+                const target = d > 0
+                    ? (isCenter(p) ? p + 1 : Math.ceil(p))
+                    : (isCenter(p) ? p - 1 : Math.floor(p));
+                const dist = Math.abs(target - p);
+                const move = Math.min(budget, dist);
+                budget -= move;
+                if (move < dist) {
+                    if (horiz) e.x = p + d * move;
+                    else e.y = p + d * move;
+                    return;
+                }
+                if (horiz) e.x = wrap(target);
+                else e.y = target;
+                onArrive(e);
+            }
+        }
+
+        function eatCell(x, y, now) {
+            const c = grid[y][x];
+            if (c !== "." && c !== "o") return;
+            chompAt = now;
+            score += c === "o" ? 50 : 10;
+            dotsLeft--;
+            grid[y][x] = " ";
+            if (c === "o") {
+                powerUntil = now + 6000;
+                powerRespawns.push({ x, y, at: now + 20000 });
+                sfx.power();
+            } else {
+                sfx.chomp();
+            }
+        }
+
+        function movePlayer(now, dt) {
+            const p = { x: px, y: py, dx: pdx, dy: pdy };
+            if (!(isCenter(p.x) && isCenter(p.y)) && wdx === -p.dx && wdy === -p.dy) {
+                p.dx = wdx;
+                p.dy = wdy;
+            }
+            advance(p, dt * playerSpeed(), choosePlayer, c => eatCell(c.x, c.y, now));
+            px = p.x;
+            py = p.y;
+            pdx = p.dx;
+            pdy = p.dy;
+        }
+
+        function checkCollisions(now) {
+            for (const g of ghosts) {
+                if (g.cage !== null) continue;
+                const ddx = Math.abs(g.x - px);
+                if (Math.hypot(Math.min(ddx, W - ddx), g.y - py) >= 0.6) continue;
+                if (now < powerUntil) {
+                    score += 200;
+                    sfx.eatGhost();
+                    const spot = cageSpot();
+                    if (spot) Object.assign(g, cagedGhost(spot.cage, spot.slot, now + 20000));
+                } else {
+                    loseLife(now);
+                    return;
+                }
+            }
+        }
+
+        function tick(now, dt) {
+            setMusicTrack(now < powerUntil ? "techno" : "chip");
+            for (let i = powerRespawns.length - 1; i >= 0; i--) {
+                const r = powerRespawns[i];
+                if (now < r.at) continue;
+                powerRespawns.splice(i, 1);
+                grid[r.y][r.x] = "o";
+                dotsLeft++;
+            }
+            movePlayer(now, dt);
+            if (now >= freezeUntil) {
+                const scared = now < powerUntil;
+                const map = distanceMap(wrap(Math.round(px)), Math.round(py));
+                ghosts.forEach(g => {
+                    if (g.cage !== null && now >= g.waitUntil) releaseGhost(g);
+                    if (g.cage !== null) return;
+                    advance(g, dt * playerSpeed() * (scared ? 0.5 : 0.85), e => chooseGhost(e, scared, map), () => {});
+                });
+            }
+            checkCollisions(now);
+            if (dotsLeft <= 0 && powerRespawns.length === 0) {
                 level++;
                 newLevel(now);
+                sfx.levelUp();
             }
             updateHud();
         }
 
+        function update(now, dt) {
+            const chunks = Math.max(1, Math.ceil(dt * 60));
+            for (let i = 0; i < chunks && state === "playing"; i++) {
+                tick(now, dt / chunks);
+            }
+        }
+
+        function threatOf(now) {
+            let best = null;
+            for (const g of ghosts) {
+                if (g.cage !== null) continue;
+                let dx = g.x - px;
+                if (dx > W / 2) dx -= W;
+                else if (dx < -W / 2) dx += W;
+                const dy = g.y - py;
+                const d = Math.hypot(dx, dy);
+                if (d < PANIC_DIST && (!best || d < best.d)) best = { d, dx, dy };
+            }
+            return best;
+        }
+
         function drawWall(x, y) {
-            ctx.fillStyle = "#1e3a8a";
-            ctx.fillRect(x * T + 1, y * T + 1, T - 2, T - 2);
-            ctx.strokeStyle = "#60a5fa";
+            const wx = x * T;
+            const wy = y * T;
+            ctx.fillStyle = "#070a24";
+            ctx.fillRect(wx + 1, wy + 1, T - 2, T - 2);
+            ctx.strokeStyle = "rgba(34, 211, 238, 0.28)";
+            ctx.lineWidth = 6;
+            ctx.strokeRect(wx + 6, wy + 6, T - 12, T - 12);
+            ctx.strokeStyle = "#67e8f9";
             ctx.lineWidth = 2;
-            ctx.strokeRect(x * T + 6, y * T + 6, T - 12, T - 12);
+            ctx.strokeRect(wx + 7, wy + 7, T - 14, T - 14);
         }
 
         function drawGhost(g, color, cx, cy, now, scared) {
             let fill = color;
             if (scared) {
                 const ending = powerUntil - now < 1500 && Math.floor(now / 150) % 2 === 0;
-                fill = ending ? "#e2e8f0" : "#1d4ed8";
+                fill = ending ? "#f8fafc" : "#2563eb";
             }
             const r = T / 2 - 3;
+            ctx.save();
+            ctx.shadowColor = fill;
+            ctx.shadowBlur = 14;
             ctx.fillStyle = fill;
             ctx.beginPath();
             ctx.arc(cx, cy - 2, r, Math.PI, 0);
@@ -330,6 +697,7 @@
             ctx.lineTo(cx - r, cy + r);
             ctx.closePath();
             ctx.fill();
+            ctx.restore();
             ctx.fillStyle = "#fff";
             ctx.beginPath();
             ctx.arc(cx - 4, cy - 4, 3, 0, Math.PI * 2);
@@ -344,8 +712,71 @@
             }
         }
 
+        function drawCage(cage) {
+            const xs = cage.cells.map(([x]) => x);
+            const ys = cage.cells.map(([, y]) => y);
+            const minX = Math.min(...xs);
+            const maxX = Math.max(...xs);
+            const minY = Math.min(...ys);
+            const maxY = Math.max(...ys);
+            const left = minX * T + 6;
+            const right = (maxX + 1) * T - 6;
+            const top = minY * T - 2;
+            const bottom = (maxY + 1) * T + 2;
+            const mx = (left + right) / 2;
+            const my = (top + bottom) / 2;
+            const [dx, dy] = cage.door;
+            const side = (x1, y1, x2, y2, gap) => {
+                if (!gap) {
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                } else if (y1 === y2) {
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(mx - 8, y1);
+                    ctx.moveTo(mx + 8, y1);
+                    ctx.lineTo(x2, y2);
+                } else {
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x1, my - 8);
+                    ctx.moveTo(x1, my + 8);
+                    ctx.lineTo(x2, y2);
+                }
+            };
+            ctx.save();
+            ctx.strokeStyle = "#22d3ee";
+            ctx.lineWidth = 2;
+            ctx.shadowColor = "#22d3ee";
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            for (let i = 1; i <= 2; i++) {
+                const x = left + ((right - left) * i) / 3;
+                ctx.moveTo(x, top);
+                ctx.lineTo(x, bottom);
+            }
+            side(left, top, right, top, dy < minY);
+            side(left, bottom, right, bottom, dy > maxY);
+            side(left, top, left, bottom, dx < minX);
+            side(right, top, right, bottom, dx > maxX);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function drawAngryBrows(cx, cy) {
+            ctx.save();
+            ctx.strokeStyle = "#0f172a";
+            ctx.lineWidth = 2.5;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(cx - 8, cy - 11);
+            ctx.lineTo(cx - 1, cy - 7);
+            ctx.moveTo(cx + 8, cy - 11);
+            ctx.lineTo(cx + 1, cy - 7);
+            ctx.stroke();
+            ctx.restore();
+        }
+
         function draw(now) {
-            ctx.fillStyle = "#000";
+            ctx.fillStyle = "#03010a";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             for (let y = 0; y < H; y++) {
@@ -356,52 +787,124 @@
                     if (c === "#") {
                         drawWall(x, y);
                     } else if (c === ".") {
-                        ctx.fillStyle = "#fde68a";
+                        ctx.fillStyle = "rgba(253, 224, 71, 0.22)";
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = "#fef9c3";
                         ctx.beginPath();
                         ctx.arc(cx, cy, 4, 0, Math.PI * 2);
                         ctx.fill();
                     } else if (c === "o") {
-                        ctx.fillStyle = "#fef3c7";
+                        const pulse = Math.sin(now / 120) * 2;
+                        ctx.fillStyle = "rgba(253, 224, 71, 0.25)";
                         ctx.beginPath();
-                        ctx.arc(cx, cy, 10 + Math.sin(now / 120) * 2, 0, Math.PI * 2);
+                        ctx.arc(cx, cy, 16 + pulse, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = "#fef08a";
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, 10 + pulse, 0, Math.PI * 2);
                         ctx.fill();
                     }
                 }
             }
 
             const scared = now < powerUntil;
-            const t = Math.min(1, Math.max(0, (now - lastStepAt) / stepMs()));
             ghosts.forEach((g, i) => {
-                const gx = mix(g.x, g.fx, t);
-                const gy = mix(g.y, g.fy, t);
-                drawGhost(g, GHOST_COLORS[i], gx * T + T / 2, gy * T + T / 2, now, scared);
+                const caged = g.cage !== null;
+                const phase = (Math.sin(now / 220 + i * 2) + 1) / 2;
+                const gx = g.x * T + T / 2;
+                const gy = (g.y + 0.5 + (caged ? (phase - 0.5) * 0.5 : 0)) * T;
+                drawGhost(g, GHOST_COLORS[i], gx, gy, now, scared);
+                if (caged) drawAngryBrows(gx, gy);
+            });
+            CAGES.forEach((cage, c) => {
+                if (ghosts.some(g => g.cage === c)) drawCage(cage);
             });
 
-            const pcx = mix(px, fpx, t) * T + T / 2;
-            const pcy = mix(py, fpy, t) * T + T / 2;
-            ctx.fillStyle = "#2dd4bf";
+            const threat = state === "playing" && now >= powerUntil ? threatOf(now) : null;
+            const shake = threat ? Math.sin(now / 28) * 1.6 : 0;
+            const pcx = px * T + T / 2 + shake;
+            const pcy = py * T + T / 2;
+            const r = T / 2 - 3;
+            const powered = now < powerUntil;
+            const facing = pdx || pdy ? Math.atan2(pdy, pdx) : 0;
+            const mouth = Math.max(0.2, threat ? 0.5 : 0, Math.max(0, 1 - (now - chompAt) / 160) * 0.7);
+            const wobble = powered ? Math.sin(now / 35) * 0.4 : 0;
+            const playerColor = powered && Math.floor(now / 90) % 2 ? "#f0abfc" : "#2dd4bf";
+            ctx.save();
+            ctx.shadowColor = playerColor;
+            ctx.shadowBlur = 16;
+            ctx.fillStyle = playerColor;
             ctx.beginPath();
-            ctx.arc(pcx, pcy, T / 2 - 3, 0, Math.PI * 2);
+            ctx.arc(pcx, pcy, r, facing + mouth, facing + Math.PI * 2 - mouth);
+            ctx.lineTo(pcx, pcy);
+            ctx.closePath();
             ctx.fill();
-            ctx.fillStyle = "#042f2e";
+            ctx.restore();
+            ctx.fillStyle = "#f8fafc";
             ctx.beginPath();
-            ctx.arc(pcx - 4 + pdx * 2, pcy - 3 + pdy * 2, 2.5, 0, Math.PI * 2);
-            ctx.arc(pcx + 4 + pdx * 2, pcy - 3 + pdy * 2, 2.5, 0, Math.PI * 2);
+            for (const e of [facing - mouth, facing + mouth]) {
+                ctx.moveTo(pcx + Math.cos(e - 0.12) * r, pcy + Math.sin(e - 0.12) * r);
+                ctx.lineTo(pcx + Math.cos(e) * r * 0.7, pcy + Math.sin(e) * r * 0.7);
+                ctx.lineTo(pcx + Math.cos(e + 0.12) * r, pcy + Math.sin(e + 0.12) * r);
+                ctx.closePath();
+            }
             ctx.fill();
+            ctx.strokeStyle = "#0f766e";
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            for (const dx of [-5, 0, 5]) {
+                ctx.moveTo(pcx + dx * 0.6, pcy - r + 2);
+                ctx.quadraticCurveTo(pcx + dx * 1.2, pcy - r - 3, pcx + dx * 1.5 + 1, pcy - r - 7);
+            }
+            ctx.stroke();
+            const look = threat ? [threat.dx / threat.d, threat.dy / threat.d] : [pdx, pdy];
+            const eyes = [-0.9, 0.9].map(side => {
+                const a = -Math.PI / 2 + side + wobble;
+                return [pcx + Math.cos(a) * 6, pcy + Math.sin(a) * 6];
+            });
+            ctx.fillStyle = "#f8fafc";
+            ctx.beginPath();
+            for (const [ex, ey] of eyes) {
+                ctx.moveTo(ex + 3.2, ey);
+                ctx.arc(ex, ey, 3.2, 0, Math.PI * 2);
+            }
+            ctx.fill();
+            ctx.fillStyle = "#0f172a";
+            ctx.beginPath();
+            for (const [ex, ey] of eyes) {
+                const px2 = ex + look[0] * 1.3;
+                const py2 = ey + look[1] * 1.3;
+                ctx.moveTo(px2 + 1.5, py2);
+                ctx.arc(px2, py2, 1.5, 0, Math.PI * 2);
+            }
+            ctx.fill();
+            if (threat) {
+                ctx.fillStyle = "#7dd3fc";
+                ctx.beginPath();
+                ctx.moveTo(pcx + 14, pcy - 14);
+                ctx.lineTo(pcx + 11.6, pcy - 8);
+                ctx.arc(pcx + 14, pcy - 8, 2.4, Math.PI, 0, true);
+                ctx.closePath();
+                ctx.fill();
+            }
         }
 
         function frame(now) {
-            if (state === "playing" && now >= nextStep) {
-                nextStep = now + stepMs();
-                lastStepAt = now;
-                update(now);
-                if (state !== "playing") nextStep = Infinity;
-            }
+            const dt = lastFrame ? Math.min(0.05, (now - lastFrame) / 1000) : 0;
+            lastFrame = now;
+            if (state === "playing") update(now, dt);
             draw(now);
             requestAnimationFrame(frame);
         }
 
         window.addEventListener("keydown", e => {
+            if (e.key === "m" || e.key === "M") {
+                muted = !muted;
+                return;
+            }
             const k = KEYS[e.key];
             if (!k) return;
             e.preventDefault();
