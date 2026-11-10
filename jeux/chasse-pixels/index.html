@@ -186,6 +186,7 @@
                 ],
                 power: [[1, 1], [17, 1], [1, 13], [17, 13]],
                 start: [9, 7],
+                look: { wall: "stone", floor: "tiles" },
                 cages: [
                     { cells: [[9, 1], [9, 2]], door: [9, 3] },
                     { cells: [[9, 12], [9, 13]], door: [9, 11] }
@@ -220,6 +221,7 @@
                 ],
                 power: [[1, 1], [23, 1], [1, 17], [23, 17]],
                 start: [12, 15],
+                look: { wall: "brick", floor: "concrete" },
                 cages: [
                     { cells: [[11, 9], [12, 9], [13, 9], [11, 10], [12, 10], [13, 10]], door: [12, 8] }
                 ],
@@ -231,7 +233,7 @@
                 ]
             }
         ];
-        let W, H, ROWS, POWER, PLAYER_START, CAGES, GHOST_HOME;
+        let W, H, ROWS, POWER, PLAYER_START, CAGES, GHOST_HOME, LOOK;
         const GHOST_COLORS = ["#ff2bd6", "#ff9f1c", "#39ff14", "#ef4444"];
         const PANIC_DIST = 2.5;
         const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -251,7 +253,7 @@
         const msgEl = document.getElementById("msg");
         const startBtn = document.getElementById("start");
 
-        let grid, dotsLeft, px, py, pdx, pdy, wdx, wdy, ghosts;
+        let grid, smallDotsLeft, px, py, pdx, pdy, wdx, wdy, ghosts, backdrop;
         let powerRespawns = [];
         let score = 0, lives = 3, level = 1;
         let powerUntil = 0, freezeUntil = 0;
@@ -316,14 +318,30 @@
             }
         });
 
+        const CHIP_STEP = 0.13;
+        const LEAD2_STEP = 0.14;
+        const LEAD2_MELODY = [
+            659, 0, 880, 783, 659, 587, 523, 0,
+            587, 0, 698, 659, 587, 523, 493, 0,
+            523, 0, 659, 587, 523, 440, 392, 0,
+            440, 523, 587, 659, 587, 523, 493, 440,
+        ];
+        const LEAD2_BASS = [110, 87.31, 130.81, 98];
         const TRACKS = {
             chip: {
-                step: 0.18,
+                step: CHIP_STEP,
                 length: 64,
                 play(i, t) {
                     const ev = chipEvents[i];
-                    if (ev) playTone(ev.f, ev.n * 0.18 * 0.9, "square", 0.03, null, t);
-                    if (i % 4 === 0) playTone(CHIP_BASS[i >> 3], 0.3, "triangle", 0.05, null, t);
+                    if (ev) {
+                        const dur = ev.n * CHIP_STEP * 0.9;
+                        playTone(ev.f, dur, "sawtooth", 0.02, null, t);
+                        playTone(ev.f * 0.8, dur, "square", 0.012, null, t);
+                    }
+                    const root = CHIP_BASS[i >> 3];
+                    if (i % 2 === 0) playTone(root, 0.09, "sawtooth", 0.045, null, t);
+                    else playTone(root * 2, 0.07, "square", 0.02, null, t);
+                    if (i % 4 === 2) playTone(180, 0.06, "square", 0.04, 60, t);
                 },
             },
             techno: {
@@ -336,6 +354,21 @@
                     if (bass[i]) playTone(bass[i], 0.1, "sawtooth", 0.035, null, t);
                     const stab = [880, 0, 0, 0, 0, 0, 1047, 0, 0, 0, 0, 0, 880, 0, 0, 0];
                     if (stab[i]) playTone(stab[i], 0.08, "square", 0.02, null, t);
+                },
+            },
+            lead2: {
+                step: LEAD2_STEP,
+                length: 32,
+                play(i, t) {
+                    const note = LEAD2_MELODY[i];
+                    if (note) {
+                        playTone(note, LEAD2_STEP * 0.85, "triangle", 0.05, null, t);
+                        playTone(note * 1.2, LEAD2_STEP * 0.85, "square", 0.012, null, t);
+                    }
+                    const root = LEAD2_BASS[(i >> 3) & 3];
+                    if (i % 2 === 0) playTone(root, 0.11, "sawtooth", 0.035, null, t);
+                    else playTone(root * 2, 0.06, "sine", 0.03, null, t);
+                    if (i % 4 === 2) playTone(220, 0.05, "square", 0.03, 90, t);
                 },
             },
         };
@@ -409,8 +442,10 @@
             PLAYER_START = L.start;
             CAGES = L.cages;
             GHOST_HOME = L.ghosts;
+            LOOK = L.look;
             canvas.width = W * T;
             canvas.height = H * T;
+            buildBackdrop();
         }
 
         function newLevel(now) {
@@ -420,9 +455,9 @@
             for (const cage of CAGES) for (const [x, y] of cage.cells) grid[y][x] = " ";
             powerRespawns = [];
             ghosts = [];
-            dotsLeft = 0;
+            smallDotsLeft = 0;
             for (const row of grid) {
-                for (const c of row) if (c === "." || c === "o") dotsLeft++;
+                for (const c of row) if (c === ".") smallDotsLeft++;
             }
             resetPositions(now);
         }
@@ -513,8 +548,20 @@
             return open(nx, ny) && !isCageCell(nx, ny);
         }
 
+        function claimedCells(o) {
+            const cx = Math.round(o.x);
+            const cy = Math.round(o.y);
+            const nx = o.dx > 0 ? Math.floor(o.x) + 1 : o.dx < 0 ? Math.ceil(o.x) - 1 : cx;
+            const ny = o.dy > 0 ? Math.floor(o.y) + 1 : o.dy < 0 ? Math.ceil(o.y) - 1 : cy;
+            return [[cx, cy], [nx, ny]];
+        }
+
+        function freeGhostAt(x, y, except) {
+            return ghosts.some(o => o !== except && o.cage === null && claimedCells(o).some(([cx, cy]) => wrap(cx) === wrap(x) && cy === y));
+        }
+
         function chooseGhost(g, scared, map) {
-            const opts = DIRS.filter(([dx, dy]) => canStep(g, dx, dy));
+            const opts = DIRS.filter(([dx, dy]) => canStep(g, dx, dy) && !freeGhostAt(g.x + dx, g.y + dy, g));
             const forward = opts.filter(([dx, dy]) => !(dx === -g.dx && dy === -g.dy));
             const pool = forward.length ? forward : opts;
             if (!pool.length) {
@@ -559,7 +606,7 @@
                     ? (isCenter(p) ? p + 1 : Math.ceil(p))
                     : (isCenter(p) ? p - 1 : Math.floor(p));
                 const dist = Math.abs(target - p);
-                const move = Math.min(budget, dist);
+                const move = budget >= dist - 1e-6 ? dist : budget;
                 budget -= move;
                 if (move < dist) {
                     if (horiz) e.x = p + d * move;
@@ -577,13 +624,13 @@
             if (c !== "." && c !== "o") return;
             chompAt = now;
             score += c === "o" ? 50 : 10;
-            dotsLeft--;
             grid[y][x] = " ";
             if (c === "o") {
                 powerUntil = now + 6000;
                 powerRespawns.push({ x, y, at: now + 20000 });
                 sfx.power();
             } else {
+                smallDotsLeft--;
                 sfx.chomp();
             }
         }
@@ -619,26 +666,28 @@
         }
 
         function tick(now, dt) {
-            setMusicTrack(now < powerUntil ? "techno" : "chip");
+            setMusicTrack(now < powerUntil ? "techno" : level >= 2 ? "lead2" : "chip");
             for (let i = powerRespawns.length - 1; i >= 0; i--) {
                 const r = powerRespawns[i];
                 if (now < r.at) continue;
                 powerRespawns.splice(i, 1);
                 grid[r.y][r.x] = "o";
-                dotsLeft++;
             }
             movePlayer(now, dt);
             if (now >= freezeUntil) {
                 const scared = now < powerUntil;
                 const map = distanceMap(wrap(Math.round(px)), Math.round(py));
                 ghosts.forEach(g => {
-                    if (g.cage !== null && now >= g.waitUntil) releaseGhost(g);
+                    if (g.cage !== null && now >= g.waitUntil) {
+                        const [dx, dy] = CAGES[g.cage].door;
+                        if (!freeGhostAt(dx, dy, g)) releaseGhost(g);
+                    }
                     if (g.cage !== null) return;
                     advance(g, dt * playerSpeed() * (scared ? 0.5 : 0.85), e => chooseGhost(e, scared, map), () => {});
                 });
             }
             checkCollisions(now);
-            if (dotsLeft <= 0 && powerRespawns.length === 0) {
+            if (smallDotsLeft <= 0) {
                 level++;
                 newLevel(now);
                 sfx.levelUp();
@@ -667,17 +716,135 @@
             return best;
         }
 
-        function drawWall(x, y) {
-            const wx = x * T;
-            const wy = y * T;
-            ctx.fillStyle = "#070a24";
-            ctx.fillRect(wx + 1, wy + 1, T - 2, T - 2);
-            ctx.strokeStyle = "rgba(34, 211, 238, 0.28)";
-            ctx.lineWidth = 6;
-            ctx.strokeRect(wx + 6, wy + 6, T - 12, T - 12);
-            ctx.strokeStyle = "#67e8f9";
-            ctx.lineWidth = 2;
-            ctx.strokeRect(wx + 7, wy + 7, T - 14, T - 14);
+        function hash(x, y, s) {
+            let h = (Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(s, 982451653)) | 0;
+            h = Math.imul(h ^ (h >>> 13), 1274126177);
+            return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+        }
+
+        function isWallCell(x, y) {
+            if (y < 0 || y >= H) return true;
+            return ROWS[y][(x + W) % W] === "#";
+        }
+
+        function drawConcrete(b, x, y) {
+            const ox = x * T;
+            const oy = y * T;
+            const tone = Math.round(hash(x, y, 1) * 12);
+            b.fillStyle = `rgb(${38 + tone}, ${40 + tone}, ${48 + tone})`;
+            b.fillRect(ox, oy, T, T);
+            for (let i = 0; i < 12; i++) {
+                b.fillStyle = hash(x, y, 10 + i) > 0.5 ? "rgba(255, 255, 255, 0.06)" : "rgba(0, 0, 0, 0.14)";
+                b.fillRect(ox + hash(x, y, 30 + i) * (T - 1), oy + hash(x, y, 50 + i) * (T - 1), 1, 1);
+            }
+            if (hash(x, y, 70) < 0.4) {
+                b.save();
+                b.beginPath();
+                b.rect(ox, oy, T, T);
+                b.clip();
+                b.lineWidth = 0.8;
+                const traceCrack = dx => {
+                    let px = ox + hash(x, y, 71) * T + dx;
+                    let py = oy + hash(x, y, 72) * T;
+                    let a = hash(x, y, 73) * Math.PI * 2;
+                    b.beginPath();
+                    b.moveTo(px, py);
+                    for (let k = 0; k < 4; k++) {
+                        a += (hash(x, y, 80 + k) - 0.5) * 1.4;
+                        px += Math.cos(a) * 3;
+                        py += Math.sin(a) * 3;
+                        b.lineTo(px, py);
+                    }
+                    b.stroke();
+                };
+                b.strokeStyle = "rgba(0, 0, 0, 0.6)";
+                traceCrack(0);
+                b.strokeStyle = "rgba(255, 255, 255, 0.08)";
+                traceCrack(1);
+                b.restore();
+            }
+        }
+
+        function drawBlockWall(b, x, y, BW, BH, mortar, tone, cut) {
+            const ox = x * T;
+            const oy = y * T;
+            b.save();
+            b.beginPath();
+            b.rect(ox, oy, T, T);
+            b.clip();
+            b.fillStyle = mortar;
+            b.fillRect(ox, oy, T, T);
+            for (let r = Math.floor(oy / BH); r <= Math.floor((oy + T - 1) / BH); r++) {
+                const off = (r & 1) * (BW / 2);
+                for (let k = Math.floor((ox - off) / BW); k <= Math.floor((ox + T - 1 - off) / BW); k++) {
+                    const bx = k * BW + off + 1;
+                    const by = r * BH + 1;
+                    b.fillStyle = tone(hash(k, r, 3));
+                    b.fillRect(bx, by, BW - 2, BH - 2);
+                    if (cut) {
+                        b.fillStyle = "rgba(255, 255, 255, 0.12)";
+                        b.fillRect(bx, by, BW - 2, 2);
+                        b.fillStyle = "rgba(0, 0, 0, 0.25)";
+                        b.fillRect(bx, by + BH - 4, BW - 2, 2);
+                    }
+                }
+            }
+            if (!isWallCell(x, y - 1)) {
+                b.fillStyle = "rgba(255, 230, 200, 0.3)";
+                b.fillRect(ox, oy, T, 3);
+            }
+            if (!isWallCell(x - 1, y)) {
+                b.fillStyle = "rgba(255, 230, 200, 0.2)";
+                b.fillRect(ox, oy, 3, T);
+            }
+            if (!isWallCell(x, y + 1)) {
+                b.fillStyle = "rgba(0, 0, 0, 0.5)";
+                b.fillRect(ox, oy + T - 4, T, 4);
+            }
+            if (!isWallCell(x + 1, y)) {
+                b.fillStyle = "rgba(0, 0, 0, 0.5)";
+                b.fillRect(ox + T - 4, oy, 4, T);
+            }
+            b.restore();
+        }
+
+        function drawBrickWall(b, x, y) {
+            drawBlockWall(b, x, y, 20, 10, "#5a524c", v => `hsl(14, ${32 + v * 14}%, ${30 + v * 14}%)`, false);
+        }
+
+        function drawStoneWall(b, x, y) {
+            drawBlockWall(b, x, y, 40, 20, "#1f2330", v => `hsl(215, ${8 + v * 6}%, ${40 + v * 12}%)`, true);
+        }
+
+        function drawTiles(b, x, y) {
+            const ox = x * T;
+            const oy = y * T;
+            b.fillStyle = (x + y) % 2 ? "#232b3c" : "#2a3346";
+            b.fillRect(ox, oy, T, T);
+            b.fillStyle = "rgba(255, 255, 255, 0.05)";
+            b.fillRect(ox, oy, T, 1);
+            b.fillRect(ox, oy, 1, T);
+            b.fillStyle = "rgba(0, 0, 0, 0.35)";
+            b.fillRect(ox, oy + T - 1, T, 1);
+            b.fillRect(ox + T - 1, oy, 1, T);
+        }
+
+        const WALL_DRAWERS = { brick: drawBrickWall, stone: drawStoneWall };
+        const FLOOR_DRAWERS = { concrete: drawConcrete, tiles: drawTiles };
+
+        function buildBackdrop() {
+            backdrop = document.createElement("canvas");
+            backdrop.width = W * T;
+            backdrop.height = H * T;
+            const b = backdrop.getContext("2d");
+            const paintWall = WALL_DRAWERS[LOOK.wall];
+            const paintFloor = FLOOR_DRAWERS[LOOK.floor];
+            for (let y = 0; y < H; y++) {
+                for (let x = 0; x < W; x++) {
+                    if (ROWS[y][x] === "#") paintWall(b, x, y);
+                    else paintFloor(b, x, y);
+                }
+            }
         }
 
         function drawGhost(g, color, cx, cy, now, scared) {
@@ -694,9 +861,18 @@
             ctx.beginPath();
             ctx.arc(cx, cy - 2, r, Math.PI, 0);
             ctx.lineTo(cx + r, cy + r);
-            ctx.lineTo(cx - r, cy + r);
+            const waves = 4;
+            const seg = (2 * r) / waves;
+            for (let k = 0; k < waves; k++) {
+                const x = cx + r - seg * (k + 1);
+                const depth = 2.5 + 1.5 * Math.sin(now / 150 + k * 1.7);
+                ctx.quadraticCurveTo(x + seg / 2, cy + r + depth * 2, x, cy + r);
+            }
             ctx.closePath();
             ctx.fill();
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
             ctx.restore();
             ctx.fillStyle = "#fff";
             ctx.beginPath();
@@ -706,8 +882,10 @@
             if (!scared) {
                 ctx.fillStyle = "#0f172a";
                 ctx.beginPath();
-                ctx.arc(cx - 3 + g.dx, cy - 4 + g.dy, 1.5, 0, Math.PI * 2);
-                ctx.arc(cx + 5 + g.dx, cy - 4 + g.dy, 1.5, 0, Math.PI * 2);
+                const lookX = g.dx * 1.5;
+                const lookY = g.dy * 1.5;
+                ctx.arc(cx - 4 + lookX, cy - 4 + lookY, 1.5, 0, Math.PI * 2);
+                ctx.arc(cx + 4 + lookX, cy - 4 + lookY, 1.5, 0, Math.PI * 2);
                 ctx.fill();
             }
         }
@@ -776,17 +954,14 @@
         }
 
         function draw(now) {
-            ctx.fillStyle = "#03010a";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(backdrop, 0, 0);
 
             for (let y = 0; y < H; y++) {
                 for (let x = 0; x < W; x++) {
                     const c = grid[y][x];
                     const cx = x * T + T / 2;
                     const cy = y * T + T / 2;
-                    if (c === "#") {
-                        drawWall(x, y);
-                    } else if (c === ".") {
+                    if (c === ".") {
                         ctx.fillStyle = "rgba(253, 224, 71, 0.22)";
                         ctx.beginPath();
                         ctx.arc(cx, cy, 7, 0, Math.PI * 2);
@@ -841,6 +1016,9 @@
             ctx.lineTo(pcx, pcy);
             ctx.closePath();
             ctx.fill();
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 1.2;
+            ctx.stroke();
             ctx.restore();
             ctx.fillStyle = "#f8fafc";
             ctx.beginPath();
@@ -868,8 +1046,8 @@
             ctx.fillStyle = "#f8fafc";
             ctx.beginPath();
             for (const [ex, ey] of eyes) {
-                ctx.moveTo(ex + 3.2, ey);
-                ctx.arc(ex, ey, 3.2, 0, Math.PI * 2);
+                ctx.moveTo(ex + 4, ey);
+                ctx.arc(ex, ey, 4, 0, Math.PI * 2);
             }
             ctx.fill();
             ctx.fillStyle = "#0f172a";
@@ -877,8 +1055,8 @@
             for (const [ex, ey] of eyes) {
                 const px2 = ex + look[0] * 1.3;
                 const py2 = ey + look[1] * 1.3;
-                ctx.moveTo(px2 + 1.5, py2);
-                ctx.arc(px2, py2, 1.5, 0, Math.PI * 2);
+                ctx.moveTo(px2 + 2, py2);
+                ctx.arc(px2, py2, 2, 0, Math.PI * 2);
             }
             ctx.fill();
             if (threat) {
