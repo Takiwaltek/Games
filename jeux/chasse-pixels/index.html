@@ -187,6 +187,7 @@
                 power: [[1, 1], [17, 1], [1, 13], [17, 13]],
                 start: [9, 7],
                 look: { wall: "stone", floor: "tiles" },
+                music: "chip",
                 cages: [
                     { cells: [[9, 1], [9, 2]], door: [9, 3] },
                     { cells: [[9, 12], [9, 13]], door: [9, 11] }
@@ -222,6 +223,7 @@
                 power: [[1, 1], [23, 1], [1, 17], [23, 17]],
                 start: [12, 15],
                 look: { wall: "brick", floor: "concrete" },
+                music: "lead2",
                 cages: [
                     { cells: [[11, 9], [12, 9], [13, 9], [11, 10], [12, 10], [13, 10]], door: [12, 8] }
                 ],
@@ -231,10 +233,54 @@
                     { cage: 0, slot: 2, delay: 20000 },
                     { cage: 0, slot: 3, delay: 40000 }
                 ]
+            },
+            {
+                rows: [
+                    "###############################",
+                    "#.....#.....#.....#.....#.....#",
+                    "#.##.#.#.#.#.......#.#.#.#.##.#",
+                    "#...#...#.............#...#...#",
+                    "##.##.###.............###.##.##",
+                    "#.........#...#.#...#.........#",
+                    "#.#.#.#.#.............#.#.#.#.#",
+                    "...............................",
+                    "##.##.#.#.#.#.#.#.#.#.#.#.##.##",
+                    "....#.#.#.#.#.#.#.#.#.#.#.#....",
+                    "..#.#.#.#.#.##   ##.#.#.#.#.#..",
+                    "#...#...#....#   #....#...#...#",
+                    "..#.#.#.#.#.#.###.#.#.#.#.#.#..",
+                    "#.....#.....#.....#.....#.....#",
+                    "##.##.#.#.#.#.....#.#.#.#.##.##",
+                    "#...#...#.............#...#...#",
+                    "#.##.#...#.#.#...#.#.#...#.##.#",
+                    "#.....#.................#.....#",
+                    "#.#.#.#.#.#.#.....#.#.#.#.#.#.#",
+                    "###.#...##...........##...#.###",
+                    "###############################"
+                ],
+                power: [[1, 1], [29, 1], [1, 17], [29, 17]],
+                start: [15, 15],
+                look: { wall: "stone", floor: "concrete" },
+                music: "arp3",
+                cages: [
+                    { cells: [[14, 10], [15, 10], [16, 10], [14, 11], [15, 11], [16, 11]], door: [15, 9] }
+                ],
+                ghosts: [
+                    { cage: 0, slot: 0, delay: 0 },
+                    { cage: 0, slot: 1, delay: 0 },
+                    { cage: 0, slot: 2, delay: 15000 },
+                    { cage: 0, slot: 3, delay: 30000 },
+                    { cage: 0, slot: 4, delay: 45000 }
+                ]
             }
         ];
-        let W, H, ROWS, POWER, PLAYER_START, CAGES, GHOST_HOME, LOOK;
-        const GHOST_COLORS = ["#ff2bd6", "#ff9f1c", "#39ff14", "#ef4444"];
+        const EXTRA_VARIANTS = [
+            { look: { wall: "brick", floor: "tiles" }, music: "lead2" },
+            { look: { wall: "stone", floor: "tiles" }, music: "arp3" },
+            { look: { wall: "brick", floor: "concrete" }, music: "chip" },
+        ];
+        let W, H, ROWS, POWER, PLAYER_START, CAGES, GHOST_HOME, LOOK, LEVEL_MUSIC;
+        const GHOST_COLORS = ["#ff2bd6", "#ff9f1c", "#39ff14", "#ef4444", "#3b82f6"];
         const PANIC_DIST = 2.5;
         const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
         const KEYS = {
@@ -327,6 +373,14 @@
             440, 523, 587, 659, 587, 523, 493, 440,
         ];
         const LEAD2_BASS = [110, 87.31, 130.81, 98];
+        const ARP3_STEP = 0.105;
+        const ARP3_CHORDS = [
+            [164.81, 196.0, 246.94],
+            [130.81, 164.81, 196.0],
+            [196.0, 246.94, 293.66],
+            [146.83, 185.0, 220.0],
+        ];
+        const ARP3_BASS = [82.41, 65.41, 98.0, 73.42];
         const TRACKS = {
             chip: {
                 step: CHIP_STEP,
@@ -369,6 +423,18 @@
                     if (i % 2 === 0) playTone(root, 0.11, "sawtooth", 0.035, null, t);
                     else playTone(root * 2, 0.06, "sine", 0.03, null, t);
                     if (i % 4 === 2) playTone(220, 0.05, "square", 0.03, 90, t);
+                },
+            },
+            arp3: {
+                step: ARP3_STEP,
+                length: 64,
+                play(i, t) {
+                    const chord = ARP3_CHORDS[(i >> 4) & 3];
+                    const pattern = [0, 1, 2, 1];
+                    const octave = (i >> 2) & 1 ? 2 : 1;
+                    playTone(chord[pattern[i & 3]] * octave, ARP3_STEP * 0.8, "square", 0.025, null, t);
+                    if (i % 8 === 0) playTone(ARP3_BASS[(i >> 4) & 3], 0.2, "sawtooth", 0.04, null, t);
+                    if (i % 2 === 1) playTone(6000, 0.02, "triangle", 0.015, null, t);
                 },
             },
         };
@@ -435,6 +501,7 @@
 
         function loadLevel(n) {
             const L = LEVELS[Math.min(n, LEVELS.length) - 1];
+            const variant = n > LEVELS.length ? EXTRA_VARIANTS[(n - LEVELS.length - 1) % EXTRA_VARIANTS.length] : L;
             ROWS = L.rows;
             W = ROWS[0].length;
             H = ROWS.length;
@@ -442,7 +509,8 @@
             PLAYER_START = L.start;
             CAGES = L.cages;
             GHOST_HOME = L.ghosts;
-            LOOK = L.look;
+            LOOK = variant.look;
+            LEVEL_MUSIC = variant.music;
             canvas.width = W * T;
             canvas.height = H * T;
             buildBackdrop();
@@ -666,7 +734,7 @@
         }
 
         function tick(now, dt) {
-            setMusicTrack(now < powerUntil ? "techno" : level >= 2 ? "lead2" : "chip");
+            setMusicTrack(now < powerUntil ? "techno" : LEVEL_MUSIC);
             for (let i = powerRespawns.length - 1; i >= 0; i--) {
                 const r = powerRespawns[i];
                 if (now < r.at) continue;
@@ -926,11 +994,6 @@
             ctx.shadowColor = "#22d3ee";
             ctx.shadowBlur = 10;
             ctx.beginPath();
-            for (let i = 1; i <= 2; i++) {
-                const x = left + ((right - left) * i) / 3;
-                ctx.moveTo(x, top);
-                ctx.lineTo(x, bottom);
-            }
             side(left, top, right, top, dy < minY);
             side(left, bottom, right, bottom, dy > maxY);
             side(left, top, left, bottom, dx < minX);
@@ -1016,8 +1079,42 @@
             ctx.lineTo(pcx, pcy);
             ctx.closePath();
             ctx.fill();
+            ctx.shadowBlur = 0;
+            const relief = ctx.createRadialGradient(pcx - r * 0.35, pcy - r * 0.35, r * 0.1, pcx, pcy, r);
+            relief.addColorStop(0, "rgba(255, 255, 255, 0.45)");
+            relief.addColorStop(0.55, "rgba(255, 255, 255, 0)");
+            relief.addColorStop(1, "rgba(0, 0, 0, 0.45)");
+            ctx.fillStyle = relief;
+            ctx.fill();
             ctx.strokeStyle = "#000";
             ctx.lineWidth = 1.2;
+            ctx.stroke();
+            ctx.restore();
+            const glint = -Math.PI * 0.75;
+            const glintInMouth = Math.abs(Math.atan2(Math.sin(glint - facing), Math.cos(glint - facing))) < mouth;
+            if (!glintInMouth) {
+                ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+                ctx.beginPath();
+                ctx.ellipse(pcx + Math.cos(glint) * r * 0.5, pcy + Math.sin(glint) * r * 0.5, r * 0.16, r * 0.1, glint, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            const moving = pdx || pdy;
+            const lipX = pcx + Math.cos(facing) * r * 0.33;
+            const lipY = pcy + Math.sin(facing) * r * 0.4 + r * 0.1;
+            const tongueSwing = moving ? Math.sin(now / 70) * 0.45 : Math.sin(now / 400) * 0.12;
+            const tongueLen = r * 0.22;
+            const tipX = lipX + Math.sin(tongueSwing) * tongueLen;
+            const tipY = lipY + Math.cos(tongueSwing) * tongueLen;
+            ctx.save();
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(lipX, lipY);
+            ctx.lineTo(tipX, tipY);
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = r * 0.26;
+            ctx.stroke();
+            ctx.strokeStyle = "#f472b6";
+            ctx.lineWidth = r * 0.15;
             ctx.stroke();
             ctx.restore();
             ctx.fillStyle = "#f8fafc";
@@ -1039,9 +1136,12 @@
             }
             ctx.stroke();
             const look = threat ? [threat.dx / threat.d, threat.dy / threat.d] : [pdx, pdy];
-            const eyes = [-0.9, 0.9].map(side => {
-                const a = -Math.PI / 2 + side + wobble;
-                return [pcx + Math.cos(a) * 6, pcy + Math.sin(a) * 6];
+            const eyes = [-0.5, 0.5].map(side => {
+                let a = -Math.PI / 2 + side + wobble;
+                const d = Math.atan2(Math.sin(a - facing), Math.cos(a - facing));
+                const clearance = mouth + 0.35;
+                if (Math.abs(d) < clearance) a = facing + Math.sign(d || side) * clearance;
+                return [pcx + Math.cos(a) * 8, pcy + Math.sin(a) * 8];
             });
             ctx.fillStyle = "#f8fafc";
             ctx.beginPath();
