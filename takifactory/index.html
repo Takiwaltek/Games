@@ -282,11 +282,13 @@ function nearestTree(m) {
 const MATS = {
   dark: new THREE.MeshStandardMaterial({ color: 0x23293a, roughness: 0.6, metalness: 0.4 }),
   steel: new THREE.MeshStandardMaterial({ color: 0x5a6578, roughness: 0.4, metalness: 0.7 }),
-  trim: new THREE.MeshStandardMaterial({ color: 0xf0a030, roughness: 0.4, metalness: 0.3 })
+  trim: new THREE.MeshStandardMaterial({ color: 0xf0a030, roughness: 0.4, metalness: 0.3 }),
+  pipe: new THREE.MeshStandardMaterial({ color: 0xc27a3a, roughness: 0.35, metalness: 0.8 })
 };
 const ARROW_MAT = new THREE.MeshStandardMaterial({ color: 0xfff1c1, emissive: 0xffd166, emissiveIntensity: 1.1 });
+const ARROW_OUT_MAT = new THREE.MeshStandardMaterial({ color: 0xffb36b, emissive: 0xff7a1a, emissiveIntensity: 1.2 });
 const ghostMat = new THREE.MeshStandardMaterial({ color: 0x3ef0a8, emissive: 0x13986a, emissiveIntensity: 0.8, transparent: true, opacity: 0.4, depthWrite: false });
-const GHOST_MATS = { dark: ghostMat, steel: ghostMat, trim: ghostMat, lamp: ghostMat };
+const GHOST_MATS = { dark: ghostMat, steel: ghostMat, trim: ghostMat, lamp: ghostMat, pipe: ghostMat };
 
 function part(group, geo, mat, x, y, z) {
   const mesh = new THREE.Mesh(geo, mat);
@@ -300,9 +302,9 @@ function part(group, geo, mat, x, y, z) {
 // Deux flèches par côté (une par case de la machine 2×2), toutes deux orientées dans le sens du flux
 function addArrows(group, mat, topY, x, tag) {
   const shape = new THREE.Shape();
-  shape.moveTo(0.32, 0);
-  shape.lineTo(-0.32, 0.32);
-  shape.lineTo(-0.32, -0.32);
+  shape.moveTo(0.4, 0);
+  shape.lineTo(-0.4, 0.4);
+  shape.lineTo(-0.4, -0.4);
   shape.closePath();
   const geo = new THREE.ShapeGeometry(shape);
   geo.rotateX(-Math.PI / 2);
@@ -310,7 +312,7 @@ function addArrows(group, mat, topY, x, tag) {
 }
 
 function addOutputArrow(group, mats, topY) {
-  addArrows(group, mats.lamp, topY, 0.5, 'out');
+  addArrows(group, ARROW_OUT_MAT, topY, 0.5, 'out');
 }
 
 function addInputArrow(group, mats, topY) {
@@ -330,6 +332,22 @@ function addFrame(group, mats, topY) {
 // Trois grilles de ventilation sur la face arrière
 function addVents(group, mats, y) {
   for (let i = -1; i <= 1; i++) part(group, new THREE.BoxGeometry(0.03, 0.4, 0.08), mats.dark, -0.765, y, i * 0.22);
+}
+
+// Tuyau cintré passant par les points pts, avec un joint à chaque point
+function addPipe(group, mats, pts) {
+  const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p)), false, 'centripetal');
+  part(group, new THREE.TubeGeometry(curve, pts.length * 12, 0.05, 6, false), mats.pipe, 0, 0, 0);
+  for (const p of pts) part(group, new THREE.SphereGeometry(0.08, 8, 6), mats.trim, ...p);
+}
+
+// Tuyauterie en arceau sur la face arrière (hors des flèches), avec vanne ; renvoie les points d'où sort la fumée
+function addPipework(group, mats, topY) {
+  const x = -0.95, archY = topY + 0.1;
+  addPipe(group, mats, [[x, 0.35, -0.55], [x, archY, -0.55], [x, archY, 0.55], [x, 0.35, 0.55]]);
+  part(group, new THREE.CylinderGeometry(0.05, 0.05, 0.12, 8), mats.steel, x, archY + 0.12, 0);
+  part(group, new THREE.CylinderGeometry(0.1, 0.1, 0.03, 10), mats.trim, x, archY + 0.2, 0);
+  return [[x, archY + 0.05, -0.55], [x, archY + 0.05, 0.55]];
 }
 
 function buildDrill(mats) {
@@ -369,7 +387,8 @@ function buildDrill(mats) {
     arm.add(blade);
     rotor.add(arm);
   }
-  return { group, rotor, lampMat: mats.lamp, pistons, pistonT: 0, puffT: 0, fragT: 0 };
+  const smokePorts = addPipework(group, mats, 1.52);
+  return { group, rotor, lampMat: mats.lamp, pistons, pistonT: 0, puffT: 0, fragT: 0, smokePorts, smokeT: 0 };
 }
 
 function buildFurnace(mats) {
@@ -387,7 +406,9 @@ function buildFurnace(mats) {
   addVents(group, mats, 1.0);
   part(group, new THREE.TorusGeometry(0.24, 0.03, 8, 16), mats.steel, -0.35, 2.9, -0.35).rotation.x = Math.PI / 2;
   add(new THREE.CylinderGeometry(0.18, 0.18, 0.04, 12), mats.lamp, -0.35, 2.92, -0.35);
-  return { group, lampMat: mats.lamp };
+  const smokePorts = addPipework(group, mats, 1.82);
+  smokePorts.push([-0.35, 2.95, -0.35]);
+  return { group, lampMat: mats.lamp, smokePorts, smokeT: 0 };
 }
 
 function buildHarvester(mats) {
@@ -415,7 +436,8 @@ function buildHarvester(mats) {
     arm.add(blade);
     rotor.add(arm);
   }
-  return { group, rotor, lampMat: mats.lamp };
+  const smokePorts = addPipework(group, mats, 1.42);
+  return { group, rotor, lampMat: mats.lamp, smokePorts, smokeT: 0 };
 }
 
 function buildGenerator(mats) {
@@ -434,7 +456,9 @@ function buildGenerator(mats) {
   part(group, new THREE.CylinderGeometry(0.1, 0.1, 0.04, 12), mats.trim, 0.78, 1.15, -0.4).rotation.z = Math.PI / 2;
   add(new THREE.CylinderGeometry(0.02, 0.02, 0.7, 6), mats.steel, 0.5, 1.77, 0.5);
   add(new THREE.SphereGeometry(0.05, 8, 6), mats.lamp, 0.5, 2.14, 0.5);
-  return { group, lampMat: mats.lamp };
+  const smokePorts = addPipework(group, mats, 1.42);
+  smokePorts.push([0.5, 2.2, 0.5]);
+  return { group, lampMat: mats.lamp, smokePorts, smokeT: 0 };
 }
 
 function buildPole(mats) {
@@ -634,10 +658,10 @@ const puffGeo = new THREE.SphereGeometry(0.06, 6, 5);
 const puffBase = new THREE.MeshBasicMaterial({ color: 0xb8c0cc, transparent: true, opacity: 0.4, depthWrite: false });
 const fragGeo = new THREE.BoxGeometry(0.05, 0.05, 0.05);
 
-function spawnPuff(d, p) {
+function emitPuff(d, fromLocal, toLocal) {
   if (d.removed) return;
-  const from = d.group.localToWorld(new THREE.Vector3(p.sx, 0.7, p.sz * 0.95));
-  const to = d.group.localToWorld(new THREE.Vector3(p.sx + 0.2, 1.4, p.sz * 1.3));
+  const from = d.group.localToWorld(fromLocal);
+  const to = d.group.localToWorld(toLocal);
   const mat = puffBase.clone();
   const mesh = new THREE.Mesh(puffGeo, mat);
   scene.add(mesh);
@@ -649,6 +673,24 @@ function spawnPuff(d, p) {
     scene.remove(mesh);
     mat.dispose();
   });
+}
+
+function spawnPuff(d, p) {
+  emitPuff(d, new THREE.Vector3(p.sx, 0.7, p.sz * 0.95), new THREE.Vector3(p.sx + 0.2, 1.4, p.sz * 1.3));
+}
+
+// Petite bouffée qui monte depuis un point d'échappement [x, y, z] (repère local de la machine)
+function spawnSmoke(m, [x, y, z]) {
+  const drift = () => (Math.random() - 0.5) * 0.25;
+  emitPuff(m, new THREE.Vector3(x, y, z), new THREE.Vector3(x + drift(), y + 0.8, z + drift()));
+}
+
+function tickSmoke(m, dt, on = true) {
+  if (!on) return;
+  m.smokeT += dt;
+  if (m.smokeT < 0.3) return;
+  m.smokeT = 0;
+  spawnSmoke(m, m.smokePorts[Math.floor(Math.random() * m.smokePorts.length)]);
 }
 
 function spawnFragment(d) {
@@ -693,6 +735,7 @@ function updateDrills(dt) {
       d.fragT = 0;
       spawnFragment(d);
     }
+    tickSmoke(d, dt);
     d.timer += dt;
     if (d.timer >= MINE_INTERVAL) {
       d.timer -= MINE_INTERVAL;
@@ -712,6 +755,7 @@ function updateHarvesters(dt) {
       h.timer = 0;
       continue;
     }
+    tickSmoke(h, dt);
     h.timer += dt;
     if (h.timer >= HARVEST_TIME) {
       h.timer -= HARVEST_TIME;
@@ -734,6 +778,7 @@ function updateGenerators(dt) {
       g.timer += dt;
       if (g.timer >= BURN_TIME) g.burning = false;
     }
+    tickSmoke(g, dt, g.burning);
     g.lampMat.emissive.setHex(g.burning ? 0x3ef0a8 : 0x0a2a1a);
   }
 }
@@ -811,6 +856,7 @@ function updateFurnaces(dt) {
         f.current = null;
       }
     }
+    tickSmoke(f, dt, !!f.current);
     f.lampMat.emissive.setHex(f.current ? 0xff7a1a : 0x2a1100);
   }
 }
@@ -1326,7 +1372,7 @@ function placeAt(kind, ix, iz, ore, ug, r) {
   const [cx, cz] = centerOf(kind, ix, iz);
   const lampColor = kind === 'drill' ? ORES[ore].color : kind === 'harvester' ? ORES.biomass.color : kind === 'pole' ? 0xffd166 : 0xff7a1a;
   const lamp = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: lampColor, emissiveIntensity: 1.4 });
-  const built = buildMachine(kind, { dark: MATS.dark, steel: MATS.steel, trim: MATS.trim, lamp }, ug);
+  const built = buildMachine(kind, { dark: MATS.dark, steel: MATS.steel, trim: MATS.trim, pipe: MATS.pipe, lamp }, ug);
   const m = {
     ...built, kind, ore, ix, iz, cx, cz, rot: r, ug, pair: null, net: null,
     size: SIZE[kind], reach: reachOf(kind), y: heightAt(cx, cz),
