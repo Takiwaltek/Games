@@ -356,16 +356,65 @@ function buildGenerator(mats) {
   return { group, lampMat: mats.lamp };
 }
 
+// Bande plate en arc autour de (cx, cz), entre les angles a0 et a1 (même repère que la forme droite)
+function arcBand(r0, r1, a0, a1, y0, h, cx, cz) {
+  const s = new THREE.Shape();
+  s.moveTo(r1 * Math.cos(a0), r1 * Math.sin(a0));
+  s.absarc(0, 0, r1, a0, a1, false);
+  if (r0 > 0) {
+    s.lineTo(r0 * Math.cos(a1), r0 * Math.sin(a1));
+    s.absarc(0, 0, r0, a1, a0, true);
+  } else {
+    s.lineTo(0, 0);
+  }
+  s.closePath();
+  const geo = new THREE.ExtrudeGeometry(s, { depth: h, bevelEnabled: false, curveSegments: 24 });
+  geo.rotateX(-Math.PI / 2);
+  geo.translate(cx, y0, cz);
+  return geo;
+}
+
+// Virage à 90° : centre sur le coin extérieur de la case, rayon 0.5 = ligne centrale du convoyeur.
+// s = +1 si l'entrée vient du côté local +z, -1 pour le côté -z.
+let CORNER_GEOS = null;
+function cornerGeos() {
+  if (CORNER_GEOS) return CORNER_GEOS;
+  CORNER_GEOS = {};
+  for (const s of [1, -1]) {
+    const a0 = s > 0 ? Math.PI / 2 : Math.PI;
+    const a1 = a0 + Math.PI / 2;
+    const band = (r0, r1, y0, h) => arcBand(r0, r1, a0, a1, y0, h, 0.5, 0.5 * s);
+    CORNER_GEOS[s] = [
+      [band(0, 1, 0, 0.5), 'dark'],
+      [band(0.08, 0.92, 0.5, 0.06), 'steel'],
+      [band(0.94, 1, 0.55, 0.1), 'trim'],
+      [band(0, 0.06, 0.55, 0.1), 'trim']
+    ];
+  }
+  return CORNER_GEOS;
+}
+
 function buildBelt(mats) {
   const group = new THREE.Group();
   const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
-  add(new THREE.BoxGeometry(1, 0.5, 1), mats.dark, 0, 0.25, 0);
-  add(new THREE.BoxGeometry(0.84, 0.06, 0.94), mats.steel, 0, 0.53, 0);
-  add(new THREE.BoxGeometry(0.96, 0.1, 0.06), mats.trim, 0, 0.6, 0.47);
-  add(new THREE.BoxGeometry(0.96, 0.1, 0.06), mats.trim, 0, 0.6, -0.47);
+  const straight = [
+    add(new THREE.BoxGeometry(1, 0.5, 1), mats.dark, 0, 0.25, 0),
+    add(new THREE.BoxGeometry(0.84, 0.06, 0.94), mats.steel, 0, 0.53, 0),
+    add(new THREE.BoxGeometry(0.96, 0.1, 0.06), mats.trim, 0, 0.6, 0.47),
+    add(new THREE.BoxGeometry(0.96, 0.1, 0.06), mats.trim, 0, 0.6, -0.47)
+  ];
   const arrow = add(new THREE.ConeGeometry(0.1, 0.22, 3), mats.trim, 0.14, 0.62, 0);
   arrow.rotation.z = -Math.PI / 2;
-  return { group };
+  straight.push(arrow);
+  const corners = {};
+  for (const s of [1, -1]) {
+    corners[s] = cornerGeos()[s].map(([geo, mat]) => {
+      const mesh = add(geo, mats[mat], 0, 0, 0);
+      mesh.visible = false;
+      return mesh;
+    });
+  }
+  return { group, shape: { straight, corners } };
 }
 
 function buildUnderground(mats, end) {
@@ -572,6 +621,47 @@ function updateFurnaces(dt) {
   }
 }
 
+// Côté (+1/-1) d'où un convoyeur reçoit ses objets, ou null si la ligne est droite
+function beltFeedSide(b) {
+  const feeds = (d) => {
+    const [dx, dz] = DIRS[d];
+    const o = occupied.get(cellKey(b.ix + dx, b.iz + dz));
+    return !!o && o !== b && o.ug !== 'in' && frontOf(o) === b;
+  };
+  if (feeds((b.rot + 2) % 4)) return null;
+  if (feeds((b.rot + 3) % 4)) return 1;
+  if (feeds((b.rot + 1) % 4)) return -1;
+  return null;
+}
+
+function setBeltShape(m, side) {
+  const shape = m.shape;
+  if (!shape) return;
+  for (const mesh of shape.straight) mesh.visible = side === null;
+  for (const s of [1, -1]) for (const mesh of shape.corners[s]) mesh.visible = side === s;
+}
+
+function refreshBeltShape(b) {
+  if (b.shape) setBeltShape(b, beltFeedSide(b));
+}
+
+function refreshBeltNeighbours(m) {
+  refreshBeltShape(m);
+  for (const [dx, dz] of DIRS) {
+    const o = occupied.get(cellKey(m.ix + dx, m.iz + dz));
+    if (o && o.kind === 'belt' && o !== m) refreshBeltShape(o);
+  }
+}
+
+// Côté d'entrée d'un convoyeur du tracé en cours de glissement
+function routeSide(cells, i) {
+  if (i === 0) return null;
+  const c = cells[i], p = cells[i - 1];
+  const d = DIRS.findIndex(([dx, dz]) => dx === p.ix - c.ix && dz === p.iz - c.iz);
+  if (d === (c.rot + 2) % 4) return null;
+  return d === (c.rot + 3) % 4 ? 1 : -1;
+}
+
 function updateBelts(dt) {
   for (const b of belts) {
     const items = b.items;
@@ -601,13 +691,12 @@ function updateBelts(dt) {
         x = b.cx + dx * off;
         z = b.cz + dz * off;
       } else {
-        // Virage : courbe de l'arête d'entrée vers l'arête de sortie, en passant par le centre
-        const u = 1 - it.t;
+        // Virage : arc de rayon 0.5 centré sur le coin extérieur, de l'arête d'entrée à l'arête de sortie (même tracé que le convoyeur dessiné)
         const [ex, ez] = DIRS[e];
-        const ax = b.cx + ex * 0.5, az = b.cz + ez * 0.5;
-        const bx = b.cx + dx * 0.5, bz = b.cz + dz * 0.5;
-        x = u * u * ax + 2 * u * it.t * b.cx + it.t * it.t * bx;
-        z = u * u * az + 2 * u * it.t * b.cz + it.t * it.t * bz;
+        const th = it.t * Math.PI / 2;
+        const ccx = b.cx + (ex + dx) * 0.5, ccz = b.cz + (ez + dz) * 0.5;
+        x = ccx - 0.5 * (dx * Math.cos(th) + ex * Math.sin(th));
+        z = ccz - 0.5 * (dz * Math.cos(th) + ez * Math.sin(th));
       }
       it.mesh.position.set(x, b.y + 0.66, z);
       it.mesh.visible = !fromPair || it.t < 0.5;
@@ -979,19 +1068,20 @@ function updateLine(t) {
   const { cells, valid } = lineDrag.route;
   for (let i = 0; i < cells.length; i++) {
     if (!linePool[i]) {
-      linePool[i] = buildBelt(GHOST_MATS).group;
-      linePool[i].traverse(o => { if (o.isMesh) o.castShadow = false; });
-      lineGroup.add(linePool[i]);
+      linePool[i] = buildBelt(GHOST_MATS);
+      linePool[i].group.traverse(o => { if (o.isMesh) o.castShadow = false; });
+      lineGroup.add(linePool[i].group);
     }
     const c = cells[i];
     const cx = c.ix + 0.5;
     const cz = c.iz + 0.5;
-    const g = linePool[i];
+    const g = linePool[i].group;
     g.visible = true;
     g.position.set(cx, heightAt(cx, cz) + 0.1 + Math.sin(t * 3 + i * 0.4) * 0.05, cz);
     g.rotation.y = c.rot * Math.PI / 2;
+    setBeltShape(linePool[i], routeSide(cells, i));
   }
-  for (let i = cells.length; i < linePool.length; i++) linePool[i].visible = false;
+  for (let i = cells.length; i < linePool.length; i++) linePool[i].group.visible = false;
   ghostMat.color.setHex(valid ? 0x3ef0a8 : 0xff4d6d);
   ghostMat.emissive.setHex(valid ? 0x13986a : 0x8a1630);
   ghostMat.opacity = 0.34 + 0.1 * Math.sin(t * 5);
@@ -1015,6 +1105,7 @@ function placeAt(kind, ix, iz, ore, ug, r) {
   for (let i = ix; i < ix + m.size; i++) {
     for (let j = iz; j < iz + m.size; j++) occupied.set(cellKey(i, j), m);
   }
+  if (kind === 'belt') refreshBeltNeighbours(m);
   playPlacement(m.group, kind === 'drill' ? ORES[ore].color : kind === 'harvester' ? ORES.biomass.color : (kind === 'furnace' || kind === 'generator') ? 0xff7a1a : 0x7fd6ff);
   return m;
 }
@@ -1159,6 +1250,14 @@ function removeMachine(m) {
   scene.remove(m.group);
   for (let i = m.ix; i < m.ix + m.size; i++) {
     for (let j = m.iz; j < m.iz + m.size; j++) occupied.delete(cellKey(i, j));
+  }
+  for (let i = m.ix; i < m.ix + m.size; i++) {
+    for (let j = m.iz; j < m.iz + m.size; j++) {
+      for (const [dx, dz] of DIRS) {
+        const o = occupied.get(cellKey(i + dx, j + dz));
+        if (o && o.kind === 'belt') refreshBeltShape(o);
+      }
+    }
   }
   for (const it of m.items) scene.remove(it.mesh);
   m.list.splice(m.list.indexOf(m), 1);
