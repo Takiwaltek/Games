@@ -93,7 +93,7 @@
   <button class="tool-btn" id="btn-generator" type="button" aria-pressed="false" title="Générateur : brûle la biomasse"><span class="key">B</span>Générateur</button>
   <button class="tool-btn" id="btn-pole" type="button" aria-pressed="false" title="Poteau : relie les machines électriques"><span class="key">P</span>Poteau</button>
   <span class="sep"></span>
-  <button class="tool-btn" id="btn-grid" type="button" aria-pressed="true" title="Afficher ou masquer la grille"><span class="key">L</span>Grille</button>
+  <button class="tool-btn" id="btn-grid" type="button" aria-pressed="false" title="Afficher ou masquer la grille"><span class="key">L</span>Grille</button>
   <button class="tool-btn cancel" id="btn-cancel" type="button" title="Annuler l'outil (Échap)">Annuler</button>
 </nav>
 <div class="overlay" id="menu">
@@ -285,6 +285,7 @@ terrain.receiveShadow = true;
 scene.add(terrain);
 const gridOverlay = new THREE.Mesh(groundGeo, new THREE.MeshBasicMaterial({ color: 0x00f0ff, wireframe: true, transparent: true, opacity: 0.07, depthWrite: false }));
 gridOverlay.position.y = 0.03;
+gridOverlay.visible = false;
 scene.add(gridOverlay);
 
 const rockGeo = new THREE.DodecahedronGeometry(0.22, 0);
@@ -895,6 +896,23 @@ function totalPower() {
 let powerNets = [];
 const cables = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xffd166 }));
 scene.add(cables);
+const poleGhostCables = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0x3ef0a8, transparent: true, opacity: 0.8, depthWrite: false }));
+poleGhostCables.visible = false;
+scene.add(poleGhostCables);
+
+// Un poteau relie les autres poteaux à portée, mais une seule machine : la plus proche (un câble, pas deux)
+function poleTargets(x, z, self) {
+  const near = (n) => n !== self && Math.hypot(n.cx - x, n.cz - z) <= POLE_RANGE;
+  const targets = poles.filter(near);
+  let machine = null, best = Infinity;
+  for (const m of [...generators, ...furnaces]) {
+    if (!near(m)) continue;
+    const d = Math.hypot(m.cx - x, m.cz - z);
+    if (d < best) { best = d; machine = m; }
+  }
+  if (machine) targets.push(machine);
+  return targets;
+}
 
 function rebuildPower() {
   const nodes = [...poles, ...generators, ...furnaces];
@@ -904,13 +922,11 @@ function rebuildPower() {
     return n;
   };
   const links = [];
-  for (let i = 0; i < nodes.length; i++) {
-    for (let j = i + 1; j < nodes.length; j++) {
-      const a = nodes[i], b = nodes[j];
-      if (a.kind !== 'pole' && b.kind !== 'pole') continue;
-      if (Math.hypot(a.cx - b.cx, a.cz - b.cz) > POLE_RANGE) continue;
-      links.push([a, b]);
-      parent.set(root(a), root(b));
+  for (const p of poles) {
+    for (const t of poleTargets(p.cx, p.cz, p)) {
+      if (t.kind === 'pole' && poles.indexOf(t) < poles.indexOf(p)) continue;
+      links.push([p, t]);
+      parent.set(root(p), root(t));
     }
   }
   const nets = new Map();
@@ -1200,6 +1216,7 @@ function setMode(next) {
 const toggleMode = (m) => setMode(mode === m ? null : m);
 
 function updateGhost(t) {
+  poleGhostCables.visible = false;
   if (!mode || !ghost) return;
   if (mode === 'belt' && lineDrag) {
     updateLine(t);
@@ -1235,6 +1252,12 @@ function updateGhost(t) {
   ghost.group.rotation.y = r * Math.PI / 2;
   ghostLine.position.set(cx, h + 0.06, cz);
   ghostLine.scale.setScalar(size === 1 ? 0.5 : 1);
+  if (mode === 'pole') {
+    const pts = poleTargets(cx, cz, null).flatMap(n => [new THREE.Vector3(cx, h + POLE_H, cz), new THREE.Vector3(n.cx, n.y + POLE_H, n.cz)]);
+    poleGhostCables.geometry.dispose();
+    poleGhostCables.geometry = new THREE.BufferGeometry().setFromPoints(pts);
+    poleGhostCables.visible = true;
+  }
   const ok = spot.ok;
   ghostMat.color.setHex(ok ? 0x3ef0a8 : 0xff4d6d);
   ghostMat.emissive.setHex(ok ? 0x13986a : 0x8a1630);
@@ -1896,7 +1919,7 @@ function updateHud(dt) {
       const gap = Math.abs(spot.ix - underStart.ix) + Math.abs(spot.iz - underStart.iz);
       statusEl.textContent = `Sortie à ${gap} case(s) de l'entrée · clic gauche pour poser · clic droit pour annuler`;
     } else if (mode === 'harvester' && !nearestTree({ cx: spot.ix + 1, cz: spot.iz + 1 })) statusEl.textContent = 'Aucun arbre à proximité · la récolte ne démarrera pas';
-    else if (mode === 'pole') statusEl.textContent = `Poteau · relie les fourneaux et générateurs à moins de ${POLE_RANGE} cases`;
+    else if (mode === 'pole') statusEl.textContent = `Poteau · relie les autres poteaux et une seule machine (portée ${POLE_RANGE} cases)`;
     else if (mode === 'belt') statusEl.textContent = 'Maintiens le clic et glisse : la ligne se raccorde aux machines';
     else statusEl.textContent = `${label}${spot.ore ? ` · gisement de ${ORES[spot.ore].name}` : ''} · ${rateOf(kindOf(mode))}/min · clic gauche pour poser · R pour tourner`;
   } else if (paste) {
