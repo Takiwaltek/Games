@@ -96,8 +96,9 @@ const FURNACE_INPUT = 4;
 const FURNACE_BUFFER = 4;
 const SMELT_TIME = 2;
 const SMELT = { iron: 'ironIngot', copper: 'copperIngot' };
-const HARVEST_TIME = 1.5;
+const HARVEST_TIME = 4;
 const HARVEST_RADIUS = 4;
+const TREE_REGROW = 60;
 const GEN_INPUT = 4;
 const BURN_TIME = 4;
 const POWER_MW = 30;
@@ -252,7 +253,21 @@ function setTree(t, f) {
 }
 function cutTree(t) {
   t.alive = false;
+  t.regrow = TREE_REGROW;
   addEffect(0.45, k => setTree(t, 1 - k), () => setTree(t, 0));
+}
+function updateTrees(dt) {
+  for (const t of trees) {
+    if (t.alive || t.growing) continue;
+    t.regrow -= dt;
+    if (t.regrow > 0) continue;
+    t.growing = true;
+    addEffect(0.8, k => setTree(t, k), () => {
+      setTree(t, 1);
+      t.alive = true;
+      t.growing = false;
+    });
+  }
 }
 function nearestTree(m) {
   let best = null, bestD = HARVEST_RADIUS * HARVEST_RADIUS;
@@ -306,6 +321,21 @@ function addInputArrow(group, mats, topY, z = 0) {
   part(group, geo, mats.dark, -0.35, topY + 0.01, z);
 }
 
+// Socle lumineux, montants d'angle et capots, commun à toutes les machines (topY = dessus du capot)
+function addFrame(group, mats, topY) {
+  part(group, new THREE.BoxGeometry(2.02, 0.04, 2.02), mats.trim, 0, 0.32, 0);
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const x = sx * 0.75, z = sz * 0.75;
+    part(group, new THREE.CylinderGeometry(0.06, 0.06, topY - 0.3, 8), mats.steel, x, (topY + 0.3) / 2, z);
+    part(group, new THREE.BoxGeometry(0.2, 0.05, 0.2), mats.steel, x, topY + 0.025, z);
+  }
+}
+
+// Trois grilles de ventilation sur la face arrière
+function addVents(group, mats, y) {
+  for (let i = -1; i <= 1; i++) part(group, new THREE.BoxGeometry(0.03, 0.4, 0.08), mats.dark, -0.765, y, i * 0.22);
+}
+
 function buildDrill(mats) {
   const group = new THREE.Group();
   const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
@@ -316,6 +346,8 @@ function buildDrill(mats) {
   add(new THREE.BoxGeometry(0.9, 0.12, 0.04), mats.lamp, 0, 0.85, 0.77);
   add(new THREE.BoxGeometry(0.5, 0.4, 0.5), mats.dark, 0.95, 0.4, 0);
   addOutputArrow(group, mats, 1.52);
+  addFrame(group, mats, 1.52);
+  addVents(group, mats, 0.85);
 
   const rotor = new THREE.Group();
   rotor.position.y = 2.05;
@@ -347,6 +379,10 @@ function buildFurnace(mats) {
   add(new THREE.BoxGeometry(0.5, 0.4, 0.5), mats.dark, 0.95, 0.4, 0);
   addOutputArrow(group, mats, 1.82);
   addInputArrow(group, mats, 1.82, 0.4);
+  addFrame(group, mats, 1.82);
+  addVents(group, mats, 1.0);
+  part(group, new THREE.TorusGeometry(0.24, 0.03, 8, 16), mats.steel, -0.35, 2.9, -0.35).rotation.x = Math.PI / 2;
+  add(new THREE.CylinderGeometry(0.18, 0.18, 0.04, 12), mats.lamp, -0.35, 2.92, -0.35);
   return { group, lampMat: mats.lamp };
 }
 
@@ -359,6 +395,9 @@ function buildHarvester(mats) {
   add(new THREE.BoxGeometry(0.9, 0.12, 0.04), mats.lamp, 0, 0.8, 0.77);
   add(new THREE.BoxGeometry(0.5, 0.4, 0.5), mats.dark, 0.95, 0.4, 0);
   addOutputArrow(group, mats, 1.42);
+  addFrame(group, mats, 1.42);
+  addVents(group, mats, 0.8);
+  add(new THREE.CylinderGeometry(0.12, 0.12, 0.3, 10), mats.dark, 0, 1.57, 0);
 
   const rotor = new THREE.Group();
   rotor.position.y = 1.7;
@@ -385,6 +424,12 @@ function buildGenerator(mats) {
   tank.rotation.z = Math.PI / 2;
   add(new THREE.BoxGeometry(0.06, 0.5, 0.9), mats.lamp, 0.77, 0.8, 0);
   addInputArrow(group, mats, 1.42, 0.55);
+  addFrame(group, mats, 1.42);
+  addVents(group, mats, 0.8);
+  for (const sx of [-1, 1]) part(group, new THREE.CylinderGeometry(0.5, 0.5, 0.05, 16), mats.steel, sx * 0.6, 1.75, 0).rotation.z = Math.PI / 2;
+  part(group, new THREE.CylinderGeometry(0.1, 0.1, 0.04, 12), mats.trim, 0.78, 1.15, -0.4).rotation.z = Math.PI / 2;
+  add(new THREE.CylinderGeometry(0.02, 0.02, 0.7, 6), mats.steel, 0.5, 1.77, 0.5);
+  add(new THREE.SphereGeometry(0.05, 8, 6), mats.lamp, 0.5, 2.14, 0.5);
   return { group, lampMat: mats.lamp };
 }
 
@@ -1610,6 +1655,7 @@ function frame(now) {
   updatePaste(t);
   updateDrills(dt);
   updateHarvesters(dt);
+  updateTrees(dt);
   updateGenerators(dt);
   updatePower();
   updateFurnaces(dt);
