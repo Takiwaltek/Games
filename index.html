@@ -430,6 +430,21 @@
                 0 6px 10px rgba(0, 0, 0, 0.4);
         }
 
+        .tile-featured {
+            flex-direction: column;
+            gap: 4px;
+            padding: 12px 18px;
+            font-size: 0.8rem;
+        }
+
+        .tile-badge {
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.3);
+            font-size: 0.55rem;
+            letter-spacing: 0.06em;
+        }
+
         .sat-menu {
             position: relative;
         }
@@ -953,6 +968,10 @@
                 <div class="hero-floor"></div>
             </div>
             <nav class="dock" aria-label="Liens et jeux">
+                <a class="tile tile-featured" href="./takifactory/index.html" title="TakiFactory, usine 3D façon Satisfactory (en développement)">
+                    TakiFactory
+                    <span class="tile-badge">En développement</span>
+                </a>
                 <a class="tile" href="https://www.youtube.com/@takiwaltek" target="_blank" rel="noopener">Vidéos</a>
                 <a class="tile" href="https://soundcloud.com/takiwalte" target="_blank" rel="noopener">Son</a>
                 <details class="sat-menu">
@@ -976,7 +995,6 @@
                 <a class="tile" href="./jeux/briques-tombantes/index.html">Briques tombantes</a>
                 <a class="tile" href="./jeux/chevalier-des-sables/index.html">Chevalier des sables</a>
                 <a class="tile" href="./1/index.html" title="NEON//REVOLUTION, jeu d'idle">NEON</a>
-                <a class="tile" href="./takifactory/index.html" title="TakiFactory, usine 3D façon Satisfactory">TakiFactory</a>
             </nav>
         </header>
 
