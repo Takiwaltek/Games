@@ -296,7 +296,8 @@ function part(group, geo, mat, x, y, z) {
   return mesh;
 }
 
-function addOutputArrow(group, mats, topY) {
+// Deux flèches par côté (une par case de la machine 2×2), toutes deux orientées dans le sens du flux
+function addArrows(group, mat, topY, x, tag) {
   const shape = new THREE.Shape();
   shape.moveTo(0.25, 0);
   shape.lineTo(-0.25, 0.25);
@@ -304,18 +305,15 @@ function addOutputArrow(group, mats, topY) {
   shape.closePath();
   const geo = new THREE.ShapeGeometry(shape);
   geo.rotateX(-Math.PI / 2);
-  part(group, geo, mats.lamp, 0.5, topY + 0.01, 0).userData.arrow = 'out';
+  for (const lane of [-0.5, 0.5]) part(group, geo, mat, x, topY + 0.01, lane).userData = { arrow: tag, lane };
 }
 
-function addInputArrow(group, mats, topY, z = 0) {
-  const shape = new THREE.Shape();
-  shape.moveTo(-0.3, 0);
-  shape.lineTo(0.2, 0.25);
-  shape.lineTo(0.2, -0.25);
-  shape.closePath();
-  const geo = new THREE.ShapeGeometry(shape);
-  geo.rotateX(-Math.PI / 2);
-  part(group, geo, mats.dark, -0.35, topY + 0.01, z).userData.arrow = 'in';
+function addOutputArrow(group, mats, topY) {
+  addArrows(group, mats.lamp, topY, 0.5, 'out');
+}
+
+function addInputArrow(group, mats, topY) {
+  addArrows(group, mats.dark, topY, -0.5, 'in');
 }
 
 // Socle lumineux, montants d'angle et capots, commun à toutes les machines (topY = dessus du capot)
@@ -383,7 +381,7 @@ function buildFurnace(mats) {
   add(new THREE.BoxGeometry(0.06, 0.6, 0.9), mats.lamp, 0.77, 0.7, 0);
   add(new THREE.BoxGeometry(0.5, 0.4, 0.5), mats.dark, 0.95, 0.4, 0);
   addOutputArrow(group, mats, 1.82);
-  addInputArrow(group, mats, 1.82, 0.4);
+  addInputArrow(group, mats, 1.82);
   addFrame(group, mats, 1.82);
   addVents(group, mats, 1.0);
   part(group, new THREE.TorusGeometry(0.24, 0.03, 8, 16), mats.steel, -0.35, 2.9, -0.35).rotation.x = Math.PI / 2;
@@ -428,7 +426,7 @@ function buildGenerator(mats) {
   const tank = add(new THREE.CylinderGeometry(0.45, 0.45, 1.2, 16), mats.dark, 0, 1.75, 0);
   tank.rotation.z = Math.PI / 2;
   add(new THREE.BoxGeometry(0.06, 0.5, 0.9), mats.lamp, 0.77, 0.8, 0);
-  addInputArrow(group, mats, 1.42, 0.55);
+  addInputArrow(group, mats, 1.42);
   addFrame(group, mats, 1.42);
   addVents(group, mats, 0.8);
   for (const sx of [-1, 1]) part(group, new THREE.CylinderGeometry(0.5, 0.5, 0.05, 16), mats.steel, sx * 0.6, 1.75, 0).rotation.z = Math.PI / 2;
@@ -907,23 +905,20 @@ function frontOf(m) {
   return e;
 }
 
-// Une flèche n'apparaît que si la case correspondante est libre : sinon le convoyeur ou la machine voisine suffit
+// Chaque flèche suit la case branchée à un convoyeur ou une machine ; sans rien, la voie par défaut (+0.5) reste affichée
 function refreshArrows() {
   for (const m of new Set(occupied.values())) {
     if (!m.group.children.some(c => c.userData.arrow)) continue;
     const [dx, dz] = DIRS[m.rot];
     const [px, pz] = [-dz, dx];
-    const sideBlocked = s => {
-      for (let k = 0; k < m.size; k++) {
-        const o = k - (m.size - 1) / 2;
-        if (occupied.has(cellKey(Math.floor(m.cx + dx * s + px * o), Math.floor(m.cz + dz * s + pz * o)))) return true;
-      }
-      return false;
+    const lanesAt = s => {
+      const used = [-0.5, 0.5].filter(o => occupied.has(cellKey(Math.floor(m.cx + dx * s + px * o), Math.floor(m.cz + dz * s + pz * o))));
+      return used.length ? used : [0.5];
     };
-    const front = sideBlocked(m.reach), back = sideBlocked(-m.reach);
+    const outLanes = lanesAt(m.reach), inLanes = lanesAt(-m.reach);
     for (const c of m.group.children) {
-      if (c.userData.arrow === 'out') c.visible = !front;
-      if (c.userData.arrow === 'in') c.visible = !back;
+      if (c.userData.arrow === 'out') c.visible = outLanes.includes(c.userData.lane);
+      if (c.userData.arrow === 'in') c.visible = inLanes.includes(c.userData.lane);
     }
   }
 }
