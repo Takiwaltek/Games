@@ -2726,7 +2726,7 @@ function inspect(m) {
   if (m.kind === 'generator') {
     return {
       title: 'Générateur biomasse',
-      lines: [`Puissance : ${m.burning ? powerMW() : 0} MW`, `Biomasse en attente : ${m.input.length}/${GEN_INPUT}`, `Consomme : ${rateOf('generator')}/min`, hint],
+      lines: [`Puissance : ${m.burning ? powerMW() : 0} MW`, `Biomasse en attente : ${m.input.length}/${GEN_INPUT}`, `Consomme : ${rateOf('generator')} biomasse/min`, hint],
       actions: [], progress: null
     };
   }
@@ -2737,7 +2737,9 @@ function inspect(m) {
       lines: [
         `Alimentation : ${Math.round((m.net ? m.net.sat : 0) * 100)} %`,
         `Entrée : ${m.input.length} minerai(s) en attente`,
+        `Consomme : ${Math.round(rateOf('furnace'))} minerai/min`,
         `Sortie : ${m.outbox.length}/${buffered(FURNACE_BUFFER)} lingot(s)`,
+        `Produit : ${Math.round(rateOf('furnace'))} lingot/min`,
         m.current ? 'Fusion en cours' : 'En attente',
         hint
       ],
@@ -2752,7 +2754,8 @@ function inspect(m) {
         `Recette : ${r.name}`,
         `Entrée : ${m.input.length}/${CONSTR_INPUT} lingot(s), ${r.inCount} par pièce`,
         `Sortie : ${m.outbox.length}/${buffered(CONSTR_BUFFER)}`,
-        `Débit : ${rateOf('constructor', m.recipe)}/min`,
+        `Consomme : ${Math.round(rateOf('constructor', m.recipe) * r.inCount)} ${itemName(r.input).toLowerCase()}/min`,
+        `Produit : ${Math.round(rateOf('constructor', m.recipe) * r.outCount)} ${itemName(r.out).toLowerCase()}/min`,
         m.current ? 'Fabrication en cours' : 'En attente',
         hint
       ],
