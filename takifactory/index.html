@@ -298,13 +298,13 @@ function part(group, geo, mat, x, y, z) {
 
 function addOutputArrow(group, mats, topY) {
   const shape = new THREE.Shape();
-  shape.moveTo(0.3, 0);
-  shape.lineTo(-0.2, 0.25);
-  shape.lineTo(-0.2, -0.25);
+  shape.moveTo(0.25, 0);
+  shape.lineTo(-0.25, 0.25);
+  shape.lineTo(-0.25, -0.25);
   shape.closePath();
   const geo = new THREE.ShapeGeometry(shape);
   geo.rotateX(-Math.PI / 2);
-  part(group, geo, mats.lamp, 0.35, topY + 0.01, 0);
+  part(group, geo, mats.lamp, 0.5, topY + 0.01, 0);
 }
 
 function addInputArrow(group, mats, topY, z = 0) {
