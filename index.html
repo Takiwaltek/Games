@@ -111,7 +111,7 @@
             z-index: 1;
             max-width: 1180px;
             margin: 0 auto;
-            padding: 56px 24px 64px;
+            padding: 28px 20px 48px;
         }
 
         @keyframes fadeUp {
@@ -120,14 +120,173 @@
         }
 
         .hero {
-            padding: 12px 0 8px;
+            position: relative;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px 24px;
+            padding: 22px 26px;
+            overflow: hidden;
+            perspective: 500px;
+            background: linear-gradient(135deg, rgba(18, 22, 32, 0.95), rgba(18, 22, 32, 0.7));
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
             animation: fadeUp 0.7s ease-out backwards;
+        }
+
+        .hero-text,
+        .quick-nav {
+            position: relative;
+            z-index: 1;
+        }
+
+        .hero-floor {
+            position: absolute;
+            z-index: 0;
+            left: -50%;
+            right: -50%;
+            bottom: 0;
+            height: 220%;
+            background-image:
+                linear-gradient(rgba(0, 224, 138, 0.55) 2px, transparent 2px),
+                linear-gradient(90deg, rgba(56, 189, 248, 0.55) 2px, transparent 2px);
+            background-size: 48px 48px;
+            transform: perspective(260px) rotateX(62deg);
+            transform-origin: 50% 100%;
+            mask-image: linear-gradient(transparent 0%, #000 70%);
+            opacity: 0.6;
+            pointer-events: none;
+            animation: floor 2.4s linear infinite;
+        }
+
+        .hero-canvas {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.6s ease;
+        }
+
+        .hero.is-3d .hero-canvas {
+            opacity: 1;
+        }
+
+        .hero.is-3d .hero-floor {
+            display: none;
+        }
+
+        @keyframes floor {
+            to { background-position: 0 44px, 0 0; }
+        }
+
+        .quick-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .quick-nav a {
+            padding: 8px 14px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            background: rgba(10, 12, 16, 0.6);
+            color: var(--text);
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: border-color 0.2s ease, color 0.2s ease;
+        }
+
+        .quick-nav a:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        section[id] {
+            scroll-margin-top: 20px;
+        }
+
+        html.has-cursor body,
+        html.has-cursor body * {
+            cursor: none !important;
+        }
+
+        html.has-cursor input,
+        html.has-cursor textarea {
+            cursor: text !important;
+        }
+
+        .cursor-dot,
+        .cursor-ring,
+        .cursor-spark {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .cursor-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            box-shadow: 0 0 12px var(--accent);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .cursor-ring {
+            width: 34px;
+            height: 34px;
+            border: 2px solid var(--accent-2);
+            box-shadow: 0 0 16px rgba(56, 189, 248, 0.45);
+            opacity: 0;
+            transition: opacity 0.2s ease, scale 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+        }
+
+        .cursor-ring.is-hover {
+            scale: 1.5;
+            border-color: var(--accent);
+            background: rgba(0, 224, 138, 0.12);
+        }
+
+        .cursor-ring.is-click {
+            scale: 0.7;
+        }
+
+        .cursor-active .cursor-dot,
+        .cursor-active .cursor-ring {
+            opacity: 1;
+        }
+
+        .cursor-spark {
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent);
+            animation: spark-fade 0.55s ease-out forwards;
+        }
+
+        @keyframes spark-fade {
+            from {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.2);
+            }
         }
 
         .eyebrow {
             display: inline-block;
-            margin: 0 0 18px;
-            padding: 6px 12px;
+            margin: 0 0 10px;
+            padding: 4px 10px;
             border-radius: 999px;
             background: rgba(0, 224, 138, 0.1);
             color: var(--accent);
@@ -140,7 +299,7 @@
         .logo {
             margin: 0;
             font-family: "Astral Delight", var(--font);
-            font-size: clamp(2.6rem, 6.5vw, 4.6rem);
+            font-size: clamp(1.7rem, 4.2vw, 2.7rem);
             font-weight: 900;
             line-height: 1.05;
             letter-spacing: 0.01em;
@@ -175,9 +334,9 @@
         .hub {
             display: grid;
             grid-template-columns: 1fr 300px;
-            gap: 24px;
+            gap: 18px;
             align-items: start;
-            margin-top: 40px;
+            margin-top: 22px;
         }
 
         .tiles {
@@ -208,7 +367,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            padding: 20px 22px;
+            padding: 16px 18px;
             background: linear-gradient(180deg, var(--c), var(--d));
             border: 1px solid rgba(255, 255, 255, 0.18);
             border-radius: var(--radius);
@@ -220,6 +379,10 @@
             text-shadow: 0 3px 0 var(--d);
             cursor: pointer;
             box-shadow: 0 6px 0 var(--d), 0 14px 24px rgba(0, 0, 0, 0.45);
+            --lift: 0px;
+            --rx: 0deg;
+            --ry: 0deg;
+            transform: perspective(700px) translateY(var(--lift)) rotateX(var(--rx)) rotateY(var(--ry));
             transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.2s ease;
         }
 
@@ -231,7 +394,7 @@
         }
 
         .tile:hover {
-            transform: translateY(-3px);
+            --lift: -4px;
             filter: brightness(1.08);
             box-shadow: 0 9px 0 var(--d), 0 18px 30px rgba(0, 0, 0, 0.5);
         }
@@ -241,12 +404,12 @@
         }
 
         .tile:active {
-            transform: translateY(4px);
+            --lift: 4px;
             box-shadow: 0 2px 0 var(--d), 0 6px 12px rgba(0, 0, 0, 0.4);
         }
 
         .games {
-            margin-top: 44px;
+            margin-top: 28px;
         }
 
         .games-title {
@@ -347,6 +510,10 @@
             border-radius: var(--radius);
             overflow: hidden;
             animation: fadeUp 0.7s ease-out 0.25s backwards;
+            --lift: 0px;
+            --rx: 0deg;
+            --ry: 0deg;
+            transform: perspective(800px) translateY(var(--lift)) rotateX(var(--rx)) rotateY(var(--ry));
             transition: transform 0.3s ease, border-color 0.3s ease;
         }
 
@@ -360,7 +527,7 @@
         }
 
         .arcade:hover {
-            transform: translateY(-4px);
+            --lift: -4px;
             border-color: var(--accent-2);
         }
 
@@ -411,7 +578,7 @@
         }
 
         .steam {
-            margin-top: 44px;
+            margin-top: 28px;
             background: var(--panel);
             border: 1px solid var(--line);
             border-radius: var(--radius);
@@ -424,7 +591,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            padding: 18px 22px;
+            padding: 14px 18px;
             border-bottom: 1px solid var(--line);
         }
 
@@ -443,7 +610,7 @@
             display: flex;
             gap: 14px;
             overflow-x: auto;
-            padding: 18px 22px 22px;
+            padding: 14px 18px 18px;
             scroll-snap-type: x mandatory;
             scrollbar-width: thin;
         }
@@ -505,8 +672,17 @@
             font-weight: 700;
         }
 
+        .chat-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px 14px;
+            margin: 12px 18px 0;
+        }
+
         .chat-status {
-            margin: 14px 22px 0;
+            margin: 0;
             color: var(--muted);
             font-size: 0.85rem;
         }
@@ -515,8 +691,8 @@
             display: flex;
             flex-direction: column;
             gap: 6px;
-            height: 300px;
-            margin: 12px 22px 0;
+            height: 240px;
+            margin: 10px 18px 0;
             padding: 12px;
             overflow-y: auto;
             overflow-wrap: anywhere;
@@ -540,16 +716,14 @@
             font-size: 0.75rem;
         }
 
-        .chat-form,
-        .chat-name {
+        .chat-form {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
-            margin: 12px 22px 0;
+            margin: 10px 18px 0;
         }
 
-        .chat-form input,
-        .chat-name input {
+        .chat-form input {
             flex: 1 1 200px;
             min-width: 0;
             padding: 10px 12px;
@@ -560,8 +734,7 @@
             font: inherit;
         }
 
-        .chat-form button,
-        .chat-name button {
+        .chat-form button {
             padding: 10px 18px;
             background: var(--accent);
             color: #04120b;
@@ -579,13 +752,109 @@
 
         .chat-error {
             min-height: 1em;
-            margin: 8px 22px 0;
+            margin: 6px 18px 0;
             color: #ff6b6b;
             font-size: 0.85rem;
         }
 
         .chat-body {
-            padding-bottom: 22px;
+            padding-bottom: 18px;
+        }
+
+        .chat-who {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .chat-who strong {
+            color: var(--accent);
+        }
+
+        .chat-link {
+            padding: 0;
+            background: none;
+            border: 0;
+            color: var(--accent-2);
+            font: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        .chat-join {
+            padding: 9px 14px;
+            font-size: 0.9rem;
+        }
+
+        .pseudo-dialog {
+            width: min(420px, calc(100vw - 32px));
+            padding: 0;
+            background: var(--panel-2);
+            color: var(--text);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+        }
+
+        .pseudo-dialog::backdrop {
+            background: rgba(5, 7, 10, 0.7);
+            backdrop-filter: blur(4px);
+        }
+
+        .pseudo-form {
+            display: grid;
+            gap: 12px;
+            padding: 24px;
+        }
+
+        .pseudo-form h3 {
+            margin: 0;
+            font-size: 1.2rem;
+        }
+
+        .pseudo-form p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .pseudo-label {
+            margin-top: 4px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .pseudo-form input {
+            padding: 12px 14px;
+            background: var(--bg);
+            color: var(--text);
+            border: 2px solid var(--accent);
+            border-radius: 10px;
+            font: inherit;
+            font-size: 1.1rem;
+        }
+
+        .pseudo-form input:focus-visible {
+            outline: 3px solid var(--accent-2);
+            outline-offset: 2px;
+        }
+
+        .pseudo-error {
+            min-height: 1em;
+            color: #ff6b6b !important;
+            font-size: 0.85rem !important;
+        }
+
+        .pseudo-actions {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 14px;
         }
 
         .chat [hidden] {
@@ -633,7 +902,7 @@
 
         @media (max-width: 560px) {
             .page {
-                padding: 36px 16px 48px;
+                padding: 20px 14px 36px;
             }
             .tiles {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -715,12 +984,21 @@
 
     <main class="page">
         <header class="hero">
-            <span class="eyebrow">Games collection</span>
-            <h1 class="logo">Atelier de Takiwaltek</h1>
-            <div class="hero-bar" aria-hidden="true"></div>
+            <div class="hero-text">
+                <span class="eyebrow">Games collection</span>
+                <h1 class="logo">Atelier de Takiwaltek</h1>
+            </div>
+            <nav class="quick-nav" aria-label="Accès rapide">
+                <a href="#liens">Liens</a>
+                <a href="#jeux">Jeux</a>
+                <a href="#steam">Steam</a>
+                <a href="#tchat">Tchat</a>
+            </nav>
+            <canvas class="hero-canvas" id="hero-3d" aria-hidden="true"></canvas>
+            <div class="hero-floor" aria-hidden="true"></div>
         </header>
 
-        <section class="hub">
+        <section class="hub" id="liens">
             <nav class="tiles" aria-label="Liens">
                 <a class="tile" href="https://www.youtube.com/@takiwaltek" target="_blank" rel="noopener">Vidéos</a>
                 <a class="tile" href="https://soundcloud.com/takiwalte" target="_blank" rel="noopener">Son</a>
@@ -748,7 +1026,7 @@
             </aside>
         </section>
 
-        <section class="games" aria-labelledby="games-title">
+        <section class="games" id="jeux" aria-labelledby="games-title">
             <h2 class="games-title" id="games-title">Jeux</h2>
             <nav class="tiles" aria-label="Jeux originaux">
                 <a class="tile" href="./jeux/chasse-pixels/index.html">Chasse Pixels</a>
@@ -757,7 +1035,7 @@
             </nav>
         </section>
 
-        <section class="steam" aria-labelledby="steam-title">
+        <section class="steam" id="steam" aria-labelledby="steam-title">
             <div class="steam-head">
                 <h2 class="steam-title" id="steam-title">Nouveautés Steam</h2>
                 <span class="steam-updated" id="steam-updated"></span>
@@ -767,21 +1045,24 @@
             </div>
         </section>
 
-        <section class="steam chat" aria-labelledby="chat-title">
+        <section class="steam chat" id="tchat" aria-labelledby="chat-title">
             <div class="steam-head">
                 <h2 class="steam-title" id="chat-title">Tchat</h2>
                 <span class="steam-updated">Ouvert à tous, 40 derniers messages</span>
             </div>
             <div class="chat-body">
-                <p class="chat-status" id="chat-status">Chargement du tchat...</p>
+                <div class="chat-bar">
+                    <p class="chat-status" id="chat-status">Chargement du tchat...</p>
+                    <div class="chat-who" id="chat-who" hidden>
+                        <span>Tu écris en tant que <strong id="chat-who-name"></strong></span>
+                        <button type="button" class="chat-link" id="chat-change">Changer de pseudo</button>
+                    </div>
+                    <button type="button" class="btn-primary chat-join" id="chat-join" hidden>Choisir mon pseudo</button>
+                </div>
                 <div class="chat-log" id="chat-log" aria-live="polite"></div>
                 <form class="chat-form" id="chat-form" hidden>
                     <input id="chat-text" maxlength="300" placeholder="Écris ton message (300 caractères max)" autocomplete="off" required>
                     <button type="submit" id="chat-send">Envoyer</button>
-                </form>
-                <form class="chat-name" id="chat-name-form" hidden>
-                    <input id="chat-name" minlength="2" maxlength="20" placeholder="Ton pseudo (2 à 20 caractères)" autocomplete="nickname" required>
-                    <button type="submit">Entrer dans le tchat</button>
                 </form>
                 <p class="chat-error" id="chat-error" role="alert"></p>
             </div>
@@ -793,6 +1074,20 @@
             <p>Développé avec passion · <a href="https://github.com/Takiwaltek/Games" class="footer-link">GitHub</a></p>
         </footer>
     </main>
+
+    <dialog class="pseudo-dialog" id="pseudo-dialog" aria-labelledby="pseudo-title">
+        <form class="pseudo-form" id="chat-name-form">
+            <h3 id="pseudo-title">Choisis ton pseudo</h3>
+            <p>Il s'affichera devant tes messages dans le tchat. Tu pourras le changer à tout moment.</p>
+            <label class="pseudo-label" for="chat-name">Pseudo (2 à 20 caractères)</label>
+            <input id="chat-name" minlength="2" maxlength="20" placeholder="Ton pseudo" autocomplete="nickname" required>
+            <p class="pseudo-error" id="pseudo-error" role="alert"></p>
+            <div class="pseudo-actions">
+                <button type="button" class="chat-link" id="pseudo-cancel">Annuler</button>
+                <button type="submit" class="btn-primary">Valider</button>
+            </div>
+        </form>
+    </dialog>
 
     <script>
         // Nouveautés Steam : fichier généré par scripts/fetch-steam-news.mjs au déploiement
@@ -869,7 +1164,219 @@
         document.addEventListener('DOMContentLoaded', () => {
             setupIntro();
             loadSteamNews();
+            setupTilt();
+            setupHero3D();
+            setupCursor();
         });
+
+        // Scène 3D de la bannière (Three.js, version épinglée).
+        // Si WebGL ou le CDN est indisponible, le sol CSS reste affiché.
+        async function setupHero3D() {
+            const hero = document.querySelector('.hero');
+            const canvas = document.getElementById('hero-3d');
+            if (!hero || !canvas) return;
+
+            let THREE;
+            let renderer;
+            try {
+                THREE = await import('https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js');
+                renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+            } catch (err) {
+                return;
+            }
+
+            const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+            const CAM_Z = 2.8;
+            const FOV = 45;
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setClearColor(0x000000, 0);
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 100);
+            camera.position.set(0, 0.5, CAM_Z);
+            camera.lookAt(0, -0.1, 0);
+
+            const grid = new THREE.GridHelper(40, 40, 0x00e08a, 0x38bdf8);
+            grid.position.y = -1.05;
+            grid.material.transparent = true;
+            grid.material.opacity = 0.35;
+            scene.add(grid);
+
+            const group = new THREE.Group();
+            const knot = new THREE.Mesh(
+                new THREE.TorusKnotGeometry(0.55, 0.16, 160, 18),
+                new THREE.MeshBasicMaterial({ color: 0x00e08a, wireframe: true, transparent: true, opacity: 0.8 })
+            );
+            const core = new THREE.Mesh(
+                new THREE.IcosahedronGeometry(0.22, 0),
+                new THREE.MeshBasicMaterial({ color: 0xe040fb, wireframe: true })
+            );
+            group.add(knot, core);
+            group.scale.setScalar(0.45);
+            scene.add(group);
+
+            const count = 260;
+            const positions = new Float32Array(count * 3);
+            for (let i = 0; i < count; i++) {
+                const r = 1.4 + Math.random() * 1.2;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+                positions[i * 3 + 1] = r * Math.cos(phi) * 0.6;
+                positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta);
+            }
+            const dustGeo = new THREE.BufferGeometry();
+            dustGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            const dust = new THREE.Points(
+                dustGeo,
+                new THREE.PointsMaterial({ color: 0x38bdf8, size: 0.025, transparent: true, opacity: 0.9 })
+            );
+            group.add(dust);
+
+            let tx = 0;
+            let ty = 0;
+            hero.addEventListener('pointermove', e => {
+                const r = hero.getBoundingClientRect();
+                tx = ((e.clientX - r.left) / r.width - 0.5) * 0.6;
+                ty = ((e.clientY - r.top) / r.height - 0.5) * 0.4;
+            });
+
+            function resize() {
+                const w = hero.clientWidth;
+                const h = hero.clientHeight;
+                renderer.setSize(w, h, false);
+                camera.aspect = w / h;
+                camera.updateProjectionMatrix();
+                const visibleWidth = 2 * CAM_Z * Math.tan(THREE.MathUtils.degToRad(FOV / 2)) * camera.aspect;
+                // Sur écran étroit, l'objet reste centré pour ne pas recouvrir le titre
+                group.position.x = camera.aspect > 1.6 ? visibleWidth * 0.16 : 0;
+                if (reduce) frame();
+            }
+
+            function frame() {
+                const t = performance.now() / 1000;
+                knot.rotation.x = t * 0.4 + ty;
+                knot.rotation.y = t * 0.6 + tx;
+                core.rotation.y = -t * 0.9;
+                core.rotation.x = t * 0.5;
+                dust.rotation.y = t * 0.05;
+                grid.position.z = (t * 1.2) % 1;
+                renderer.render(scene, camera);
+            }
+
+            let rafId = 0;
+            function tick() {
+                frame();
+                rafId = requestAnimationFrame(tick);
+            }
+
+            new ResizeObserver(resize).observe(hero);
+            resize();
+            frame();
+            hero.classList.add('is-3d');
+
+            if (!reduce) {
+                // Animation seulement quand la bannière est visible
+                new IntersectionObserver(([entry]) => {
+                    if (entry.isIntersecting && !rafId) {
+                        rafId = requestAnimationFrame(tick);
+                    } else if (!entry.isIntersecting && rafId) {
+                        cancelAnimationFrame(rafId);
+                        rafId = 0;
+                    }
+                }).observe(hero);
+            }
+        }
+
+        // Curseur personnalisé : point + anneau qui suit la souris, traînée et éclats au clic
+        function setupCursor() {
+            if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+            if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+            const dot = document.createElement('div');
+            dot.className = 'cursor-dot';
+            const ring = document.createElement('div');
+            ring.className = 'cursor-ring';
+            document.body.append(dot, ring);
+            document.documentElement.classList.add('has-cursor');
+
+            const HOVER_SEL = 'a, button, summary, .tile, .arcade';
+            let mx = 0;
+            let my = 0;
+            let rx = 0;
+            let ry = 0;
+            let lastSpark = 0;
+
+            function spark(x, y, dx, dy) {
+                const s = document.createElement('span');
+                s.className = 'cursor-spark';
+                s.style.left = `${x}px`;
+                s.style.top = `${y}px`;
+                s.style.setProperty('--dx', `${dx}px`);
+                s.style.setProperty('--dy', `${dy}px`);
+                s.addEventListener('animationend', () => s.remove());
+                document.body.append(s);
+            }
+
+            document.addEventListener('pointermove', e => {
+                mx = e.clientX;
+                my = e.clientY;
+                document.documentElement.classList.add('cursor-active');
+                dot.style.transform = `translate(${mx}px, ${my}px) translate(-50%, -50%)`;
+
+                const now = performance.now();
+                if (now - lastSpark > 40) {
+                    lastSpark = now;
+                    spark(mx, my, (Math.random() - 0.5) * 16, 10 + Math.random() * 14);
+                }
+            });
+
+            document.addEventListener('mouseout', e => {
+                if (!e.relatedTarget) document.documentElement.classList.remove('cursor-active');
+            });
+
+            document.addEventListener('pointerover', e => {
+                ring.classList.toggle('is-hover', !!e.target.closest(HOVER_SEL));
+            });
+
+            document.addEventListener('pointerdown', e => {
+                ring.classList.add('is-click');
+                for (let i = 0; i < 8; i++) {
+                    const a = (Math.PI * 2 * i) / 8;
+                    spark(e.clientX, e.clientY, Math.cos(a) * 26, Math.sin(a) * 26);
+                }
+            });
+
+            document.addEventListener('pointerup', () => ring.classList.remove('is-click'));
+
+            // L'anneau suit la souris avec un léger retard
+            (function follow() {
+                rx += (mx - rx) * 0.2;
+                ry += (my - ry) * 0.2;
+                ring.style.transform = `translate(${rx}px, ${ry}px) translate(-50%, -50%)`;
+                requestAnimationFrame(follow);
+            })();
+        }
+
+        // Effet 3D : les cartes s'inclinent vers le pointeur (souris uniquement)
+        function setupTilt() {
+            if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+            if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+            document.querySelectorAll('.tile, .arcade').forEach(el => {
+                el.addEventListener('pointermove', e => {
+                    const r = el.getBoundingClientRect();
+                    const x = (e.clientX - r.left) / r.width - 0.5;
+                    const y = (e.clientY - r.top) / r.height - 0.5;
+                    el.style.setProperty('--rx', `${(-y * 12).toFixed(2)}deg`);
+                    el.style.setProperty('--ry', `${(x * 12).toFixed(2)}deg`);
+                });
+                el.addEventListener('pointerleave', () => {
+                    el.style.removeProperty('--rx');
+                    el.style.removeProperty('--ry');
+                });
+            });
+        }
     </script>
 
     <script type="module">
@@ -896,8 +1403,13 @@
         const chatForm = document.getElementById('chat-form');
         const chatText = document.getElementById('chat-text');
         const sendBtn = document.getElementById('chat-send');
+        const whoEl = document.getElementById('chat-who');
+        const whoName = document.getElementById('chat-who-name');
+        const joinBtn = document.getElementById('chat-join');
+        const pseudoDialog = document.getElementById('pseudo-dialog');
         const nameForm = document.getElementById('chat-name-form');
         const nameInput = document.getElementById('chat-name');
+        const pseudoError = document.getElementById('pseudo-error');
 
         let pseudo = localStorage.getItem('chat-pseudo') || '';
         let lastSent = 0;
@@ -915,17 +1427,19 @@
             errorEl.textContent = msg;
         }
 
-        function showPseudoStep() {
-            chatForm.hidden = true;
-            nameForm.hidden = false;
-            nameInput.value = pseudo;
-            nameInput.focus();
+        function refreshChatUI() {
+            const joined = Boolean(pseudo);
+            joinBtn.hidden = joined;
+            whoEl.hidden = !joined;
+            whoName.textContent = pseudo;
+            chatForm.hidden = !joined;
         }
 
-        function showChatStep() {
-            nameForm.hidden = true;
-            chatForm.hidden = false;
-            chatText.focus();
+        function openPseudoDialog() {
+            nameInput.value = pseudo;
+            pseudoError.textContent = '';
+            pseudoDialog.showModal();
+            nameInput.focus();
         }
 
         function addMessage(msg) {
@@ -1003,21 +1517,31 @@
 
         nameForm.addEventListener('submit', e => {
             e.preventDefault();
-            showError('');
+            pseudoError.textContent = '';
             const value = nameInput.value.trim();
             if (value.length < NAME_MIN || value.length > NAME_MAX) {
-                return showError(`Le pseudo doit faire entre ${NAME_MIN} et ${NAME_MAX} caractères.`);
+                pseudoError.textContent = `Le pseudo doit faire entre ${NAME_MIN} et ${NAME_MAX} caractères.`;
+                return;
             }
-            if (!isClean(value)) return showError('Pseudo refusé : choisis-en un autre.');
+            if (!isClean(value)) {
+                pseudoError.textContent = 'Pseudo refusé : choisis-en un autre.';
+                return;
+            }
             pseudo = value;
             localStorage.setItem('chat-pseudo', pseudo);
-            showChatStep();
+            refreshChatUI();
+            pseudoDialog.close();
+            chatText.focus();
         });
 
+        joinBtn.addEventListener('click', openPseudoDialog);
+        document.getElementById('chat-change').addEventListener('click', openPseudoDialog);
+        document.getElementById('pseudo-cancel').addEventListener('click', () => pseudoDialog.close());
+
+        refreshChatUI();
         if (FIREBASE_CONFIG.databaseURL.includes('REMPLACER')) {
             statusEl.textContent = 'Tchat non configuré : ajoute la configuration Firebase dans index.html.';
         } else {
-            if (pseudo) showChatStep(); else showPseudoStep();
             startChat().catch(() => {
                 statusEl.textContent = 'Tchat indisponible pour le moment.';
             });
