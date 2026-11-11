@@ -346,6 +346,14 @@ function buildDrill(mats) {
   addFrame(group, mats, 1.52);
   addVents(group, mats, 0.85);
 
+  const pistons = [];
+  for (const sz of [-1, 1]) for (const sx of [-0.45, 0.45]) {
+    part(group, new THREE.BoxGeometry(0.16, 0.16, 0.06), mats.dark, sx, 0.55, sz * 0.77);
+    const rod = part(group, new THREE.CylinderGeometry(0.035, 0.035, 0.34, 6), mats.steel, sx, 0.55, sz * 0.93);
+    rod.rotation.x = Math.PI / 2;
+    pistons.push({ rod, sx, sz, base: sz * 0.93 });
+  }
+
   const rotor = new THREE.Group();
   rotor.position.y = 2.05;
   group.add(rotor);
@@ -362,7 +370,7 @@ function buildDrill(mats) {
     arm.add(blade);
     rotor.add(arm);
   }
-  return { group, rotor, lampMat: mats.lamp };
+  return { group, rotor, lampMat: mats.lamp, pistons, pistonT: 0, puffT: 0, fragT: 0 };
 }
 
 function buildFurnace(mats) {
@@ -623,6 +631,44 @@ function spawnOre(d, key = d.ore) {
   });
 }
 
+const puffGeo = new THREE.SphereGeometry(0.06, 6, 5);
+const puffBase = new THREE.MeshBasicMaterial({ color: 0xb8c0cc, transparent: true, opacity: 0.4, depthWrite: false });
+const fragGeo = new THREE.BoxGeometry(0.05, 0.05, 0.05);
+
+function spawnPuff(d, p) {
+  if (d.removed) return;
+  const from = d.group.localToWorld(new THREE.Vector3(p.sx, 0.7, p.sz * 0.95));
+  const to = d.group.localToWorld(new THREE.Vector3(p.sx + 0.2, 1.4, p.sz * 1.3));
+  const mat = puffBase.clone();
+  const mesh = new THREE.Mesh(puffGeo, mat);
+  scene.add(mesh);
+  addEffect(0.9, k => {
+    mesh.position.lerpVectors(from, to, k);
+    mesh.scale.setScalar(1 + 1.5 * k);
+    mat.opacity = 0.4 * (1 - k);
+  }, () => {
+    scene.remove(mesh);
+    mat.dispose();
+  });
+}
+
+function spawnFragment(d) {
+  if (d.removed) return;
+  const sz = Math.random() < 0.5 ? -1 : 1;
+  const sx = (Math.random() - 0.5) * 0.8;
+  const from = d.group.localToWorld(new THREE.Vector3(sx, 0.5, sz * 0.9));
+  const v = d.group.localToWorld(new THREE.Vector3(sx, 0.5, sz * 1.8)).sub(from).multiplyScalar(1.6);
+  v.y += 1.6;
+  const mesh = new THREE.Mesh(fragGeo, oreMats[d.ore]);
+  scene.add(mesh);
+  const dur = 0.45;
+  addEffect(dur, k => {
+    const t = k * dur;
+    mesh.position.set(from.x + v.x * t, from.y + v.y * t - 4.9 * t * t, from.z + v.z * t);
+    mesh.rotation.set(k * 6, k * 4, 0);
+  }, () => scene.remove(mesh));
+}
+
 function updateDrills(dt) {
   for (const d of drills) {
     flushOutbox(d);
@@ -632,6 +678,21 @@ function updateDrills(dt) {
     if (!running) {
       d.timer = 0;
       continue;
+    }
+    d.pistonT += dt * 4;
+    d.pistons.forEach((p, i) => {
+      const s = 0.5 - 0.5 * Math.cos(d.pistonT + i * Math.PI / 2);
+      p.rod.position.z = p.base + p.sz * 0.08 * s;
+    });
+    d.puffT += dt;
+    if (d.puffT > 0.3) {
+      d.puffT = 0;
+      spawnPuff(d, d.pistons[Math.floor(Math.random() * d.pistons.length)]);
+    }
+    d.fragT += dt;
+    if (d.fragT > 0.4) {
+      d.fragT = 0;
+      spawnFragment(d);
     }
     d.timer += dt;
     if (d.timer >= MINE_INTERVAL) {
