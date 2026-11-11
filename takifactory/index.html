@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TakiFactory · prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #070b14; color: #d8f7ff; font-family: Orbitron, system-ui, sans-serif; }
+  canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
+  .hud { position: fixed; pointer-events: none; }
+  .title { top: 14px; left: 16px; font-weight: 800; letter-spacing: .08em; color: #3ef0a8; text-shadow: 0 0 12px rgba(62, 240, 168, .5); }
+  .title small { display: block; margin-top: 4px; color: #7fd6ff; font-weight: 400; font-size: .65rem; letter-spacing: .15em; }
+  .back { position: fixed; top: 14px; right: 16px; font-size: .7rem; color: #7fd6ff; text-decoration: none; pointer-events: auto; }
+  .stats { top: 52px; right: 16px; text-align: right; font-size: .7rem; line-height: 1.7; color: #b9e9ff; }
+  .status { top: 14px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: .75rem; padding: 7px 16px; border: 1px solid rgba(127, 214, 255, .4); border-radius: 999px; background: rgba(8, 14, 26, .75); }
+  .toolbar { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
+  .toolbar button { font: inherit; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; color: #fff; padding: 10px 18px; border: 0; border-radius: 10px; cursor: pointer; background: linear-gradient(#3ef0a8, #13986a); box-shadow: 0 4px 0 #0b5a40; }
+  .toolbar button:active { transform: translateY(3px); box-shadow: 0 1px 0 #0b5a40; }
+  .toolbar button[aria-pressed="true"] { background: linear-gradient(#ffb347, #c96d12); box-shadow: 0 4px 0 #7a400a; }
+  .toolbar button.alt { background: linear-gradient(#7fd6ff, #2a7ca8); box-shadow: 0 4px 0 #17485f; }
+  .help { left: 16px; top: 64px; font-size: .62rem; line-height: 1.8; color: #8fa8c0; }
+</style>
+</head>
+<body>
+<div class="hud title">TakiFactory<small>prototype · foreuse</small></div>
+<a class="back" href="../index.html">← Atelier</a>
+<div class="hud status" id="status"></div>
+<div class="hud stats" id="stats"></div>
+<div class="toolbar">
+  <button id="btn-drill" type="button" aria-pressed="false">Foreuse</button>
+  <button id="btn-furnace" type="button" aria-pressed="false">Fourneau</button>
+  <button id="btn-belt" type="button" aria-pressed="false">Convoyeur</button>
+  <button id="btn-under" type="button" aria-pressed="false">Sous-pont</button>
+  <button id="btn-cancel" class="alt" type="button">Annuler</button>
+</div>
+<div class="hud help">Clic gauche : poser · R : tourner (ou la machine sélectionnée) · clic droit ou Échap : annuler<br>Clic sur une machine : sélectionner · Suppr : démonter · F foreuse · G fourneau · C convoyeur · U sous-pont<br>WASD / flèches : déplacer la vue · Molette : zoom</div>
+<canvas id="scene"></canvas>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+
+const ORES = {
+  iron: { name: 'Fer', color: 0xb5563a },
+  copper: { name: 'Cuivre', color: 0xe6a24a },
+  coal: { name: 'Charbon', color: 0x2b2b33 },
+  limestone: { name: 'Calcaire', color: 0xe9e4d4 }
+};
+const DEPOSITS = [
+  { x: -18, z: -10, r: 7, ore: 'iron' },
+  { x: -6, z: 14, r: 6, ore: 'copper' },
+  { x: 16, z: -12, r: 6.5, ore: 'coal' },
+  { x: 20, z: 10, r: 5.5, ore: 'limestone' }
+];
+const MOUNTAINS = [
+  { x: -36, z: -30, h: 15, s: 13 },
+  { x: 38, z: 30, h: 18, s: 15 },
+  { x: -40, z: 30, h: 10, s: 10 },
+  { x: 34, z: -38, h: 13, s: 12 }
+];
+const MAP = 60;
+const SIZE = { drill: 2, furnace: 2, belt: 1, under: 1 };
+const BUFFER_MAX = 4;
+const MINE_INTERVAL = 1;
+const ORE_TARGET = new THREE.Vector3(0.95, 0.8, 0);
+const STACK_SLOTS = [0, 1, 2, 3].map(k => new THREE.Vector3(1.45 + (k >> 1) * 0.3, 0.13, k & 1 ? 0.3 : -0.3));
+// Quarter-turn index d: rotation.y = d * PI/2 maps local +x onto DIRS[d]
+const DIRS = [[1, 0], [0, -1], [-1, 0], [0, 1]];
+const BELT_SPEED = 0.8;
+// Débit d'un convoyeur en objets par minute
+const BELT_RATE = 60;
+const SPACING = BELT_SPEED * 60 / BELT_RATE;
+const MAX_UNDER = 5;
+const FURNACE_INPUT = 4;
+const FURNACE_BUFFER = 4;
+const SMELT_TIME = 2;
+const SMELT = { iron: 'ironIngot', copper: 'copperIngot' };
+const INGOTS = {
+  ironIngot: { name: 'Lingot de fer', color: 0xd9dde6 },
+  copperIngot: { name: 'Lingot de cuivre', color: 0xf08a4b }
+};
+
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const easeOutBack = (k) => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * (k - 1) ** 3 + c1 * (k - 1) ** 2; };
+const cellKey = (i, j) => `${i},${j}`;
+
+function heightAt(x, z) {
+  let h = 0;
+  for (const m of MOUNTAINS) {
+    h += m.h * Math.exp(-((x - m.x) ** 2 + (z - m.z) ** 2) / (2 * m.s * m.s));
+  }
+  let flat = 1;
+  for (const d of DEPOSITS) flat = Math.min(flat, smooth(d.r, d.r + 8, Math.hypot(x - d.x, z - d.z)));
+  return h * flat;
+}
+
+function oreAt(x, z) {
+  for (const d of DEPOSITS) if (Math.hypot(x - d.x, z - d.z) <= d.r) return d.ore;
+  return null;
+}
+
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight, false);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x070b14);
+scene.fog = new THREE.Fog(0x070b14, 80, 180);
+
+const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.5, 400);
+const pivot = new THREE.Vector3();
+const VIEW = new THREE.Vector3(0, 1, 0.9).normalize();
+let zoom = 30;
+
+scene.add(new THREE.HemisphereLight(0xbfe6ff, 0x1a1624, 0.9));
+const sun = new THREE.DirectionalLight(0xfff1dc, 1.7);
+sun.position.set(-25, 45, 18);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -50, right: 50, top: 50, bottom: -50, far: 160 });
+sun.shadow.camera.updateProjectionMatrix();
+sun.shadow.bias = -0.0008;
+scene.add(sun);
+
+const groundGeo = new THREE.PlaneGeometry(MAP * 2, MAP * 2, 120, 120);
+groundGeo.rotateX(-Math.PI / 2);
+const gPos = groundGeo.attributes.position;
+const gCol = new Float32Array(gPos.count * 3);
+const cGrass = new THREE.Color(0x2f6b3c), cRock = new THREE.Color(0x6a6e78), cSnow = new THREE.Color(0xe4edf5), cSoil = new THREE.Color(0x4d3f2c);
+const tmpColor = new THREE.Color();
+for (let i = 0; i < gPos.count; i++) {
+  const x = gPos.getX(i), z = gPos.getZ(i), h = heightAt(x, z);
+  gPos.setY(i, h);
+  tmpColor.copy(cGrass).lerp(cRock, smooth(2, 8, h)).lerp(cSnow, smooth(11, 15, h));
+  if (oreAt(x, z)) tmpColor.lerp(cSoil, 0.85);
+  tmpColor.toArray(gCol, i * 3);
+}
+groundGeo.setAttribute('color', new THREE.BufferAttribute(gCol, 3));
+groundGeo.computeVertexNormals();
+const terrain = new THREE.Mesh(groundGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 }));
+terrain.receiveShadow = true;
+scene.add(terrain);
+
+const rockGeo = new THREE.DodecahedronGeometry(0.22, 0);
+for (const d of DEPOSITS) {
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(d.r - 0.25, d.r, 64),
+    new THREE.MeshBasicMaterial({ color: ORES[d.ore].color, transparent: true, opacity: 0.55, side: THREE.DoubleSide, depthWrite: false })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.set(d.x, 0.06, d.z);
+  scene.add(ring);
+
+  const count = Math.round(d.r * d.r * 1.2);
+  const rocks = new THREE.InstancedMesh(rockGeo, new THREE.MeshStandardMaterial({ color: ORES[d.ore].color, roughness: 0.6 }), count);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
+  for (let i = 0; i < count; i++) {
+    const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * (d.r - 0.8);
+    p.set(d.x + Math.cos(a) * r, 0.1, d.z + Math.sin(a) * r);
+    q.setFromEuler(new THREE.Euler(Math.random() * 3, Math.random() * 3, 0));
+    const k = 0.6 + Math.random() * 0.8;
+    s.set(k, k * 0.7, k);
+    m.compose(p, q, s);
+    rocks.setMatrixAt(i, m);
+  }
+  rocks.castShadow = true;
+  rocks.receiveShadow = true;
+  scene.add(rocks);
+}
+
+const MATS = {
+  dark: new THREE.MeshStandardMaterial({ color: 0x23293a, roughness: 0.6, metalness: 0.4 }),
+  steel: new THREE.MeshStandardMaterial({ color: 0x5a6578, roughness: 0.4, metalness: 0.7 }),
+  trim: new THREE.MeshStandardMaterial({ color: 0xf0a030, roughness: 0.4, metalness: 0.3 })
+};
+const ghostMat = new THREE.MeshStandardMaterial({ color: 0x3ef0a8, emissive: 0x13986a, emissiveIntensity: 0.8, transparent: true, opacity: 0.4, depthWrite: false });
+const GHOST_MATS = { dark: ghostMat, steel: ghostMat, trim: ghostMat, lamp: ghostMat };
+
+function part(group, geo, mat, x, y, z) {
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y, z);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  group.add(mesh);
+  return mesh;
+}
+
+function buildDrill(mats) {
+  const group = new THREE.Group();
+  const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
+  add(new THREE.BoxGeometry(2, 0.3, 2), mats.dark, 0, 0.15, 0);
+  add(new THREE.BoxGeometry(1.5, 1.1, 1.5), mats.steel, 0, 0.85, 0);
+  add(new THREE.BoxGeometry(1.56, 0.12, 1.56), mats.trim, 0, 1.46, 0);
+  add(new THREE.CylinderGeometry(0.32, 0.4, 0.5, 14), mats.dark, 0, 1.75, 0);
+  add(new THREE.BoxGeometry(0.9, 0.12, 0.04), mats.lamp, 0, 0.85, 0.77);
+  add(new THREE.BoxGeometry(0.5, 0.4, 0.5), mats.dark, 0.95, 0.4, 0);
+
+  const rotor = new THREE.Group();
+  rotor.position.y = 2.05;
+  group.add(rotor);
+  const hub = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.6, 12), mats.trim);
+  hub.position.y = 0.3;
+  hub.castShadow = true;
+  rotor.add(hub);
+  for (let k = 0; k < 3; k++) {
+    const arm = new THREE.Group();
+    arm.rotation.y = (k * Math.PI * 2) / 3;
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.08, 0.24), mats.steel);
+    blade.position.set(0.45, 0.05, 0);
+    blade.castShadow = true;
+    arm.add(blade);
+    rotor.add(arm);
+  }
+  return { group, rotor, lampMat: mats.lamp };
+}
+
+function buildFurnace(mats) {
+  const group = new THREE.Group();
+  const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
+  add(new THREE.BoxGeometry(2, 0.3, 2), mats.dark, 0, 0.15, 0);
+  add(new THREE.BoxGeometry(1.5, 1.4, 1.5), mats.steel, 0, 1.0, 0);
+  add(new THREE.BoxGeometry(1.56, 0.12, 1.56), mats.trim, 0, 1.76, 0);
+  add(new THREE.CylinderGeometry(0.2, 0.26, 1.2, 12), mats.dark, -0.35, 2.3, -0.35);
+  add(new THREE.BoxGeometry(0.06, 0.6, 0.9), mats.lamp, 0.77, 0.7, 0);
+  add(new THREE.BoxGeometry(0.5, 0.4, 0.5), mats.dark, 0.95, 0.4, 0);
+  return { group, lampMat: mats.lamp };
+}
+
+function buildBelt(mats) {
+  const group = new THREE.Group();
+  const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
+  add(new THREE.BoxGeometry(1, 0.5, 1), mats.dark, 0, 0.25, 0);
+  add(new THREE.BoxGeometry(0.84, 0.06, 0.94), mats.steel, 0, 0.53, 0);
+  add(new THREE.BoxGeometry(0.96, 0.1, 0.06), mats.trim, 0, 0.6, 0.47);
+  add(new THREE.BoxGeometry(0.96, 0.1, 0.06), mats.trim, 0, 0.6, -0.47);
+  const arrow = add(new THREE.ConeGeometry(0.1, 0.22, 3), mats.trim, 0.14, 0.62, 0);
+  arrow.rotation.z = -Math.PI / 2;
+  return { group };
+}
+
+function buildUnderground(mats, end) {
+  const { group } = buildBelt(mats);
+  part(group, new THREE.BoxGeometry(0.2, 0.36, 0.84), mats.dark, end === 'in' ? 0.42 : -0.42, 0.4, 0);
+  return { group };
+}
+
+const oreMats = {};
+for (const k in ORES) oreMats[k] = new THREE.MeshStandardMaterial({ color: ORES[k].color, roughness: 0.7 });
+const itemMats = { ...oreMats };
+for (const k in INGOTS) itemMats[k] = new THREE.MeshStandardMaterial({ color: INGOTS[k].color, metalness: 0.5, roughness: 0.35 });
+const oreGeo = new THREE.BoxGeometry(0.26, 0.26, 0.26);
+const ingotGeo = new THREE.BoxGeometry(0.36, 0.16, 0.22);
+const sparkGeo = new THREE.SphereGeometry(0.06, 6, 4);
+const sparkMat = new THREE.MeshBasicMaterial({ color: 0xbff7ff });
+
+const LOOP = [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]];
+const outlineGeo = new THREE.BufferGeometry().setFromPoints(LOOP.map(([x, z]) => new THREE.Vector3(x * 1.04, 0, z * 1.04)));
+const ghostLine = new THREE.Line(outlineGeo, new THREE.LineBasicMaterial({ color: 0x3ef0a8 }));
+const selectLine = new THREE.Line(outlineGeo, new THREE.LineBasicMaterial({ color: 0x7fd6ff }));
+ghostLine.visible = false;
+selectLine.visible = false;
+scene.add(ghostLine, selectLine);
+
+const drills = [];
+const furnaces = [];
+const belts = [];
+const occupied = new Map();
+const stats = { mined: { iron: 0, copper: 0, coal: 0, limestone: 0 }, smelted: { iron: 0, copper: 0 } };
+let mode = null;
+let rot = 0;
+let ghost = null;
+let spot = null;
+let selected = null;
+let underStart = null;
+
+const effects = [];
+function addEffect(duration, step, done) {
+  effects.push({ t: 0, duration, step, done });
+}
+function updateEffects(dt) {
+  for (let i = effects.length - 1; i >= 0; i--) {
+    const e = effects[i];
+    e.t += dt;
+    const k = Math.min(1, e.t / e.duration);
+    e.step(k);
+    if (k >= 1) {
+      effects.splice(i, 1);
+      if (e.done) e.done();
+    }
+  }
+}
+
+function playPlacement(g, color) {
+  const base = g.position.clone();
+  g.scale.setScalar(0.001);
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(1.2, 1.5, 48),
+    new THREE.MeshBasicMaterial({ color, transparent: true, depthWrite: false, side: THREE.DoubleSide })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.set(base.x, base.y + 0.08, base.z);
+  scene.add(ring);
+  const sparks = [];
+  for (let i = 0; i < 12; i++) {
+    const s = new THREE.Mesh(sparkGeo, sparkMat);
+    scene.add(s);
+    sparks.push({ s, v: new THREE.Vector3((Math.random() - 0.5) * 6, 2 + Math.random() * 4, (Math.random() - 0.5) * 6) });
+  }
+  addEffect(0.7, (k) => {
+    g.scale.setScalar(Math.max(0.001, easeOutBack(Math.min(1, k / 0.7))));
+    ring.scale.setScalar(1 + k * 3);
+    ring.material.opacity = 1 - k;
+    for (const sp of sparks) {
+      sp.s.position.copy(base).add(new THREE.Vector3(0, 0.3, 0)).addScaledVector(sp.v, k);
+      sp.s.position.y -= 2.5 * k * k;
+      sp.s.scale.setScalar(1 - k);
+    }
+  }, () => {
+    g.scale.setScalar(1);
+    scene.remove(ring);
+    ring.geometry.dispose();
+    ring.material.dispose();
+    for (const sp of sparks) scene.remove(sp.s);
+  });
+}
+
+function spawnOre(d) {
+  d.inFlight++;
+  const from = d.group.localToWorld(new THREE.Vector3(0, 2.6, 0));
+  const to = d.group.localToWorld(ORE_TARGET.clone());
+  const mesh = new THREE.Mesh(oreGeo, oreMats[d.ore]);
+  mesh.castShadow = true;
+  scene.add(mesh);
+  addEffect(0.9, (k) => {
+    mesh.position.lerpVectors(from, to, k);
+    mesh.position.y += Math.sin(Math.PI * k) * 1.6;
+    mesh.rotation.set(k * 5, k * 3, 0);
+  }, () => {
+    d.inFlight--;
+    stats.mined[d.ore]++;
+    if (d.removed) {
+      scene.remove(mesh);
+      return;
+    }
+    const out = frontOf(d);
+    if (out && offerTo(out, { key: d.ore, mesh, t: 0 }, 0)) return;
+    scene.remove(mesh);
+    const slot = new THREE.Mesh(oreGeo, itemMats[d.ore]);
+    slot.position.copy(STACK_SLOTS[d.outbox.length]);
+    slot.castShadow = true;
+    d.group.add(slot);
+    d.outbox.push({ key: d.ore, mesh: slot });
+  });
+}
+
+function updateDrills(dt) {
+  for (const d of drills) {
+    flushOutbox(d);
+    const running = d.outbox.length + d.inFlight < BUFFER_MAX;
+    d.rotor.rotation.y += dt * (running ? 5 : 0.3);
+    d.lampMat.emissive.setHex(running ? ORES[d.ore].color : 0xff3344);
+    if (!running) {
+      d.timer = 0;
+      continue;
+    }
+    d.timer += dt;
+    if (d.timer >= MINE_INTERVAL) {
+      d.timer -= MINE_INTERVAL;
+      spawnOre(d);
+    }
+  }
+}
+
+function updateFurnaces(dt) {
+  for (const f of furnaces) {
+    flushOutbox(f);
+    if (!f.current && f.input.length && f.outbox.length < FURNACE_BUFFER) {
+      f.current = f.input.shift();
+      f.timer = 0;
+    }
+    if (f.current) {
+      f.timer += dt;
+      if (f.timer >= SMELT_TIME) {
+        const key = SMELT[f.current];
+        const mesh = new THREE.Mesh(ingotGeo, itemMats[key]);
+        mesh.position.copy(STACK_SLOTS[f.outbox.length]);
+        mesh.castShadow = true;
+        f.group.add(mesh);
+        f.outbox.push({ key, mesh });
+        stats.smelted[f.current]++;
+        f.current = null;
+      }
+    }
+    f.lampMat.emissive.setHex(f.current ? 0xff7a1a : 0x2a1100);
+  }
+}
+
+function updateBelts(dt) {
+  for (const b of belts) {
+    const items = b.items;
+    items.sort((p, q) => q.t - p.t);
+    for (let k = 0; k < items.length; k++) {
+      const limit = k === 0 ? Infinity : items[k - 1].t - SPACING;
+      items[k].t = Math.min(limit, items[k].t + BELT_SPEED * dt);
+    }
+    const fromPair = b.ug === 'in';
+    while (items.length && items[0].t >= 1) {
+      const out = fromPair ? b.pair : frontOf(b);
+      if (!out || !accepts(out, items[0].key, fromPair)) {
+        items[0].t = 1;
+        break;
+      }
+      const it = items.shift();
+      offerTo(out, it, it.t - 1, fromPair);
+    }
+    const [dx, dz] = DIRS[b.rot];
+    for (const it of items) {
+      const off = it.t - 0.5;
+      it.mesh.position.set(b.cx + dx * off, b.y + 0.66, b.cz + dz * off);
+      it.mesh.visible = !fromPair || it.t < 0.5;
+    }
+  }
+}
+
+function frontOf(m) {
+  const [dx, dz] = DIRS[m.rot];
+  const e = occupied.get(cellKey(Math.floor(m.cx + dx * m.reach), Math.floor(m.cz + dz * m.reach)));
+  if (!e) return null;
+  if (e.kind === 'belt' && e.rot === (m.rot + 2) % 4) return null;
+  return e;
+}
+
+function accepts(target, key, fromPair = false) {
+  if (target.kind === 'belt') return (fromPair || target.ug !== 'out') && target.items.every(it => it.t >= SPACING);
+  if (target.kind === 'furnace') return !!SMELT[key] && target.input.length < FURNACE_INPUT;
+  return false;
+}
+
+function offerTo(target, item, t, fromPair = false) {
+  if (!accepts(target, item.key, fromPair)) return false;
+  if (target.kind === 'belt') {
+    item.t = t;
+    target.items.push(item);
+  } else {
+    scene.remove(item.mesh);
+    target.input.push(item.key);
+  }
+  return true;
+}
+
+function flushOutbox(m) {
+  if (!m.outbox.length) return;
+  const out = frontOf(m);
+  const last = m.outbox[m.outbox.length - 1];
+  if (!out || !accepts(out, last.key)) return;
+  m.outbox.pop();
+  scene.attach(last.mesh);
+  offerTo(out, { key: last.key, mesh: last.mesh, t: 0 }, 0);
+}
+
+function evaluateSpot(ix, iz, size, needOre) {
+  const ores = new Set();
+  for (let i = ix; i < ix + size; i++) {
+    for (let j = iz; j < iz + size; j++) {
+      if (occupied.has(cellKey(i, j))) return { ok: false, reason: 'Zone déjà occupée' };
+      if (!needOre) continue;
+      const ore = oreAt(i + 0.5, j + 0.5);
+      if (!ore) return { ok: false, reason: 'Hors gisement' };
+      ores.add(ore);
+    }
+  }
+  if (ores.size > 1) return { ok: false, reason: 'Gisements mélangés' };
+  return { ok: true, ore: [...ores][0], reason: null };
+}
+
+function centerOf(kind, ix, iz) {
+  return kind === 'belt' ? [ix + 0.5, iz + 0.5] : [ix + 1, iz + 1];
+}
+// Distance from the centre to the cell just in front of the machine
+function reachOf(kind) {
+  return kind === 'belt' ? 1 : 1.5;
+}
+const kindOf = (tool) => (tool === 'under' ? 'belt' : tool);
+function rateOf(kind) {
+  return kind === 'drill' ? 60 / MINE_INTERVAL : kind === 'furnace' ? 60 / SMELT_TIME : BELT_RATE;
+}
+
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+function setPointer(e) {
+  pointer.set((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1);
+}
+function pickGround() {
+  raycaster.setFromCamera(pointer, camera);
+  const hit = raycaster.intersectObject(terrain, false)[0];
+  return hit ? hit.point : null;
+}
+
+function buildMachine(kind, mats, ug) {
+  if (kind === 'drill') return buildDrill(mats);
+  if (kind === 'furnace') return buildFurnace(mats);
+  return ug ? buildUnderground(mats, ug) : buildBelt(mats);
+}
+function startGhost(tool) {
+  ghost = buildMachine(kindOf(tool), GHOST_MATS, tool === 'under' ? (underStart ? 'out' : 'in') : null);
+  ghost.group.traverse(o => { if (o.isMesh) o.castShadow = false; });
+  scene.add(ghost.group);
+}
+function stopGhost() {
+  if (ghost) scene.remove(ghost.group);
+  ghost = null;
+  spot = null;
+  ghostLine.visible = false;
+}
+function refreshGhost() {
+  stopGhost();
+  if (mode) startGhost(mode);
+}
+
+const modeButtons = {
+  drill: document.getElementById('btn-drill'),
+  furnace: document.getElementById('btn-furnace'),
+  belt: document.getElementById('btn-belt'),
+  under: document.getElementById('btn-under')
+};
+const btnCancel = document.getElementById('btn-cancel');
+function setMode(next) {
+  if (underStart) {
+    removeMachine(underStart);
+    underStart = null;
+  }
+  mode = next;
+  stopGhost();
+  if (next) {
+    selected = null;
+    startGhost(next);
+  }
+  for (const k in modeButtons) modeButtons[k].setAttribute('aria-pressed', String(mode === k));
+}
+const toggleMode = (m) => setMode(mode === m ? null : m);
+
+function updateGhost(t) {
+  if (!mode || !ghost) return;
+  const p = pickGround();
+  if (!p) {
+    ghost.group.visible = false;
+    ghostLine.visible = false;
+    spot = null;
+    return;
+  }
+  ghost.group.visible = true;
+  ghostLine.visible = true;
+  const size = SIZE[mode];
+  const onGrid = mode === 'belt' || mode === 'under';
+  let ix = onGrid ? Math.floor(p.x) : Math.round(p.x - 1);
+  let iz = onGrid ? Math.floor(p.z) : Math.round(p.z - 1);
+  let r = rot;
+  if (mode === 'under' && underStart) {
+    // La sortie reste alignée sur l'entrée, de 1 à MAX_UNDER cases
+    const [dx, dz] = DIRS[underStart.rot];
+    const along = (p.x - (underStart.ix + 0.5)) * dx + (p.z - (underStart.iz + 0.5)) * dz;
+    const k = clamp(Math.round(along), 1, MAX_UNDER);
+    ix = underStart.ix + dx * k;
+    iz = underStart.iz + dz * k;
+    r = underStart.rot;
+  }
+  const [cx, cz] = centerOf(kindOf(mode), ix, iz);
+  const h = heightAt(cx, cz);
+  spot = { ix, iz, ...evaluateSpot(ix, iz, size, mode === 'drill') };
+  ghost.group.position.set(cx, h + 0.1 + Math.sin(t * 3) * 0.05, cz);
+  ghost.group.rotation.y = r * Math.PI / 2;
+  ghostLine.position.set(cx, h + 0.06, cz);
+  ghostLine.scale.setScalar(size === 1 ? 0.5 : 1);
+  const ok = spot.ok;
+  ghostMat.color.setHex(ok ? 0x3ef0a8 : 0xff4d6d);
+  ghostMat.emissive.setHex(ok ? 0x13986a : 0x8a1630);
+  ghostMat.opacity = 0.34 + 0.1 * Math.sin(t * 5);
+  ghostLine.material.color.setHex(ok ? 0x3ef0a8 : 0xff4d6d);
+}
+
+function placeAt(kind, ix, iz, ore, ug, r) {
+  const [cx, cz] = centerOf(kind, ix, iz);
+  const lamp = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: kind === 'drill' ? ORES[ore].color : 0xff7a1a, emissiveIntensity: 1.4 });
+  const built = buildMachine(kind, { dark: MATS.dark, steel: MATS.steel, trim: MATS.trim, lamp }, ug);
+  const m = {
+    ...built, kind, ore, ix, iz, cx, cz, rot: r, ug, pair: null,
+    size: SIZE[kind], reach: reachOf(kind), y: heightAt(cx, cz),
+    list: kind === 'drill' ? drills : kind === 'furnace' ? furnaces : belts,
+    outbox: [], input: [], items: [], current: null, timer: 0, inFlight: 0, removed: false
+  };
+  m.group.position.set(cx, m.y, cz);
+  m.group.rotation.y = r * Math.PI / 2;
+  scene.add(m.group);
+  m.list.push(m);
+  for (let i = ix; i < ix + m.size; i++) {
+    for (let j = iz; j < iz + m.size; j++) occupied.set(cellKey(i, j), m);
+  }
+  playPlacement(m.group, kind === 'drill' ? ORES[ore].color : kind === 'furnace' ? 0xff7a1a : 0x7fd6ff);
+  return m;
+}
+
+function tryPlace() {
+  if (!mode || !spot || !spot.ok) return;
+  if (mode === 'under') {
+    if (!underStart) {
+      underStart = placeAt('belt', spot.ix, spot.iz, null, 'in', rot);
+    } else {
+      const exit = placeAt('belt', spot.ix, spot.iz, null, 'out', underStart.rot);
+      exit.pair = underStart;
+      underStart.pair = exit;
+      underStart = null;
+    }
+    refreshGhost();
+    return;
+  }
+  placeAt(mode, spot.ix, spot.iz, spot.ore, null, rot);
+}
+
+function selectAt() {
+  raycaster.setFromCamera(pointer, camera);
+  const all = [...drills, ...furnaces, ...belts];
+  const hits = raycaster.intersectObjects(all.map(m => m.group), true);
+  selected = null;
+  if (!hits.length) return;
+  let o = hits[0].object;
+  while (o && !all.some(m => m.group === o)) o = o.parent;
+  selected = all.find(m => m.group === o) || null;
+}
+
+function rotateMachine(m) {
+  m.rot = (m.rot + 1) % 4;
+  m.group.rotation.y = m.rot * Math.PI / 2;
+}
+
+function removeMachine(m) {
+  const partner = m.pair;
+  m.pair = null;
+  if (partner) {
+    partner.pair = null;
+    removeMachine(partner);
+  }
+  m.removed = true;
+  scene.remove(m.group);
+  for (let i = m.ix; i < m.ix + m.size; i++) {
+    for (let j = m.iz; j < m.iz + m.size; j++) occupied.delete(cellKey(i, j));
+  }
+  for (const it of m.items) scene.remove(it.mesh);
+  m.list.splice(m.list.indexOf(m), 1);
+  if (selected === m) selected = null;
+}
+
+function updateSelection() {
+  selectLine.visible = !!selected && !mode;
+  if (selected) {
+    const p = selected.group.position;
+    selectLine.position.set(p.x, p.y + 0.06, p.z);
+    selectLine.scale.setScalar(selected.size === 1 ? 0.5 : 1);
+  }
+}
+
+canvas.addEventListener('pointermove', setPointer);
+canvas.addEventListener('pointerdown', (e) => {
+  setPointer(e);
+  if (e.button === 2) {
+    setMode(null);
+    return;
+  }
+  if (e.button !== 0) return;
+  if (mode) tryPlace();
+  else selectAt();
+});
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('wheel', (e) => {
+  zoom = clamp(zoom * (1 + e.deltaY * 0.001), 22, 80);
+  e.preventDefault();
+}, { passive: false });
+
+const keys = new Set();
+window.addEventListener('keydown', (e) => {
+  keys.add(e.code);
+  if (e.code === 'KeyR') {
+    if (!mode && selected) {
+      if (!selected.ug) rotateMachine(selected);
+    } else if (!(mode === 'under' && underStart)) {
+      rot = (rot + 1) % 4;
+    }
+  }
+  if (e.code === 'KeyF') toggleMode('drill');
+  if (e.code === 'KeyG') toggleMode('furnace');
+  if (e.code === 'KeyC') toggleMode('belt');
+  if (e.code === 'KeyU') toggleMode('under');
+  if (e.code === 'Escape') { setMode(null); selected = null; }
+  if (e.code === 'Delete' && selected) removeMachine(selected);
+});
+window.addEventListener('keyup', e => keys.delete(e.code));
+window.addEventListener('blur', () => keys.clear());
+
+for (const k in modeButtons) modeButtons[k].addEventListener('click', () => toggleMode(k));
+btnCancel.addEventListener('click', () => { setMode(null); selected = null; });
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+});
+
+function panCamera(dt) {
+  const speed = zoom * 0.7 * dt;
+  let dx = 0, dz = 0;
+  if (keys.has('KeyD') || keys.has('ArrowRight')) dx += 1;
+  if (keys.has('KeyA') || keys.has('ArrowLeft')) dx -= 1;
+  if (keys.has('KeyS') || keys.has('ArrowDown')) dz += 1;
+  if (keys.has('KeyW') || keys.has('ArrowUp')) dz -= 1;
+  pivot.x = clamp(pivot.x + dx * speed, -MAP * 0.85, MAP * 0.85);
+  pivot.z = clamp(pivot.z + dz * speed, -MAP * 0.85, MAP * 0.85);
+}
+
+const statusEl = document.getElementById('status');
+const statsEl = document.getElementById('stats');
+let hudTimer = 0;
+function describe(m) {
+  const rate = `${rateOf(m.kind)}/min`;
+  if (m.kind === 'drill') {
+    const state = m.outbox.length >= BUFFER_MAX ? 'sortie pleine' : 'en marche';
+    return `Foreuse ${ORES[m.ore].name} · débit ${rate} · ${state} · ${m.outbox.length}/${BUFFER_MAX} · R tourne · Suppr pour démonter`;
+  }
+  if (m.kind === 'furnace') {
+    return `Fourneau · débit ${rate} · ${m.current ? 'fusion en cours' : 'en attente'} · ${m.input.length} entrée(s) · ${m.outbox.length}/${FURNACE_BUFFER} lingot(s) · R tourne · Suppr pour démonter`;
+  }
+  if (m.ug) {
+    const link = m.pair ? `relié à ${Math.abs(m.pair.ix - m.ix) + Math.abs(m.pair.iz - m.iz)} case(s)` : 'non relié';
+    return `Sous-pont ${m.ug === 'in' ? 'entrée' : 'sortie'} · débit ${rate} · ${link} · Suppr pour démonter`;
+  }
+  return `Convoyeur · débit ${rate} · ${m.items.length} objet(s) · R tourne · Suppr pour démonter`;
+}
+
+function updateHud(dt) {
+  hudTimer -= dt;
+  if (hudTimer > 0) return;
+  hudTimer = 0.15;
+  if (mode) {
+    const label = { drill: 'Foreuse', furnace: 'Fourneau', belt: 'Convoyeur', under: 'Sous-pont' }[mode];
+    if (!spot) statusEl.textContent = 'Déplace la souris sur la carte';
+    else if (!spot.ok) statusEl.textContent = `${spot.reason} · pose impossible ici`;
+    else if (mode === 'under' && underStart) {
+      const gap = Math.abs(spot.ix - underStart.ix) + Math.abs(spot.iz - underStart.iz);
+      statusEl.textContent = `Sortie à ${gap} case(s) de l'entrée · clic gauche pour poser · clic droit pour annuler`;
+    } else statusEl.textContent = `${label}${spot.ore ? ` · gisement de ${ORES[spot.ore].name}` : ''} · débit ${rateOf(kindOf(mode))}/min · clic gauche pour poser · R pour tourner`;
+  } else if (selected) {
+    statusEl.textContent = describe(selected);
+  } else {
+    statusEl.textContent = 'Clique sur Foreuse, Fourneau ou Convoyeur pour commencer';
+  }
+  statsEl.innerHTML = `Foreuses : ${drills.length} · Fourneaux : ${furnaces.length} · Convoyeurs : ${belts.length}<br>` +
+    Object.entries(ORES).map(([k, o]) => `${o.name} extrait : ${stats.mined[k]}`).join('<br>') + '<br>' +
+    Object.keys(SMELT).map(k => `${INGOTS[SMELT[k]].name} produit : ${stats.smelted[k]}`).join('<br>');
+}
+
+let lastTime = performance.now();
+function frame(now) {
+  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  lastTime = now;
+  const t = now / 1000;
+  panCamera(dt);
+  camera.position.copy(pivot).addScaledVector(VIEW, zoom);
+  camera.lookAt(pivot);
+  camera.updateMatrixWorld();
+  updateGhost(t);
+  updateDrills(dt);
+  updateFurnaces(dt);
+  updateBelts(dt);
+  updateEffects(dt);
+  updateSelection();
+  updateHud(dt);
+  renderer.render(scene, camera);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
