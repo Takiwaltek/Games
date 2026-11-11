@@ -43,6 +43,7 @@
   .tool-btn[aria-pressed="true"] { background: linear-gradient(#f0c15a, #b87a22); color: #201405; border-color: #ffe49a; box-shadow: 0 3px 0 #6b4612; }
   .tool-btn.cancel { background: linear-gradient(#8c5a3a, #5a3620); }
   .tool-btn .key { position: absolute; top: -8px; left: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 6px; font-size: .7rem; line-height: 18px; text-align: center; background: #0f180b; border: 1px solid var(--line); color: var(--gold); }
+  .tool-btn[data-count]::after { content: attr(data-count); position: absolute; bottom: -8px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 6px; font-size: .7rem; line-height: 18px; text-align: center; background: #0f180b; border: 1px solid var(--line); color: var(--cream); }
   .overlay { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(10, 18, 8, .5), rgba(6, 12, 5, .88)); backdrop-filter: blur(3px); }
   .overlay[hidden] { display: none; }
   .menu-card { width: min(380px, calc(100vw - 32px)); padding: 28px 26px 22px; text-align: center; }
@@ -132,6 +133,14 @@
     <div class="menu-foot" id="save-msg"></div>
   </div>
 </div>
+<div class="overlay" id="shop" hidden>
+  <div class="panel menu-card tech-card">
+    <div class="menu-logo">Boutique</div>
+    <div class="menu-sub" id="shop-stock"></div>
+    <ul class="tech-list" id="shop-list"></ul>
+    <button class="menu-btn primary" id="shop-close" type="button">Fermer</button>
+  </div>
+</div>
 <div class="overlay" id="tech" hidden>
   <div class="panel menu-card tech-card">
     <div class="menu-logo">Technologies</div>
@@ -181,8 +190,8 @@
       <section>
         <h4>Progression</h4>
         <ul>
-          <li>Le Hub offre une foreuse et un récolteur</li>
-          <li>Les machines tirent leurs coûts du stock du Hub</li>
+          <li>Le Hub démarre avec une foreuse et un récolteur dans l'inventaire</li>
+          <li>Achète machines et convoyeurs à la boutique du Hub, puis pose-les depuis l'inventaire</li>
           <li><kbd>T</kbd>Arbre technologique, achats au Hub</li>
         </ul>
       </section>
@@ -265,8 +274,19 @@ const CONSTR_MW = 5;
 const CONTAINER_CAP = 5000;
 const CONTAINER_RATE = 1;
 const HUB_POS = { ix: -6, iz: -4 };
-// Coût d'une foreuse ou d'un récolteur supplémentaire (les premiers sont offerts par le Hub)
-const COSTS = { drill: { ironPlate: 5 }, harvester: { ironRod: 5 } };
+// Boutique du Hub : chaque achat ajoute un objet à l'inventaire, qu'on pose ensuite
+const SHOP = [
+  { id: 'drill', name: 'Foreuse', desc: 'Pose-la sur un gisement pour extraire le minerai', price: { ironPlate: 5 } },
+  { id: 'harvester', name: 'Récolteur', desc: 'Abat les arbres proches et fournit la biomasse', price: { ironRod: 5 } },
+  { id: 'furnace', name: 'Fourneau', desc: 'Fond le minerai en lingots', price: { iron: 20 } },
+  { id: 'constructor', name: 'Constructeur', desc: 'Fabrique plaques et tiges de fer', price: { ironIngot: 30 } },
+  { id: 'container', name: 'Conteneur', desc: 'Stocke jusqu\'à 5000 objets', price: { iron: 50 } },
+  { id: 'generator', name: 'Générateur', desc: 'Brûle la biomasse pour produire de l\'électricité', price: { ironPlate: 4 } },
+  { id: 'pole', name: 'Poteau', desc: 'Relie les machines électriques', price: { ironRod: 1 } },
+  { id: 'belt', name: 'Convoyeur', desc: 'Transporte les objets, une pièce par case', price: { ironPlate: 1 } },
+  { id: 'under', name: 'Sous-pont', desc: 'Traverse une autre ligne, une pièce par embouchure', price: { ironPlate: 2 } }
+];
+const shopItem = (id) => SHOP.find(i => i.id === id);
 // Arbre technologique, payé avec les ressources stockées dans le Hub
 const TECH = [
   { id: 'furnace', name: 'Fourneau', desc: 'Débloque le fourneau (touche G)', cost: { iron: 100 }, needs: [] },
@@ -582,6 +602,20 @@ const ARROW_MAT = new THREE.MeshStandardMaterial({ color: 0xfff1c1, emissive: 0x
 const ARROW_OUT_MAT = new THREE.MeshStandardMaterial({ color: 0xffb36b, emissive: 0xff7a1a, emissiveIntensity: 1.2 });
 const ghostMat = new THREE.MeshStandardMaterial({ color: 0x3ef0a8, emissive: 0x13986a, emissiveIntensity: 0.8, transparent: true, opacity: 0.4, depthWrite: false });
 const GHOST_MATS = { dark: ghostMat, steel: ghostMat, trim: ghostMat, lamp: ghostMat, pipe: ghostMat };
+// Flèche fantôme : pointe dans le sens de pose, en dehors de l'empreinte (elle tourne avec R)
+const phantomArrowMat = new THREE.MeshBasicMaterial({ color: 0xfff1c1, transparent: true, opacity: 0.7, depthWrite: false });
+function addPhantomArrow(group, size) {
+  const shape = new THREE.Shape();
+  shape.moveTo(0.5, 0);
+  shape.lineTo(-0.2, 0.4);
+  shape.lineTo(-0.2, -0.4);
+  shape.closePath();
+  const geo = new THREE.ShapeGeometry(shape);
+  geo.rotateX(-Math.PI / 2);
+  const arrow = new THREE.Mesh(geo, phantomArrowMat);
+  arrow.position.set(size / 2 + 0.45, 0.12, 0);
+  group.add(arrow);
+}
 
 function part(group, geo, mat, x, y, z) {
   const mesh = new THREE.Mesh(geo, mat);
@@ -953,8 +987,9 @@ const ALL = () => [...drills, ...harvesters, ...furnaces, ...generators, ...pole
 const SELECTABLE = () => [...ALL(), ...hubs];
 const occupied = new Map();
 const stats = { mined: { iron: 0, copper: 0, coal: 0, limestone: 0, biomass: 0 }, smelted: { iron: 0, copper: 0 }, crafted: { ironPlate: 0, ironRod: 0 } };
-// Stock du Hub, cadeaux de départ (une foreuse et un récolteur) et technologies achetées
-const hubState = { stock: {}, gifts: { drill: 1, harvester: 1 }, tech: new Set() };
+// Stock du Hub, inventaire (au départ une foreuse et un récolteur offerts) et technologies achetées
+const START_INVENTORY = { drill: 1, harvester: 1 };
+const hubState = { stock: {}, inventory: Object.fromEntries(SHOP.map(i => [i.id, Object.hasOwn(START_INVENTORY, i.id) ? START_INVENTORY[i.id] : 0])), tech: new Set() };
 let simTime = 0;
 const mineLog = [];
 let mode = null;
@@ -1211,31 +1246,25 @@ function buffered(n) {
   return hasTech('buffer') ? n * 2 : n;
 }
 
-// Vérifie qu'on peut financer les machines demandées (cadeau du Hub d'abord, sinon achat), sans rien dépenser
-function planFunding(kinds) {
-  const gifts = { ...hubState.gifts };
-  const stock = { ...hubState.stock };
-  const plans = [];
-  for (const kind of kinds) {
-    if (!unlocked(kind)) return null;
-    if (!COSTS[kind]) { plans.push(null); continue; }
-    if (gifts[kind] > 0) { gifts[kind]--; plans.push('gift'); continue; }
-    const cost = COSTS[kind];
-    if (!Object.entries(cost).every(([k, n]) => (stock[k] || 0) >= n)) return null;
-    for (const [k, n] of Object.entries(cost)) stock[k] -= n;
-    plans.push('paid');
+// Vérifie qu'on a un objet en inventaire pour chaque pose demandée, sans rien consommer
+function planFunding(keys) {
+  const inv = { ...hubState.inventory };
+  for (const key of keys) {
+    if (!unlocked(key) || !((inv[key] || 0) > 0)) return null;
+    inv[key]--;
   }
-  return plans;
+  return keys;
 }
-function applyFunding(kind, plan) {
-  if (plan === 'gift') hubState.gifts[kind]--;
-  if (plan === 'paid') for (const [k, n] of Object.entries(COSTS[kind])) hubState.stock[k] -= n;
+// Consomme un objet de l'inventaire lors de la pose
+function applyFunding(key) {
+  hubState.inventory[key]--;
+  refreshUnlocks();
 }
-// Rend le cadeau ou les ressources d'une machine supprimée
+// Rend l'objet à l'inventaire quand la machine est supprimée
 function refundFunding(m) {
-  if (m.funding === 'gift') hubState.gifts[m.kind]++;
-  if (m.funding === 'paid') for (const [k, n] of Object.entries(COSTS[m.kind])) hubState.stock[k] = (hubState.stock[k] || 0) + n;
+  if (m.funding) hubState.inventory[m.funding] = (hubState.inventory[m.funding] || 0) + 1;
   m.funding = null;
+  refreshUnlocks();
 }
 
 let notice = null;
@@ -1572,6 +1601,7 @@ function buildMachine(kind, mats, ug) {
 function startGhost(tool) {
   ghost = buildMachine(kindOf(tool), GHOST_MATS, tool === 'under' ? (underStart ? 'out' : 'in') : null);
   ghost.group.traverse(o => { if (o.isMesh) o.castShadow = false; });
+  addPhantomArrow(ghost.group, SIZE[tool]);
   scene.add(ghost.group);
 }
 function stopGhost() {
@@ -1598,13 +1628,16 @@ const modeButtons = {
 };
 const btnCancel = document.getElementById('btn-cancel');
 const itemName = (k) => (ORES[k] ? ORES[k].name : INGOTS[k].name);
-const costText = (kind) => Object.entries(COSTS[kind]).map(([k, n]) => `${n} ${itemName(k)}`).join(', ');
-function blockedReason(kind) {
-  if (!unlocked(kind)) return `${TECH.find(t => t.id === UNLOCK_OF[kind]).name} pas encore débloqué (touche T)`;
-  return `Il faut ${costText(kind)} dans le Hub`;
+function blockedReason(key) {
+  if (!unlocked(key)) return `${TECH.find(t => t.id === UNLOCK_OF[key]).name} pas encore débloqué (touche T)`;
+  return `${shopItem(key).name} épuisé : achète-en à la boutique du Hub`;
 }
 function setMode(next) {
   if (next && !unlocked(next)) {
+    notify(blockedReason(next));
+    return;
+  }
+  if (next && !((hubState.inventory[next] || 0) > 0)) {
     notify(blockedReason(next));
     return;
   }
@@ -1673,6 +1706,7 @@ function updateGhost(t) {
   ghostMat.color.setHex(ok ? 0x3ef0a8 : 0xff4d6d);
   ghostMat.emissive.setHex(ok ? 0x13986a : 0x8a1630);
   ghostMat.opacity = 0.34 + 0.1 * Math.sin(t * 5);
+  phantomArrowMat.opacity = 0.55 + 0.25 * Math.sin(t * 5);
   ghostLine.material.color.setHex(ok ? 0x3ef0a8 : 0xff4d6d);
 }
 
@@ -1865,7 +1899,12 @@ function endLine() {
   lineDrag = null;
   lineGroup.visible = false;
   if (!route || !route.valid) return;
-  for (const c of route.cells) placeAt('belt', c.ix, c.iz, null, null, c.rot);
+  const plans = planFunding(route.cells.map(() => 'belt'));
+  if (!plans) {
+    notify(blockedReason('belt'));
+    return;
+  }
+  route.cells.forEach((c, k) => placeAt('belt', c.ix, c.iz, null, null, c.rot, plans[k]));
 }
 
 function updateLine(t) {
@@ -1919,7 +1958,7 @@ function placeAt(kind, ix, iz, ore, ug, r, plan = null) {
     outbox: [], input: [], items: [], current: null, timer: 0, inFlight: 0, removed: false, burning: false, target: null,
     recipe: 'ironPlate', stock: {}, total: 0, funding: plan
   };
-  if (plan) applyFunding(kind, plan);
+  if (plan) applyFunding(plan);
   m.group.position.set(cx, m.y, cz);
   m.group.rotation.y = r * Math.PI / 2;
   scene.add(m.group);
@@ -1936,10 +1975,16 @@ function placeAt(kind, ix, iz, ore, ug, r, plan = null) {
 function tryPlace() {
   if (!mode || !spot || !spot.ok) return;
   if (mode === 'under') {
+    // Une paire de sous-ponts coûte deux pièces : on les réserve dès l'entrée
+    const plans = planFunding(underStart ? ['under'] : ['under', 'under']);
+    if (!plans) {
+      notify(blockedReason('under'));
+      return;
+    }
     if (!underStart) {
-      underStart = placeAt('belt', spot.ix, spot.iz, null, 'in', rot);
+      underStart = placeAt('belt', spot.ix, spot.iz, null, 'in', rot, plans[0]);
     } else {
-      const exit = placeAt('belt', spot.ix, spot.iz, null, 'out', underStart.rot);
+      const exit = placeAt('belt', spot.ix, spot.iz, null, 'out', underStart.rot, plans[0]);
       exit.pair = underStart;
       underStart.pair = exit;
       underStart = null;
@@ -2041,22 +2086,27 @@ function updatePaste(t) {
     g.rotation.y = it.rot * Math.PI / 2;
     return { x, z, ore: it.kind === 'drill' ? check.ore : it.ore };
   });
-  paste.ok = ok && planFunding(clipboard.map(it => it.kind)) !== null;
+  paste.ok = ok && planFunding(clipboard.map(pasteKey)) !== null;
   ghostMat.color.setHex(ok ? 0x3ef0a8 : 0xff4d6d);
   ghostMat.emissive.setHex(ok ? 0x13986a : 0x8a1630);
   ghostMat.opacity = 0.34 + 0.1 * Math.sin(t * 5);
 }
 
+// Une case de convoyeur souterrain se paie avec un sous-pont
+function pasteKey(it) {
+  return it.ug ? 'under' : it.kind;
+}
+
 function tryPaste() {
   if (!paste || !paste.ok) return;
-  const plans = planFunding(clipboard.map(it => it.kind));
+  const plans = planFunding(clipboard.map(pasteKey));
   if (!plans) {
     notify('Ressources insuffisantes pour coller');
     return;
   }
   const made = paste.cells.map((c, k) => {
     const it = clipboard[k];
-    const m = it.ug ? placeAt('belt', c.x, c.z, null, it.ug, it.rot) : placeAt(it.kind, c.x, c.z, c.ore, null, it.rot, plans[k]);
+    const m = it.ug ? placeAt('belt', c.x, c.z, null, it.ug, it.rot, plans[k]) : placeAt(it.kind, c.x, c.z, c.ore, null, it.rot, plans[k]);
     if (it.recipe) m.recipe = it.recipe;
     return m;
   });
@@ -2202,14 +2252,15 @@ window.addEventListener('keydown', (e) => {
   keys.add(e.code);
   if (e.code === 'F1') { e.preventDefault(); setHelp(helpEl.hidden); return; }
   if (e.code === 'Escape') {
-    if (!techEl.hidden) setTech(false);
+    if (!shopEl.hidden) setShop(false);
+    else if (!techEl.hidden) setTech(false);
     else if (!helpEl.hidden) setHelp(false);
     else if (!menuEl.hidden) { if (started) setMenu(false); }
     else if (mode || paste || selected || multi.length) { setMode(null); selected = null; multi = []; }
     else setMenu(true);
     return;
   }
-  if (e.code === 'KeyT' && menuEl.hidden && helpEl.hidden) { setTech(techEl.hidden); return; }
+  if (e.code === 'KeyT' && menuEl.hidden && helpEl.hidden && shopEl.hidden) { setTech(techEl.hidden); return; }
   if (paused) return;
   if (e.code === 'KeyR') {
     if (!mode && selected) {
@@ -2257,7 +2308,7 @@ let started = false;
 let paused = true;
 const techEl = document.getElementById('tech');
 const techList = document.getElementById('tech-list');
-function updatePause() { paused = !menuEl.hidden || !helpEl.hidden || !techEl.hidden; }
+function updatePause() { paused = !menuEl.hidden || !helpEl.hidden || !techEl.hidden || !shopEl.hidden; }
 function setMenu(open) {
   menuEl.hidden = !open;
   btnPlay.textContent = started ? 'Reprendre' : 'Jouer';
@@ -2277,6 +2328,64 @@ function setTech(open) {
   techEl.hidden = !open;
   if (open) renderTech();
   updatePause();
+}
+// Boutique du Hub : achats payés avec le stock, ajoutés à l'inventaire
+const shopEl = document.getElementById('shop');
+const shopList = document.getElementById('shop-list');
+const shopStock = document.getElementById('shop-stock');
+document.getElementById('shop-close').addEventListener('click', () => setShop(false));
+function setShop(open) {
+  shopEl.hidden = !open;
+  if (open) renderShop();
+  updatePause();
+}
+function inventoryText() {
+  const items = SHOP.filter(i => (hubState.inventory[i.id] || 0) > 0).map(i => `${i.name} ×${hubState.inventory[i.id]}`);
+  return items.length ? items.join(' · ') : 'vide';
+}
+function priceText(price) {
+  return Object.entries(price).map(([k, n]) => `${n} ${itemName(k)}`).join(', ');
+}
+function canAfford(price) {
+  return Object.entries(price).every(([k, n]) => (hubState.stock[k] || 0) >= n);
+}
+function renderShop() {
+  const stock = Object.entries(hubState.stock).filter(([, n]) => n > 0).map(([k, n]) => `${itemName(k)} : ${n}`);
+  shopStock.textContent = stock.length ? `Stock du Hub : ${stock.join(' · ')}` : 'Stock du Hub vide';
+  shopList.replaceChildren(...SHOP.map((item) => {
+    const li = document.createElement('li');
+    li.className = 'tech-node';
+    const name = document.createElement('b');
+    name.textContent = item.name;
+    const desc = document.createElement('span');
+    desc.textContent = item.desc;
+    const cost = document.createElement('small');
+    cost.textContent = `Prix : ${priceText(item.price)}`;
+    const owned = document.createElement('small');
+    owned.textContent = `En inventaire : ${hubState.inventory[item.id] || 0}`;
+    const locked = !unlocked(item.id);
+    const btn = actionButton(locked ? 'Verrouillée' : 'Acheter', () => buyItem(item.id));
+    btn.disabled = locked || !canAfford(item.price);
+    li.append(name, desc, cost, owned, btn);
+    return li;
+  }));
+}
+function buyItem(id) {
+  const item = shopItem(id);
+  if (!item) return;
+  if (!unlocked(id)) {
+    notify(blockedReason(id));
+    return;
+  }
+  if (!canAfford(item.price)) {
+    notify('Ressources insuffisantes dans le Hub');
+    return;
+  }
+  for (const [k, n] of Object.entries(item.price)) hubState.stock[k] -= n;
+  hubState.inventory[id] = (hubState.inventory[id] || 0) + 1;
+  notify(`${item.name} ajouté à l'inventaire`);
+  renderShop();
+  refreshUnlocks();
 }
 function techStatus(t) {
   if (hasTech(t.id)) return 'Acquise';
@@ -2319,7 +2428,10 @@ function buyTech(id) {
   refreshUnlocks();
 }
 function refreshUnlocks() {
-  for (const k in modeButtons) modeButtons[k].classList.toggle('locked', !unlocked(k));
+  for (const k in modeButtons) {
+    modeButtons[k].classList.toggle('locked', !unlocked(k));
+    modeButtons[k].dataset.count = hubState.inventory[k] || 0;
+  }
 }
 document.getElementById('btn-help').addEventListener('click', () => setHelp(true));
 document.getElementById('btn-menu').addEventListener('click', () => setMenu(true));
@@ -2331,7 +2443,7 @@ function serializeFactory() {
   const index = new Map(all.map((m, k) => [m, k]));
   return {
     version: SAVE_VERSION,
-    hub: { stock: { ...hubState.stock }, gifts: { ...hubState.gifts }, tech: [...hubState.tech] },
+    hub: { stock: { ...hubState.stock }, inventory: { ...hubState.inventory }, tech: [...hubState.tech] },
     machines: all.map(m => ({
       kind: m.kind, ore: m.ore ?? null, ix: m.ix, iz: m.iz, rot: m.rot, ug: m.ug ?? null,
       pair: m.pair && index.has(m.pair) ? index.get(m.pair) : -1,
@@ -2363,7 +2475,9 @@ function loadFactory(data) {
     if (!m.removed) removeMachine(m, false);
   }
   hubState.stock = Object.fromEntries(Object.entries(hub.stock ?? {}).filter(([k, n]) => isItem(k) && Number.isFinite(n) && n > 0));
-  hubState.gifts = { drill: hub.gifts?.drill ?? 1, harvester: hub.gifts?.harvester ?? 1 };
+  const legacy = hub.gifts ?? {};
+  const savedInv = hub.inventory ?? legacy;
+  hubState.inventory = Object.fromEntries(SHOP.map(i => [i.id, Number.isInteger(savedInv[i.id]) && savedInv[i.id] >= 0 ? savedInv[i.id] : (Object.hasOwn(START_INVENTORY, i.id) ? START_INVENTORY[i.id] : 0)]));
   hubState.tech = new Set((hub.tech ?? []).filter(id => TECH.some(t => t.id === id)));
   setMode(null);
   selected = null;
@@ -2501,8 +2615,8 @@ function inspect(m) {
     const stock = Object.entries(hubState.stock).filter(([, n]) => n > 0).map(([k, n]) => `${itemName(k)} : ${n}`);
     return {
       title: 'Hub',
-      lines: [`Foreuses offertes : ${hubState.gifts.drill} · Récolteurs offerts : ${hubState.gifts.harvester}`, ...(stock.length ? stock : ['Stock vide'])],
-      actions: [], progress: null
+      lines: [`Inventaire : ${inventoryText()}`, ...(stock.length ? stock : ['Stock vide'])],
+      actions: [actionButton('Boutique', () => setShop(true))], progress: null
     };
   }
   if (m.kind === 'drill') {
@@ -2634,8 +2748,7 @@ function updateHud(dt) {
     section('Fusion', Object.keys(SMELT).map(k => row(INGOTS[SMELT[k]].name, stats.smelted[k]))) +
     section('Fabrication', Object.keys(stats.crafted).map(k => row(INGOTS[k].name, stats.crafted[k]))) +
     section('Hub', [
-      row('Foreuses offertes', hubState.gifts.drill),
-      row('Récolteurs offerts', hubState.gifts.harvester),
+      row('Inventaire', inventoryText()),
       ...Object.entries(hubState.stock).filter(([, n]) => n > 0).map(([k, n]) => row(itemName(k), n))
     ]);
 }
