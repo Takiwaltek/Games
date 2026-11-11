@@ -22,12 +22,14 @@
   .toolbar button[aria-pressed="true"] { background: linear-gradient(#ffb347, #c96d12); box-shadow: 0 4px 0 #7a400a; }
   .toolbar button.alt { background: linear-gradient(#7fd6ff, #2a7ca8); box-shadow: 0 4px 0 #17485f; }
   .help { left: 16px; top: 64px; font-size: .62rem; line-height: 1.8; color: #8fa8c0; }
+  .select-box { display: none; border: 1px solid #7fd6ff; background: rgba(127, 214, 255, .12); }
 </style>
 </head>
 <body>
 <div class="hud title">TakiFactory<small>prototype · foreuse</small></div>
 <a class="back" href="../index.html">← Atelier</a>
 <div class="hud status" id="status"></div>
+<div class="hud select-box" id="select-box"></div>
 <div class="hud stats" id="stats"></div>
 <div class="toolbar">
   <button id="btn-drill" type="button" aria-pressed="false">Foreuse</button>
@@ -38,7 +40,7 @@
   <button id="btn-generator" type="button" aria-pressed="false">Générateur</button>
   <button id="btn-cancel" class="alt" type="button">Annuler</button>
 </div>
-<div class="hud help">Clic gauche : poser · R : tourner (ou la machine sélectionnée) · clic droit ou Échap : annuler<br>Convoyeur (C) : maintiens le clic et glisse, la ligne se trace seule et se raccorde aux machines<br>Clic sur une machine : sélectionner · Suppr : démonter · F foreuse · G fourneau · U sous-pont · H récolteur · B générateur<br>WASD / flèches ou glisser avec le clic molette ou droit : déplacer la vue · Molette : zoom</div>
+<div class="hud help">Clic gauche : poser · R : tourner (ou la machine sélectionnée) · clic droit ou Échap : annuler<br>Convoyeur (C) : maintiens le clic et glisse, la ligne se trace seule et se raccorde aux machines<br>Clic sur une machine : sélectionner · glisser dans le vide : sélectionner une zone · Suppr : démonter · F foreuse · G fourneau · U sous-pont · H récolteur · B générateur<br>WASD / flèches ou glisser avec le clic molette ou droit : déplacer la vue · Molette : zoom</div>
 <canvas id="scene"></canvas>
 
 <script type="module">
@@ -384,7 +386,9 @@ const sparkMat = new THREE.MeshBasicMaterial({ color: 0xbff7ff });
 const LOOP = [[-1, -1], [1, -1], [1, 1], [-1, 1], [-1, -1]];
 const outlineGeo = new THREE.BufferGeometry().setFromPoints(LOOP.map(([x, z]) => new THREE.Vector3(x * 1.04, 0, z * 1.04)));
 const ghostLine = new THREE.Line(outlineGeo, new THREE.LineBasicMaterial({ color: 0x3ef0a8 }));
-const selectLine = new THREE.Line(outlineGeo, new THREE.LineBasicMaterial({ color: 0x7fd6ff }));
+const selectMat = new THREE.LineBasicMaterial({ color: 0x7fd6ff });
+const selectLine = new THREE.Line(outlineGeo, selectMat);
+const areaRings = [];
 ghostLine.visible = false;
 selectLine.visible = false;
 scene.add(ghostLine, selectLine);
@@ -402,6 +406,7 @@ let rot = 0;
 let ghost = null;
 let spot = null;
 let selected = null;
+let multi = [];
 let underStart = null;
 
 const effects = [];
@@ -733,6 +738,7 @@ function setMode(next) {
   stopGhost();
   if (next) {
     selected = null;
+    multi = [];
     startGhost(next);
   }
   for (const k in modeButtons) modeButtons[k].setAttribute('aria-pressed', String(mode === k));
@@ -1034,10 +1040,25 @@ function selectAt() {
   const all = [...drills, ...harvesters, ...furnaces, ...generators, ...belts];
   const hits = raycaster.intersectObjects(all.map(m => m.group), true);
   selected = null;
+  multi = [];
   if (!hits.length) return;
   let o = hits[0].object;
   while (o && !all.some(m => m.group === o)) o = o.parent;
   selected = all.find(m => m.group === o) || null;
+}
+
+function selectArea(x0, y0, x1, y1) {
+  const left = Math.min(x0, x1), right = Math.max(x0, x1);
+  const top = Math.min(y0, y1), bottom = Math.max(y0, y1);
+  const all = [...drills, ...harvesters, ...furnaces, ...generators, ...belts];
+  multi = all.filter((m) => {
+    const v = m.group.position.clone().project(camera);
+    if (v.z > 1) return false;
+    const sx = (v.x + 1) / 2 * window.innerWidth;
+    const sy = (1 - v.y) / 2 * window.innerHeight;
+    return sx >= left && sx <= right && sy >= top && sy <= bottom;
+  });
+  selected = null;
 }
 
 function rotateMachine(m) {
@@ -1060,6 +1081,7 @@ function removeMachine(m) {
   for (const it of m.items) scene.remove(it.mesh);
   m.list.splice(m.list.indexOf(m), 1);
   if (selected === m) selected = null;
+  multi = multi.filter(x => x !== m);
 }
 
 function updateSelection() {
@@ -1069,9 +1091,24 @@ function updateSelection() {
     selectLine.position.set(p.x, p.y + 0.06, p.z);
     selectLine.scale.setScalar(selected.size === 1 ? 0.5 : 1);
   }
+  let i = 0;
+  for (const m of multi) {
+    if (!areaRings[i]) {
+      areaRings[i] = new THREE.Line(outlineGeo, selectMat);
+      scene.add(areaRings[i]);
+    }
+    const ring = areaRings[i++];
+    const p = m.group.position;
+    ring.visible = true;
+    ring.position.set(p.x, p.y + 0.06, p.z);
+    ring.scale.setScalar(m.size === 1 ? 0.5 : 1);
+  }
+  for (; i < areaRings.length; i++) areaRings[i].visible = false;
 }
 
 let panDrag = null;
+let areaDrag = null;
+const selectBox = document.getElementById('select-box');
 canvas.addEventListener('pointermove', setPointer);
 canvas.addEventListener('mousedown', (e) => {
   if (e.button === 1) e.preventDefault();
@@ -1086,7 +1123,19 @@ canvas.addEventListener('pointerdown', (e) => {
   if (e.button !== 0) return;
   if (mode === 'belt') beginLine();
   else if (mode) tryPlace();
-  else selectAt();
+  else areaDrag = { x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, moved: false };
+});
+window.addEventListener('pointermove', (e) => {
+  if (!areaDrag) return;
+  areaDrag.x = e.clientX;
+  areaDrag.y = e.clientY;
+  if (!areaDrag.moved && Math.hypot(e.clientX - areaDrag.x0, e.clientY - areaDrag.y0) < 4) return;
+  areaDrag.moved = true;
+  selectBox.style.display = 'block';
+  selectBox.style.left = `${Math.min(areaDrag.x0, e.clientX)}px`;
+  selectBox.style.top = `${Math.min(areaDrag.y0, e.clientY)}px`;
+  selectBox.style.width = `${Math.abs(e.clientX - areaDrag.x0)}px`;
+  selectBox.style.height = `${Math.abs(e.clientY - areaDrag.y0)}px`;
 });
 window.addEventListener('pointermove', (e) => {
   if (!panDrag) return;
@@ -1103,6 +1152,13 @@ window.addEventListener('pointermove', (e) => {
 });
 window.addEventListener('pointerup', (e) => {
   if (e.button === 0 && lineDrag) endLine();
+  if (e.button === 0 && areaDrag) {
+    const a = areaDrag;
+    areaDrag = null;
+    selectBox.style.display = 'none';
+    if (a.moved) selectArea(a.x0, a.y0, a.x, a.y);
+    else selectAt();
+  }
   if (panDrag && (e.button === 1 || e.button === 2)) {
     const wasClick = !panDrag.moved;
     const button = panDrag.button;
@@ -1132,14 +1188,19 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyU') toggleMode('under');
   if (e.code === 'KeyH') toggleMode('harvester');
   if (e.code === 'KeyB') toggleMode('generator');
-  if (e.code === 'Escape') { setMode(null); selected = null; }
-  if (e.code === 'Delete' && selected) removeMachine(selected);
+  if (e.code === 'Escape') { setMode(null); selected = null; multi = []; }
+  if (e.code === 'Delete') {
+    if (multi.length) {
+      for (const m of [...multi]) if (!m.removed) removeMachine(m);
+      multi = [];
+    } else if (selected) removeMachine(selected);
+  }
 });
 window.addEventListener('keyup', e => keys.delete(e.code));
 window.addEventListener('blur', () => keys.clear());
 
 for (const k in modeButtons) modeButtons[k].addEventListener('click', () => toggleMode(k));
-btnCancel.addEventListener('click', () => { setMode(null); selected = null; });
+btnCancel.addEventListener('click', () => { setMode(null); selected = null; multi = []; });
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -1205,6 +1266,8 @@ function updateHud(dt) {
     } else if (mode === 'harvester' && !nearestTree({ cx: spot.ix + 1, cz: spot.iz + 1 })) statusEl.textContent = 'Aucun arbre à proximité · la récolte ne démarrera pas';
     else if (mode === 'belt') statusEl.textContent = 'Convoyeur · maintiens le clic et glisse : la ligne se raccorde toute seule aux machines';
     else statusEl.textContent = `${label}${spot.ore ? ` · gisement de ${ORES[spot.ore].name}` : ''} · débit ${rateOf(kindOf(mode))}/min · clic gauche pour poser · R pour tourner`;
+  } else if (multi.length) {
+    statusEl.textContent = `Sélection : ${multi.length} élément(s) · Suppr pour tout démonter · clic sur le vide pour désélectionner`;
   } else if (selected) {
     statusEl.textContent = describe(selected);
   } else {
