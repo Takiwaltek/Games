@@ -102,10 +102,14 @@
     <div class="menu-sub">Prototype · usine en prairie</div>
     <div class="menu-buttons">
       <button class="menu-btn primary" id="menu-play" type="button">Jouer</button>
+      <button class="menu-btn" id="menu-save" type="button">Sauvegarder l'usine</button>
+      <button class="menu-btn" id="menu-load" type="button">Charger une usine</button>
       <button class="menu-btn" id="menu-help" type="button">Comment jouer</button>
       <a class="menu-btn" href="../index.html">Retour à l'atelier</a>
     </div>
+    <input type="file" id="menu-file" accept="application/json,.json" hidden>
     <div class="menu-foot">Échap ouvre ce menu à tout moment</div>
+    <div class="menu-foot" id="save-msg"></div>
   </div>
 </div>
 <div class="overlay" id="help" hidden>
@@ -1838,6 +1842,83 @@ document.getElementById('menu-help').addEventListener('click', () => setHelp(tru
 document.getElementById('help-close').addEventListener('click', () => setHelp(false));
 document.getElementById('btn-help').addEventListener('click', () => setHelp(true));
 document.getElementById('btn-menu').addEventListener('click', () => setMenu(true));
+
+const SAVE_VERSION = 1;
+const saveMsg = document.getElementById('save-msg');
+function serializeFactory() {
+  const all = [...drills, ...harvesters, ...furnaces, ...generators, ...poles, ...belts].filter(m => !m.removed);
+  const index = new Map(all.map((m, k) => [m, k]));
+  return {
+    version: SAVE_VERSION,
+    machines: all.map(m => ({
+      kind: m.kind, ore: m.ore ?? null, ix: m.ix, iz: m.iz, rot: m.rot, ug: m.ug ?? null,
+      pair: m.pair && index.has(m.pair) ? index.get(m.pair) : -1
+    }))
+  };
+}
+function loadFactory(data) {
+  const invalid = () => new Error('Fichier de sauvegarde invalide');
+  if (!data || data.version !== SAVE_VERSION || !Array.isArray(data.machines)) throw invalid();
+  const taken = new Set();
+  for (const d of data.machines) {
+    const size = SIZE[d.kind];
+    if (!LISTS[d.kind] || !Number.isInteger(d.ix) || !Number.isInteger(d.iz) || !Number.isInteger(d.rot)) throw invalid();
+    if (d.kind === 'drill' && !ORES[d.ore]) throw invalid();
+    if (!inGrid(d.ix, d.iz) || !inGrid(d.ix + size - 1, d.iz + size - 1)) throw new Error('Machine hors de la carte');
+    for (let i = d.ix; i < d.ix + size; i++) {
+      for (let j = d.iz; j < d.iz + size; j++) {
+        if (taken.has(cellKey(i, j))) throw new Error('Machines qui se chevauchent');
+        taken.add(cellKey(i, j));
+      }
+    }
+  }
+  for (const m of [...drills, ...harvesters, ...furnaces, ...generators, ...poles, ...belts]) {
+    if (!m.removed) removeMachine(m);
+  }
+  setMode(null);
+  selected = null;
+  multi = [];
+  underStart = null;
+  const made = data.machines.map(d => placeAt(d.kind, d.ix, d.iz, d.ore, d.ug, d.rot));
+  data.machines.forEach((d, k) => {
+    if (d.pair >= 0 && made[d.pair]) made[k].pair = made[d.pair];
+  });
+  return made.length;
+}
+
+document.getElementById('menu-save').addEventListener('click', () => {
+  const data = serializeFactory();
+  const count = data.machines.length;
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'takifactory-usine.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  saveMsg.textContent = `Usine exportée (${count} élément${count > 1 ? 's' : ''})`;
+});
+const menuFile = document.getElementById('menu-file');
+document.getElementById('menu-load').addEventListener('click', () => menuFile.click());
+menuFile.addEventListener('change', async () => {
+  const file = menuFile.files[0];
+  menuFile.value = '';
+  if (!file) return;
+  try {
+    let data;
+    try {
+      data = JSON.parse(await file.text());
+    } catch {
+      throw new Error('Fichier de sauvegarde invalide');
+    }
+    const count = loadFactory(data);
+    started = true;
+    setMenu(true);
+    saveMsg.textContent = `Usine chargée (${count} élément${count > 1 ? 's' : ''})`;
+  } catch (err) {
+    saveMsg.textContent = err.message || 'Chargement impossible';
+  }
+});
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
