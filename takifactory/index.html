@@ -29,6 +29,10 @@
   #stats { padding: 0 14px 12px; font-size: .8rem; }
   .stat-section { margin-top: 10px; }
   .stat-section h4 { font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; font-family: system-ui, sans-serif; }
+  .stat-section > summary { list-style: none; cursor: pointer; padding: 0; display: flex; justify-content: space-between; align-items: center; }
+  .stat-section > summary::-webkit-details-marker { display: none; }
+  .stat-section > summary::after { content: '▾'; color: var(--muted); transition: transform .15s; }
+  .stat-section:not([open]) > summary::after { transform: rotate(-90deg); }
   .row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed rgba(232, 205, 140, .15); }
   .row b { color: var(--cream); font-weight: 600; }
   .inspector { position: fixed; top: 84px; left: 12px; width: 260px; padding: 14px; }
@@ -97,7 +101,7 @@
 </header>
 <details class="panel stats-wrap" open>
   <summary>Statistiques</summary>
-  <div class="stat-section"><h4>Machines</h4><div id="machine-list"></div></div>
+  <details class="stat-section" open><summary><h4>Machines</h4></summary><div id="machine-list"></div></details>
   <div id="stats"></div>
 </details>
 <div class="notice panel" id="notice" hidden></div>
