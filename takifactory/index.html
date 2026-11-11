@@ -951,10 +951,34 @@ function buildBelt(mats) {
   return { group, shape: { straight, corners } };
 }
 
+// Embouchure au ras du sol : l'entrée plonge vers l'avant, la sortie remonte par l'arrière
 function buildUnderground(mats, end) {
-  const { group } = buildBelt(mats);
-  part(group, new THREE.BoxGeometry(0.2, 0.36, 0.84), mats.dark, end === 'in' ? 0.42 : -0.42, 0.4, 0);
+  const group = new THREE.Group();
+  const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
+  add(new THREE.BoxGeometry(0.84, 0.03, 0.84), mats.dark, 0, 0.015, 0);
+  add(new THREE.BoxGeometry(0.1, 0.05, 0.84), mats.trim, end === 'in' ? 0.37 : -0.37, 0.025, 0);
+  if (end === 'in') {
+    const arrow = add(new THREE.ConeGeometry(0.1, 0.22, 3), mats.trim, -0.12, 0.06, 0);
+    arrow.rotation.z = -Math.PI / 2;
+  }
   return { group };
+}
+
+const guideGeo = new THREE.BoxGeometry(0.1, 0.02, 0.1);
+const guideMat = new THREE.MeshBasicMaterial({ color: 0x7fd6ff });
+// Petits points au sol entre les deux embouchures, pour voir le trajet souterrain
+function buildGuide(a, b) {
+  const guide = new THREE.Group();
+  const dx = Math.sign(b.cx - a.cx), dz = Math.sign(b.cz - a.cz);
+  const n = Math.abs(b.cx - a.cx) + Math.abs(b.cz - a.cz);
+  for (let s = 0.45; s <= n - 0.45 + 1e-6; s += 0.22) {
+    const x = a.cx + dx * s, z = a.cz + dz * s;
+    const dot = new THREE.Mesh(guideGeo, guideMat);
+    dot.position.set(x, heightAt(x, z) + 0.03, z);
+    guide.add(dot);
+  }
+  scene.add(guide);
+  return guide;
 }
 
 const oreMats = {};
@@ -1457,6 +1481,7 @@ function routeSide(cells, i) {
 
 function updateBelts(dt) {
   for (const b of belts) {
+    if (b.ug === 'in' && b.pair && !b.guide) b.guide = buildGuide(b, b.pair);
     const items = b.items;
     items.sort((p, q) => q.t - p.t);
     for (let k = 0; k < items.length; k++) {
@@ -1491,7 +1516,7 @@ function updateBelts(dt) {
         x = ccx - 0.5 * (dx * Math.cos(th) + ex * Math.sin(th));
         z = ccz - 0.5 * (dz * Math.cos(th) + ez * Math.sin(th));
       }
-      it.mesh.position.set(x, b.y + 0.66, z);
+      it.mesh.position.set(x, b.y + (b.ug ? 0.14 : 0.66), z);
       it.mesh.visible = !fromPair || it.t < 0.5;
     }
   }
@@ -2154,6 +2179,10 @@ function removeMachine(m, refund = true) {
   if (refund) refundFunding(m);
   m.removed = true;
   scene.remove(m.group);
+  if (m.guide) {
+    scene.remove(m.guide);
+    m.guide = null;
+  }
   for (let i = m.ix; i < m.ix + m.size; i++) {
     for (let j = m.iz; j < m.iz + m.size; j++) occupied.delete(cellKey(i, j));
   }
