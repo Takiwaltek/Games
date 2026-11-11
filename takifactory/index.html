@@ -34,9 +34,11 @@
   <button id="btn-furnace" type="button" aria-pressed="false">Fourneau</button>
   <button id="btn-belt" type="button" aria-pressed="false">Convoyeur</button>
   <button id="btn-under" type="button" aria-pressed="false">Sous-pont</button>
+  <button id="btn-harvester" type="button" aria-pressed="false">Récolteur</button>
+  <button id="btn-generator" type="button" aria-pressed="false">Générateur</button>
   <button id="btn-cancel" class="alt" type="button">Annuler</button>
 </div>
-<div class="hud help">Clic gauche : poser · R : tourner (ou la machine sélectionnée) · clic droit ou Échap : annuler<br>Clic sur une machine : sélectionner · Suppr : démonter · F foreuse · G fourneau · C convoyeur · U sous-pont<br>WASD / flèches : déplacer la vue · Molette : zoom</div>
+<div class="hud help">Clic gauche : poser · R : tourner (ou la machine sélectionnée) · clic droit ou Échap : annuler<br>Clic sur une machine : sélectionner · Suppr : démonter · F foreuse · G fourneau · C convoyeur · U sous-pont · H récolteur · B générateur<br>WASD / flèches : déplacer la vue · Molette : zoom</div>
 <canvas id="scene"></canvas>
 
 <script type="module">
@@ -46,7 +48,8 @@ const ORES = {
   iron: { name: 'Fer', color: 0xb5563a },
   copper: { name: 'Cuivre', color: 0xe6a24a },
   coal: { name: 'Charbon', color: 0x2b2b33 },
-  limestone: { name: 'Calcaire', color: 0xe9e4d4 }
+  limestone: { name: 'Calcaire', color: 0xe9e4d4 },
+  biomass: { name: 'Biomasse', color: 0x7bbf4a }
 };
 const DEPOSITS = [
   { x: -18, z: -10, r: 7, ore: 'iron' },
@@ -70,7 +73,7 @@ const FORESTS = [
   { x: -30, z: -68, r: 14 }
 ];
 const MAP = 100;
-const SIZE = { drill: 2, furnace: 2, belt: 1, under: 1 };
+const SIZE = { drill: 2, furnace: 2, belt: 1, under: 1, harvester: 2, generator: 2 };
 const BUFFER_MAX = 4;
 const MINE_INTERVAL = 1;
 const ORE_TARGET = new THREE.Vector3(0.95, 0.8, 0);
@@ -86,6 +89,11 @@ const FURNACE_INPUT = 4;
 const FURNACE_BUFFER = 4;
 const SMELT_TIME = 2;
 const SMELT = { iron: 'ironIngot', copper: 'copperIngot' };
+const HARVEST_TIME = 1.5;
+const HARVEST_RADIUS = 4;
+const GEN_INPUT = 4;
+const BURN_TIME = 4;
+const POWER_MW = 30;
 const INGOTS = {
   ironIngot: { name: 'Lingot de fer', color: 0xd9dde6 },
   copperIngot: { name: 'Lingot de cuivre', color: 0xf08a4b }
@@ -184,6 +192,7 @@ for (const d of DEPOSITS) {
 }
 
 const TREE_MAX = 700;
+const trees = [];
 const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.08, 0.1, 0.6, 6), new THREE.MeshStandardMaterial({ color: 0x5a3b22, roughness: 0.9 }), TREE_MAX);
 const crowns = new THREE.InstancedMesh(new THREE.ConeGeometry(0.42, 1.3, 7), new THREE.MeshStandardMaterial({ color: 0x1f5a2e, roughness: 0.8 }), TREE_MAX);
 {
@@ -202,6 +211,7 @@ const crowns = new THREE.InstancedMesh(new THREE.ConeGeometry(0.42, 1.3, 7), new
       trunks.setMatrixAt(n, m.compose(p, q, s));
       p.set(x, h + 1.25 * k, z);
       crowns.setMatrixAt(n, m.compose(p, q, s));
+      trees.push({ x, z, h, k, q: q.clone(), n, alive: true });
       n++;
     }
   }
@@ -209,6 +219,31 @@ const crowns = new THREE.InstancedMesh(new THREE.ConeGeometry(0.42, 1.3, 7), new
   crowns.count = n;
   trunks.castShadow = crowns.castShadow = true;
   scene.add(trunks, crowns);
+}
+
+const treeM = new THREE.Matrix4(), treeS = new THREE.Vector3(), treeP = new THREE.Vector3();
+function setTree(t, f) {
+  treeS.set(t.k * f, t.k * f, t.k * f);
+  trunks.setMatrixAt(t.n, treeM.compose(treeP.set(t.x, t.h + 0.3 * t.k * f, t.z), t.q, treeS));
+  crowns.setMatrixAt(t.n, treeM.compose(treeP.set(t.x, t.h + 1.25 * t.k * f, t.z), t.q, treeS));
+  trunks.instanceMatrix.needsUpdate = true;
+  crowns.instanceMatrix.needsUpdate = true;
+}
+function cutTree(t) {
+  t.alive = false;
+  addEffect(0.45, k => setTree(t, 1 - k), () => setTree(t, 0));
+}
+function nearestTree(m) {
+  let best = null, bestD = HARVEST_RADIUS * HARVEST_RADIUS;
+  for (const t of trees) {
+    if (!t.alive) continue;
+    const d = (t.x - m.cx) ** 2 + (t.z - m.cz) ** 2;
+    if (d < bestD) {
+      bestD = d;
+      best = t;
+    }
+  }
+  return best;
 }
 
 const MATS = {
@@ -269,6 +304,42 @@ function buildFurnace(mats) {
   return { group, lampMat: mats.lamp };
 }
 
+function buildHarvester(mats) {
+  const group = new THREE.Group();
+  const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
+  add(new THREE.BoxGeometry(2, 0.3, 2), mats.dark, 0, 0.15, 0);
+  add(new THREE.BoxGeometry(1.5, 1.0, 1.5), mats.steel, 0, 0.8, 0);
+  add(new THREE.BoxGeometry(1.56, 0.12, 1.56), mats.trim, 0, 1.36, 0);
+  add(new THREE.BoxGeometry(0.9, 0.12, 0.04), mats.lamp, 0, 0.8, 0.77);
+  add(new THREE.BoxGeometry(0.5, 0.4, 0.5), mats.dark, 0.95, 0.4, 0);
+
+  const rotor = new THREE.Group();
+  rotor.position.y = 1.7;
+  group.add(rotor);
+  for (let k = 0; k < 2; k++) {
+    const arm = new THREE.Group();
+    arm.rotation.y = k * Math.PI;
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.08, 0.2), mats.steel);
+    blade.position.set(0.75, 0, 0);
+    blade.castShadow = true;
+    arm.add(blade);
+    rotor.add(arm);
+  }
+  return { group, rotor, lampMat: mats.lamp };
+}
+
+function buildGenerator(mats) {
+  const group = new THREE.Group();
+  const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
+  add(new THREE.BoxGeometry(2, 0.3, 2), mats.dark, 0, 0.15, 0);
+  add(new THREE.BoxGeometry(1.5, 1.0, 1.5), mats.steel, 0, 0.8, 0);
+  add(new THREE.BoxGeometry(1.56, 0.12, 1.56), mats.trim, 0, 1.36, 0);
+  const tank = add(new THREE.CylinderGeometry(0.45, 0.45, 1.2, 16), mats.dark, 0, 1.75, 0);
+  tank.rotation.z = Math.PI / 2;
+  add(new THREE.BoxGeometry(0.06, 0.5, 0.9), mats.lamp, 0.77, 0.8, 0);
+  return { group, lampMat: mats.lamp };
+}
+
 function buildBelt(mats) {
   const group = new THREE.Group();
   const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
@@ -306,9 +377,12 @@ scene.add(ghostLine, selectLine);
 
 const drills = [];
 const furnaces = [];
+const harvesters = [];
+const generators = [];
 const belts = [];
+const LISTS = { drill: drills, harvester: harvesters, furnace: furnaces, generator: generators, belt: belts };
 const occupied = new Map();
-const stats = { mined: { iron: 0, copper: 0, coal: 0, limestone: 0 }, smelted: { iron: 0, copper: 0 } };
+const stats = { mined: { iron: 0, copper: 0, coal: 0, limestone: 0, biomass: 0 }, smelted: { iron: 0, copper: 0 } };
 let mode = null;
 let rot = 0;
 let ghost = null;
@@ -367,11 +441,11 @@ function playPlacement(g, color) {
   });
 }
 
-function spawnOre(d) {
+function spawnOre(d, key = d.ore) {
   d.inFlight++;
   const from = d.group.localToWorld(new THREE.Vector3(0, 2.6, 0));
   const to = d.group.localToWorld(ORE_TARGET.clone());
-  const mesh = new THREE.Mesh(oreGeo, oreMats[d.ore]);
+  const mesh = new THREE.Mesh(oreGeo, oreMats[key]);
   mesh.castShadow = true;
   scene.add(mesh);
   addEffect(0.9, (k) => {
@@ -380,19 +454,19 @@ function spawnOre(d) {
     mesh.rotation.set(k * 5, k * 3, 0);
   }, () => {
     d.inFlight--;
-    stats.mined[d.ore]++;
+    stats.mined[key]++;
     if (d.removed) {
       scene.remove(mesh);
       return;
     }
     const out = frontOf(d);
-    if (out && offerTo(out, { key: d.ore, mesh, t: 0 }, 0)) return;
+    if (out && offerTo(out, { key, mesh, t: 0 }, 0)) return;
     scene.remove(mesh);
-    const slot = new THREE.Mesh(oreGeo, itemMats[d.ore]);
+    const slot = new THREE.Mesh(oreGeo, itemMats[key]);
     slot.position.copy(STACK_SLOTS[d.outbox.length]);
     slot.castShadow = true;
     d.group.add(slot);
-    d.outbox.push({ key: d.ore, mesh: slot });
+    d.outbox.push({ key, mesh: slot });
   });
 }
 
@@ -412,6 +486,47 @@ function updateDrills(dt) {
       spawnOre(d);
     }
   }
+}
+
+function updateHarvesters(dt) {
+  for (const h of harvesters) {
+    flushOutbox(h);
+    if (!h.target || !h.target.alive) h.target = nearestTree(h);
+    const running = !!h.target && h.outbox.length + h.inFlight < BUFFER_MAX;
+    h.rotor.rotation.y += dt * (running ? 6 : 0.3);
+    h.lampMat.emissive.setHex(running ? ORES.biomass.color : 0xff3344);
+    if (!running) {
+      h.timer = 0;
+      continue;
+    }
+    h.timer += dt;
+    if (h.timer >= HARVEST_TIME) {
+      h.timer -= HARVEST_TIME;
+      const tree = h.target;
+      h.target = null;
+      cutTree(tree);
+      spawnOre(h, 'biomass');
+    }
+  }
+}
+
+function updateGenerators(dt) {
+  for (const g of generators) {
+    if (!g.burning && g.input.length) {
+      g.input.shift();
+      g.burning = true;
+      g.timer = 0;
+    }
+    if (g.burning) {
+      g.timer += dt;
+      if (g.timer >= BURN_TIME) g.burning = false;
+    }
+    g.lampMat.emissive.setHex(g.burning ? 0x3ef0a8 : 0x0a2a1a);
+  }
+}
+
+function totalPower() {
+  return generators.filter(g => g.burning).length * POWER_MW;
 }
 
 function updateFurnaces(dt) {
@@ -476,6 +591,7 @@ function frontOf(m) {
 function accepts(target, key, fromPair = false) {
   if (target.kind === 'belt') return (fromPair || target.ug !== 'out') && target.items.every(it => it.t >= SPACING);
   if (target.kind === 'furnace') return !!SMELT[key] && target.input.length < FURNACE_INPUT;
+  if (target.kind === 'generator') return key === 'biomass' && target.input.length < GEN_INPUT;
   return false;
 }
 
@@ -525,7 +641,11 @@ function reachOf(kind) {
 }
 const kindOf = (tool) => (tool === 'under' ? 'belt' : tool);
 function rateOf(kind) {
-  return kind === 'drill' ? 60 / MINE_INTERVAL : kind === 'furnace' ? 60 / SMELT_TIME : BELT_RATE;
+  if (kind === 'drill') return 60 / MINE_INTERVAL;
+  if (kind === 'furnace') return 60 / SMELT_TIME;
+  if (kind === 'harvester') return 60 / HARVEST_TIME;
+  if (kind === 'generator') return 60 / BURN_TIME;
+  return BELT_RATE;
 }
 
 const raycaster = new THREE.Raycaster();
@@ -542,6 +662,8 @@ function pickGround() {
 function buildMachine(kind, mats, ug) {
   if (kind === 'drill') return buildDrill(mats);
   if (kind === 'furnace') return buildFurnace(mats);
+  if (kind === 'harvester') return buildHarvester(mats);
+  if (kind === 'generator') return buildGenerator(mats);
   return ug ? buildUnderground(mats, ug) : buildBelt(mats);
 }
 function startGhost(tool) {
@@ -564,7 +686,9 @@ const modeButtons = {
   drill: document.getElementById('btn-drill'),
   furnace: document.getElementById('btn-furnace'),
   belt: document.getElementById('btn-belt'),
-  under: document.getElementById('btn-under')
+  under: document.getElementById('btn-under'),
+  harvester: document.getElementById('btn-harvester'),
+  generator: document.getElementById('btn-generator')
 };
 const btnCancel = document.getElementById('btn-cancel');
 function setMode(next) {
@@ -623,13 +747,14 @@ function updateGhost(t) {
 
 function placeAt(kind, ix, iz, ore, ug, r) {
   const [cx, cz] = centerOf(kind, ix, iz);
-  const lamp = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: kind === 'drill' ? ORES[ore].color : 0xff7a1a, emissiveIntensity: 1.4 });
+  const lampColor = kind === 'drill' ? ORES[ore].color : kind === 'harvester' ? ORES.biomass.color : 0xff7a1a;
+  const lamp = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: lampColor, emissiveIntensity: 1.4 });
   const built = buildMachine(kind, { dark: MATS.dark, steel: MATS.steel, trim: MATS.trim, lamp }, ug);
   const m = {
     ...built, kind, ore, ix, iz, cx, cz, rot: r, ug, pair: null,
     size: SIZE[kind], reach: reachOf(kind), y: heightAt(cx, cz),
-    list: kind === 'drill' ? drills : kind === 'furnace' ? furnaces : belts,
-    outbox: [], input: [], items: [], current: null, timer: 0, inFlight: 0, removed: false
+    list: LISTS[kind],
+    outbox: [], input: [], items: [], current: null, timer: 0, inFlight: 0, removed: false, burning: false, target: null
   };
   m.group.position.set(cx, m.y, cz);
   m.group.rotation.y = r * Math.PI / 2;
@@ -638,7 +763,7 @@ function placeAt(kind, ix, iz, ore, ug, r) {
   for (let i = ix; i < ix + m.size; i++) {
     for (let j = iz; j < iz + m.size; j++) occupied.set(cellKey(i, j), m);
   }
-  playPlacement(m.group, kind === 'drill' ? ORES[ore].color : kind === 'furnace' ? 0xff7a1a : 0x7fd6ff);
+  playPlacement(m.group, kind === 'drill' ? ORES[ore].color : kind === 'harvester' ? ORES.biomass.color : (kind === 'furnace' || kind === 'generator') ? 0xff7a1a : 0x7fd6ff);
   return m;
 }
 
@@ -656,12 +781,12 @@ function tryPlace() {
     refreshGhost();
     return;
   }
-  placeAt(mode, spot.ix, spot.iz, spot.ore, null, rot);
+  placeAt(mode, spot.ix, spot.iz, mode === 'harvester' ? 'biomass' : spot.ore, null, rot);
 }
 
 function selectAt() {
   raycaster.setFromCamera(pointer, camera);
-  const all = [...drills, ...furnaces, ...belts];
+  const all = [...drills, ...harvesters, ...furnaces, ...generators, ...belts];
   const hits = raycaster.intersectObjects(all.map(m => m.group), true);
   selected = null;
   if (!hits.length) return;
@@ -732,6 +857,8 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyG') toggleMode('furnace');
   if (e.code === 'KeyC') toggleMode('belt');
   if (e.code === 'KeyU') toggleMode('under');
+  if (e.code === 'KeyH') toggleMode('harvester');
+  if (e.code === 'KeyB') toggleMode('generator');
   if (e.code === 'Escape') { setMode(null); selected = null; }
   if (e.code === 'Delete' && selected) removeMachine(selected);
 });
@@ -767,6 +894,13 @@ function describe(m) {
     const state = m.outbox.length >= BUFFER_MAX ? 'sortie pleine' : 'en marche';
     return `Foreuse ${ORES[m.ore].name} · débit ${rate} · ${state} · ${m.outbox.length}/${BUFFER_MAX} · R tourne · Suppr pour démonter`;
   }
+  if (m.kind === 'harvester') {
+    const state = !nearestTree(m) ? 'aucun arbre à proximité' : m.outbox.length >= BUFFER_MAX ? 'sortie pleine' : 'en marche';
+    return `Récolteur · débit ${rate} · ${state} · ${m.outbox.length}/${BUFFER_MAX} · R tourne · Suppr pour démonter`;
+  }
+  if (m.kind === 'generator') {
+    return `Générateur biomasse · ${m.burning ? POWER_MW : 0} MW · ${m.input.length}/${GEN_INPUT} biomasse en attente · consomme ${rate} · R tourne · Suppr pour démonter`;
+  }
   if (m.kind === 'furnace') {
     return `Fourneau · débit ${rate} · ${m.current ? 'fusion en cours' : 'en attente'} · ${m.input.length} entrée(s) · ${m.outbox.length}/${FURNACE_BUFFER} lingot(s) · R tourne · Suppr pour démonter`;
   }
@@ -782,19 +916,21 @@ function updateHud(dt) {
   if (hudTimer > 0) return;
   hudTimer = 0.15;
   if (mode) {
-    const label = { drill: 'Foreuse', furnace: 'Fourneau', belt: 'Convoyeur', under: 'Sous-pont' }[mode];
+    const label = { drill: 'Foreuse', furnace: 'Fourneau', belt: 'Convoyeur', under: 'Sous-pont', harvester: 'Récolteur', generator: 'Générateur' }[mode];
     if (!spot) statusEl.textContent = 'Déplace la souris sur la carte';
     else if (!spot.ok) statusEl.textContent = `${spot.reason} · pose impossible ici`;
     else if (mode === 'under' && underStart) {
       const gap = Math.abs(spot.ix - underStart.ix) + Math.abs(spot.iz - underStart.iz);
       statusEl.textContent = `Sortie à ${gap} case(s) de l'entrée · clic gauche pour poser · clic droit pour annuler`;
-    } else statusEl.textContent = `${label}${spot.ore ? ` · gisement de ${ORES[spot.ore].name}` : ''} · débit ${rateOf(kindOf(mode))}/min · clic gauche pour poser · R pour tourner`;
+    } else if (mode === 'harvester' && !nearestTree({ cx: spot.ix + 1, cz: spot.iz + 1 })) statusEl.textContent = 'Aucun arbre à proximité · la récolte ne démarrera pas';
+    else statusEl.textContent = `${label}${spot.ore ? ` · gisement de ${ORES[spot.ore].name}` : ''} · débit ${rateOf(kindOf(mode))}/min · clic gauche pour poser · R pour tourner`;
   } else if (selected) {
     statusEl.textContent = describe(selected);
   } else {
     statusEl.textContent = 'Clique sur Foreuse, Fourneau ou Convoyeur pour commencer';
   }
-  statsEl.innerHTML = `Foreuses : ${drills.length} · Fourneaux : ${furnaces.length} · Convoyeurs : ${belts.length}<br>` +
+  statsEl.innerHTML = `Foreuses : ${drills.length} · Récolteurs : ${harvesters.length} · Fourneaux : ${furnaces.length}<br>` +
+    `Générateurs : ${generators.length} · Production : ${totalPower()} MW · Convoyeurs : ${belts.length}<br>` +
     Object.entries(ORES).map(([k, o]) => `${o.name} extrait : ${stats.mined[k]}`).join('<br>') + '<br>' +
     Object.keys(SMELT).map(k => `${INGOTS[SMELT[k]].name} produit : ${stats.smelted[k]}`).join('<br>');
 }
@@ -810,6 +946,8 @@ function frame(now) {
   camera.updateMatrixWorld();
   updateGhost(t);
   updateDrills(dt);
+  updateHarvesters(dt);
+  updateGenerators(dt);
   updateFurnaces(dt);
   updateBelts(dt);
   updateEffects(dt);
