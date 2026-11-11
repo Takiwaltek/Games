@@ -984,8 +984,8 @@ const ALL = () => [...drills, ...harvesters, ...furnaces, ...generators, ...pole
 const SELECTABLE = () => [...ALL(), ...hubs];
 const occupied = new Map();
 const stats = { mined: { iron: 0, copper: 0, coal: 0, limestone: 0, biomass: 0 }, smelted: { iron: 0, copper: 0 }, crafted: { ironPlate: 0, ironRod: 0 } };
-// Stock du Hub, inventaire (au départ une foreuse et un récolteur offerts) et technologies achetées
-const START_INVENTORY = { drill: 1, harvester: 1 };
+// Stock du Hub, inventaire (au départ une foreuse, un récolteur et des convoyeurs offerts) et technologies achetées
+const START_INVENTORY = { drill: 1, harvester: 1, belt: 10 };
 const hubState = { stock: {}, inventory: Object.fromEntries(SHOP.map(i => [i.id, Object.hasOwn(START_INVENTORY, i.id) ? START_INVENTORY[i.id] : 0])), tech: new Set() };
 let simTime = 0;
 const mineLog = [];
