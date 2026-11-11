@@ -304,7 +304,7 @@ function addOutputArrow(group, mats, topY) {
   shape.closePath();
   const geo = new THREE.ShapeGeometry(shape);
   geo.rotateX(-Math.PI / 2);
-  part(group, geo, mats.lamp, 0.5, topY + 0.01, 0);
+  part(group, geo, mats.lamp, 0.5, topY + 0.01, 0).userData.arrow = 'out';
 }
 
 function addInputArrow(group, mats, topY, z = 0) {
@@ -315,7 +315,7 @@ function addInputArrow(group, mats, topY, z = 0) {
   shape.closePath();
   const geo = new THREE.ShapeGeometry(shape);
   geo.rotateX(-Math.PI / 2);
-  part(group, geo, mats.dark, -0.35, topY + 0.01, z);
+  part(group, geo, mats.dark, -0.35, topY + 0.01, z).userData.arrow = 'in';
 }
 
 // Socle lumineux, montants d'angle et capots, commun à toutes les machines (topY = dessus du capot)
@@ -907,6 +907,27 @@ function frontOf(m) {
   return e;
 }
 
+// Une flèche n'apparaît que si la case correspondante est libre : sinon le convoyeur ou la machine voisine suffit
+function refreshArrows() {
+  for (const m of new Set(occupied.values())) {
+    if (!m.group.children.some(c => c.userData.arrow)) continue;
+    const [dx, dz] = DIRS[m.rot];
+    const [px, pz] = [-dz, dx];
+    const sideBlocked = s => {
+      for (let k = 0; k < m.size; k++) {
+        const o = k - (m.size - 1) / 2;
+        if (occupied.has(cellKey(Math.floor(m.cx + dx * s + px * o), Math.floor(m.cz + dz * s + pz * o)))) return true;
+      }
+      return false;
+    };
+    const front = sideBlocked(m.reach), back = sideBlocked(-m.reach);
+    for (const c of m.group.children) {
+      if (c.userData.arrow === 'out') c.visible = !front;
+      if (c.userData.arrow === 'in') c.visible = !back;
+    }
+  }
+}
+
 function accepts(target, key, fromPair = false) {
   if (target.kind === 'belt') return (fromPair || target.ug !== 'out') && target.items.every(it => it.t >= SPACING);
   if (target.kind === 'furnace') return !!SMELT[key] && target.input.length < FURNACE_INPUT;
@@ -1325,6 +1346,7 @@ function placeAt(kind, ix, iz, ore, ug, r) {
   }
   if (kind === 'belt') refreshBeltNeighbours(m);
   if (kind === 'pole' || kind === 'generator' || kind === 'furnace') rebuildPower();
+  refreshArrows();
   playPlacement(m.group, kind === 'drill' ? ORES[ore].color : kind === 'harvester' ? ORES.biomass.color : (kind === 'furnace' || kind === 'generator') ? 0xff7a1a : 0x7fd6ff);
   return m;
 }
@@ -1456,6 +1478,7 @@ function tryPaste() {
 function rotateMachine(m) {
   m.rot = (m.rot + 1) % 4;
   m.group.rotation.y = m.rot * Math.PI / 2;
+  refreshArrows();
 }
 
 function removeMachine(m) {
@@ -1480,6 +1503,7 @@ function removeMachine(m) {
   }
   for (const it of m.items) scene.remove(it.mesh);
   m.list.splice(m.list.indexOf(m), 1);
+  refreshArrows();
   if (selected === m) selected = null;
   multi = multi.filter(x => x !== m);
   if (m.kind === 'pole' || m.kind === 'generator' || m.kind === 'furnace') rebuildPower();
