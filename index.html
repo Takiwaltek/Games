@@ -275,12 +275,8 @@
         }
 
         .discord-mini {
-            position: fixed;
-            right: 16px;
-            bottom: 16px;
-            z-index: 50;
-            width: 300px;
-            max-width: calc(100vw - 32px);
+            width: 100%;
+            margin-top: 24px;
             overflow: hidden;
             border: 1px solid rgba(88, 101, 242, 0.5);
             border-radius: 12px;
@@ -315,7 +311,7 @@
         .discord-mini iframe {
             display: block;
             width: 100%;
-            height: 320px;
+            height: 420px;
             border: 0;
         }
 
@@ -1122,17 +1118,17 @@
             </div>
         </section>
 
+        <details class="discord-mini" id="discord-mini" open>
+            <summary>Discord Satisfactory France</summary>
+            <iframe src="https://discord.com/widget?id=803459565064552519&theme=dark" title="Serveur Discord Satisfactory France" loading="lazy" allowtransparency="true"></iframe>
+        </details>
+
         <footer class="site-footer">
             <p>© 2025 Atelier de Takiwaltek · Tous droits réservés</p>
             <p><a href="./a-propos/index.html" class="footer-link">À propos</a></p>
             <p>Développé avec passion · <a href="https://github.com/Takiwaltek/Games" class="footer-link">GitHub</a></p>
         </footer>
     </main>
-
-    <details class="discord-mini" id="discord-mini" open>
-        <summary>Discord Satisfactory France</summary>
-        <iframe src="https://discord.com/widget?id=803459565064552519&theme=dark" title="Serveur Discord Satisfactory France" loading="lazy" allowtransparency="true"></iframe>
-    </details>
 
     <dialog class="pseudo-dialog" id="pseudo-dialog" aria-labelledby="pseudo-title">
         <form class="pseudo-form" id="chat-name-form">
