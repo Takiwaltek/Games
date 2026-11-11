@@ -292,6 +292,58 @@ gridOverlay.position.y = 0.03;
 gridOverlay.visible = false;
 scene.add(gridOverlay);
 
+// Courbes de niveau (marching squares) sur la grille du terrain
+function buildContours() {
+  const N = MAP * 2;
+  const H = [];
+  let maxH = 0;
+  for (let i = 0; i <= N; i++) {
+    H.push([]);
+    for (let j = 0; j <= N; j++) {
+      const h = heightAt(-MAP + i, -MAP + j);
+      H[i].push(h);
+      if (h > maxH) maxH = h;
+    }
+  }
+  const CONTOUR_STEP = 1.5, MAJOR_EVERY = 4;
+  const minor = [], major = [];
+  for (let k = 1; k * CONTOUR_STEP < maxH; k++) {
+    const L = k * CONTOUR_STEP;
+    const out = k % MAJOR_EVERY === 0 ? major : minor;
+    for (let i = 0; i < N; i++) {
+      for (let j = 0; j < N; j++) {
+        const x0 = -MAP + i, z0 = -MAP + j, x1 = x0 + 1, z1 = z0 + 1;
+        const v = [H[i][j], H[i + 1][j], H[i + 1][j + 1], H[i][j + 1]];
+        const cx = [x0, x1, x1, x0], cz = [z0, z0, z1, z1];
+        const pts = [];
+        for (let e = 0; e < 4; e++) {
+          const a = e, b = (e + 1) % 4;
+          if ((v[a] >= L) !== (v[b] >= L)) {
+            const t = (L - v[a]) / (v[b] - v[a]);
+            pts.push([cx[a] + (cx[b] - cx[a]) * t, cz[a] + (cz[b] - cz[a]) * t]);
+          }
+        }
+        let pairs = [];
+        if (pts.length === 2) pairs = [[0, 1]];
+        else if (pts.length === 4) {
+          const centre = (v[0] + v[1] + v[2] + v[3]) / 4;
+          pairs = (v[0] >= L) === (centre >= L) ? [[0, 1], [2, 3]] : [[1, 2], [3, 0]];
+        }
+        for (const [p, q] of pairs) {
+          out.push(pts[p][0], L + 0.05, pts[p][1], pts[q][0], L + 0.05, pts[q][1]);
+        }
+      }
+    }
+  }
+  const make = (positions, color, opacity) => {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    return new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color, transparent: true, opacity, depthWrite: false }));
+  };
+  scene.add(make(minor, 0x1b3d17, 0.28), make(major, 0x0e260f, 0.5));
+}
+buildContours();
+
 const rockGeo = new THREE.DodecahedronGeometry(0.22, 0);
 for (const d of DEPOSITS) {
   const ring = new THREE.Mesh(
