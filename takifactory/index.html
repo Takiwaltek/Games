@@ -1260,6 +1260,13 @@ function updateGenerators(dt) {
   }
 }
 
+function powerStatus(m) {
+  const net = m.net;
+  if (!net || !net.gens.length) return 'Réseau : non connecté (aucun générateur relié)';
+  if (!net.gens.some(g => g.burning)) return 'Réseau : connecté, générateur sans biomasse';
+  return net.sat >= 1 ? 'Réseau : connecté, courant suffisant' : 'Réseau : connecté, courant insuffisant';
+}
+
 function powerMW() {
   return hasTech('power') ? 45 : POWER_MW;
 }
@@ -2758,6 +2765,7 @@ function inspect(m) {
       title: 'Fourneau',
       lines: [
         `Électricité : ${mwOf(m)} MW`,
+        powerStatus(m),
         `Entrée : ${m.input.length} minerai(s) en attente`,
         `Consomme : ${Math.round(rateOf('furnace'))} minerai/min`,
         `Sortie : ${m.outbox.length}/${buffered(FURNACE_BUFFER)} lingot(s)`,
@@ -2775,6 +2783,7 @@ function inspect(m) {
       lines: [
         `Recette : ${r.name}`,
         `Électricité : ${mwOf(m)} MW`,
+        powerStatus(m),
         `Entrée : ${m.input.length}/${CONSTR_INPUT} lingot(s), ${r.inCount} par pièce`,
         `Sortie : ${m.outbox.length}/${buffered(CONSTR_BUFFER)}`,
         `Consomme : ${Math.round(rateOf('constructor', m.recipe) * r.inCount)} ${itemName(r.input).toLowerCase()}/min`,
