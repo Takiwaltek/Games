@@ -8,42 +8,146 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-  html, body { margin: 0; height: 100%; overflow: hidden; background: #070b14; color: #d8f7ff; font-family: Orbitron, system-ui, sans-serif; }
+  :root { --panel: rgba(22, 34, 18, .88); --line: rgba(232, 205, 140, .32); --cream: #f4eccf; --muted: #b8c49a; --grass: #8fcf5a; --gold: #e8b14a; --wood: #5b3b1f; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #2c4a22; color: var(--cream); font-family: system-ui, "Segoe UI", sans-serif; }
   canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
-  .hud { position: fixed; pointer-events: none; }
-  .title { top: 14px; left: 16px; font-weight: 800; letter-spacing: .08em; color: #3ef0a8; text-shadow: 0 0 12px rgba(62, 240, 168, .5); }
-  .title small { display: block; margin-top: 4px; color: #7fd6ff; font-weight: 400; font-size: .65rem; letter-spacing: .15em; }
-  .back { position: fixed; top: 14px; right: 16px; font-size: .7rem; color: #7fd6ff; text-decoration: none; pointer-events: auto; }
-  .stats { top: 52px; right: 16px; text-align: right; font-size: .7rem; line-height: 1.7; color: #b9e9ff; }
-  .status { top: 14px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: .75rem; padding: 7px 16px; border: 1px solid rgba(127, 214, 255, .4); border-radius: 999px; background: rgba(8, 14, 26, .75); }
-  .toolbar { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
-  .toolbar button { font: inherit; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; color: #fff; padding: 10px 18px; border: 0; border-radius: 10px; cursor: pointer; background: linear-gradient(#3ef0a8, #13986a); box-shadow: 0 4px 0 #0b5a40; }
-  .toolbar button:active { transform: translateY(3px); box-shadow: 0 1px 0 #0b5a40; }
-  .toolbar button[aria-pressed="true"] { background: linear-gradient(#ffb347, #c96d12); box-shadow: 0 4px 0 #7a400a; }
-  .toolbar button.alt { background: linear-gradient(#7fd6ff, #2a7ca8); box-shadow: 0 4px 0 #17485f; }
-  .help { left: 16px; top: 64px; max-width: calc(100vw - 300px); font-size: .62rem; line-height: 1.8; color: #8fa8c0; }
-  .select-box { display: none; border: 1px solid #7fd6ff; background: rgba(127, 214, 255, .12); }
+  h1, h2, h3, h4, .logo, .menu-logo, .stats-wrap summary { font-family: Orbitron, system-ui, sans-serif; margin: 0; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 8px 24px rgba(0, 0, 0, .35); backdrop-filter: blur(6px); pointer-events: auto; }
+  .topbar { position: fixed; top: 12px; left: 12px; right: 12px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 12px; pointer-events: none; }
+  .topbar > * { pointer-events: auto; }
+  .brand { justify-self: start; padding: 10px 14px; }
+  .logo { font-weight: 800; font-size: 1rem; letter-spacing: .06em; color: var(--grass); }
+  .tool-name { display: block; margin-top: 3px; font-size: .78rem; color: var(--muted); }
+  .hint { justify-self: center; max-width: 640px; padding: 9px 18px; font-size: .85rem; text-align: center; border-radius: 999px; }
+  .actions { justify-self: end; display: flex; gap: 8px; }
+  .btn { font: inherit; font-size: .8rem; color: var(--cream); text-decoration: none; padding: 8px 14px; border: 1px solid var(--line); border-radius: 9px; background: rgba(60, 86, 40, .92); cursor: pointer; white-space: nowrap; }
+  .btn:hover, .menu-btn:hover, .tool-btn:hover { filter: brightness(1.15); }
+  .stats-wrap { position: fixed; top: 84px; right: 12px; width: 230px; }
+  .stats-wrap summary { list-style: none; cursor: pointer; padding: 10px 14px; font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); }
+  .stats-wrap summary::-webkit-details-marker { display: none; }
+  #stats { padding: 0 14px 12px; font-size: .8rem; }
+  .stat-section { margin-top: 10px; }
+  .stat-section h4 { font-size: .66rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; font-family: system-ui, sans-serif; }
+  .row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dashed rgba(232, 205, 140, .15); }
+  .row b { color: var(--cream); font-weight: 600; }
+  .inspector { position: fixed; top: 84px; left: 12px; width: 260px; padding: 14px; }
+  .inspector[hidden] { display: none; }
+  .inspector h3 { font-size: .9rem; color: var(--gold); margin-bottom: 8px; }
+  .inspector ul { margin: 0; padding: 0; list-style: none; font-size: .82rem; line-height: 1.5; }
+  .inspector li { padding: 4px 0; border-bottom: 1px dashed rgba(232, 205, 140, .15); }
+  .toolbar { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px; padding: 8px; max-width: calc(100vw - 24px); }
+  .toolbar .sep { width: 1px; align-self: stretch; background: var(--line); margin: 0 6px; }
+  .tool-btn { position: relative; font: inherit; font-size: .8rem; font-weight: 600; min-width: 92px; padding: 10px 10px 9px; color: var(--cream); border: 1px solid var(--line); border-radius: 10px; cursor: pointer; background: linear-gradient(#4f7a37, #2f5024); box-shadow: 0 3px 0 #13200c; }
+  .tool-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #13200c; }
+  .tool-btn[aria-pressed="true"] { background: linear-gradient(#f0c15a, #b87a22); color: #201405; border-color: #ffe49a; box-shadow: 0 3px 0 #6b4612; }
+  .tool-btn.cancel { background: linear-gradient(#8c5a3a, #5a3620); }
+  .tool-btn .key { position: absolute; top: -8px; left: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 6px; font-size: .7rem; line-height: 18px; text-align: center; background: #0f180b; border: 1px solid var(--line); color: var(--gold); }
+  .overlay { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(10, 18, 8, .5), rgba(6, 12, 5, .88)); backdrop-filter: blur(3px); }
+  .overlay[hidden] { display: none; }
+  .menu-card { width: min(380px, calc(100vw - 32px)); padding: 28px 26px 22px; text-align: center; }
+  .menu-card.wide { width: min(760px, calc(100vw - 32px)); text-align: left; }
+  .menu-logo { font-size: 2rem; font-weight: 800; letter-spacing: .06em; color: var(--grass); text-shadow: 0 3px 0 #1d3314; }
+  .menu-sub { margin: 8px 0 24px; color: var(--muted); font-size: .9rem; }
+  .menu-buttons { display: flex; flex-direction: column; gap: 10px; }
+  .menu-btn { font: inherit; font-weight: 600; font-size: .95rem; padding: 12px; color: var(--cream); text-align: center; text-decoration: none; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; background: linear-gradient(#4f7a37, #2f5024); box-shadow: 0 3px 0 #13200c; }
+  .menu-btn.primary { background: linear-gradient(#f0c15a, #b87a22); color: #201405; border-color: #ffe49a; box-shadow: 0 3px 0 #6b4612; }
+  .menu-foot { margin-top: 18px; font-size: .72rem; color: var(--muted); }
+  .help-title { font-size: 1.2rem; color: var(--grass); }
+  .help-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px 24px; margin: 18px 0 22px; }
+  .help-grid h4 { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; font-family: system-ui, sans-serif; }
+  .help-grid ul { margin: 0; padding: 0; list-style: none; font-size: .88rem; line-height: 1.9; }
+  kbd { font-family: inherit; font-size: .75rem; padding: 1px 6px; margin-right: 4px; border-radius: 5px; border: 1px solid var(--line); background: #0f180b; color: var(--gold); }
+  .select-box { position: fixed; display: none; border: 1px solid var(--grass); background: rgba(143, 207, 90, .15); pointer-events: none; }
 </style>
 </head>
 <body>
-<div class="hud title">TakiFactory<small>prototype · foreuse</small></div>
-<a class="back" href="../index.html">← Atelier</a>
-<div class="hud status" id="status"></div>
-<div class="hud select-box" id="select-box"></div>
-<div class="hud stats" id="stats"></div>
-<div class="toolbar">
-  <button id="btn-drill" type="button" aria-pressed="false">Foreuse</button>
-  <button id="btn-furnace" type="button" aria-pressed="false">Fourneau</button>
-  <button id="btn-belt" type="button" aria-pressed="false">Convoyeur</button>
-  <button id="btn-under" type="button" aria-pressed="false">Sous-pont</button>
-  <button id="btn-harvester" type="button" aria-pressed="false">Récolteur</button>
-  <button id="btn-generator" type="button" aria-pressed="false">Générateur</button>
-  <button id="btn-pole" type="button" aria-pressed="false">Poteau</button>
-  <button id="btn-grid" type="button" aria-pressed="true">Grille</button>
-  <button id="btn-cancel" class="alt" type="button">Annuler</button>
-</div>
-<div class="hud help">Clic gauche : poser · R : tourner (ou la machine sélectionnée) · clic droit ou Échap : annuler<br>Convoyeur (C) : maintiens le clic et glisse, la ligne se trace seule et se raccorde aux machines<br>Clic sur une machine : sélectionner · glisser dans le vide : sélectionner une zone · Suppr : démonter · Ctrl+C / Ctrl+V : copier-coller la sélection · F foreuse · G fourneau · U sous-pont · H récolteur · B générateur · P poteau · L grille<br>WASD / flèches ou glisser avec le clic molette ou droit : déplacer la vue · Molette : zoom</div>
 <canvas id="scene"></canvas>
+<header class="topbar">
+  <div class="brand panel">
+    <span class="logo">TakiFactory</span>
+    <span class="tool-name" id="tool-name">Aucun outil</span>
+  </div>
+  <div class="hint panel" id="status"></div>
+  <nav class="actions">
+    <button class="btn" id="btn-help" type="button" title="Comment jouer (F1)">?</button>
+    <button class="btn" id="btn-menu" type="button" title="Menu (Échap)">Menu</button>
+    <a class="btn" href="../index.html">← Atelier</a>
+  </nav>
+</header>
+<details class="panel stats-wrap" open>
+  <summary>Statistiques</summary>
+  <div id="stats"></div>
+</details>
+<aside class="panel inspector" id="inspector" hidden>
+  <h3 id="inspector-title"></h3>
+  <ul id="inspector-list"></ul>
+</aside>
+<div class="select-box" id="select-box"></div>
+<nav class="toolbar panel">
+  <button class="tool-btn" id="btn-drill" type="button" aria-pressed="false" title="Foreuse : à poser sur un gisement"><span class="key">F</span>Foreuse</button>
+  <button class="tool-btn" id="btn-furnace" type="button" aria-pressed="false" title="Fourneau : transforme le minerai en lingots"><span class="key">G</span>Fourneau</button>
+  <button class="tool-btn" id="btn-belt" type="button" aria-pressed="false" title="Convoyeur : maintiens le clic et glisse"><span class="key">C</span>Convoyeur</button>
+  <button class="tool-btn" id="btn-under" type="button" aria-pressed="false" title="Sous-pont : traverse une autre ligne"><span class="key">U</span>Sous-pont</button>
+  <button class="tool-btn" id="btn-harvester" type="button" aria-pressed="false" title="Récolteur : abat les arbres proches"><span class="key">H</span>Récolteur</button>
+  <button class="tool-btn" id="btn-generator" type="button" aria-pressed="false" title="Générateur : brûle la biomasse"><span class="key">B</span>Générateur</button>
+  <button class="tool-btn" id="btn-pole" type="button" aria-pressed="false" title="Poteau : relie les machines électriques"><span class="key">P</span>Poteau</button>
+  <span class="sep"></span>
+  <button class="tool-btn" id="btn-grid" type="button" aria-pressed="true" title="Afficher ou masquer la grille"><span class="key">L</span>Grille</button>
+  <button class="tool-btn cancel" id="btn-cancel" type="button" title="Annuler l'outil (Échap)">Annuler</button>
+</nav>
+<div class="overlay" id="menu">
+  <div class="panel menu-card">
+    <div class="menu-logo">TakiFactory</div>
+    <div class="menu-sub">Prototype · usine en prairie</div>
+    <div class="menu-buttons">
+      <button class="menu-btn primary" id="menu-play" type="button">Jouer</button>
+      <button class="menu-btn" id="menu-help" type="button">Comment jouer</button>
+      <a class="menu-btn" href="../index.html">Retour à l'atelier</a>
+    </div>
+    <div class="menu-foot">Échap ouvre ce menu à tout moment</div>
+  </div>
+</div>
+<div class="overlay" id="help" hidden>
+  <div class="panel menu-card wide">
+    <h2 class="help-title">Comment jouer</h2>
+    <div class="help-grid">
+      <section>
+        <h4>Construire</h4>
+        <ul>
+          <li><kbd>F</kbd>Foreuse, sur un gisement</li>
+          <li><kbd>G</kbd>Fourneau, fond le minerai</li>
+          <li><kbd>C</kbd>Convoyeur, maintenir et glisser</li>
+          <li><kbd>U</kbd>Sous-pont, passe sous une ligne</li>
+          <li><kbd>H</kbd>Récolteur, près des arbres</li>
+          <li><kbd>B</kbd>Générateur, brûle la biomasse</li>
+          <li><kbd>P</kbd>Poteau, relie l'électricité</li>
+        </ul>
+      </section>
+      <section>
+        <h4>Édition</h4>
+        <ul>
+          <li><kbd>Clic</kbd>Poser ou sélectionner</li>
+          <li><kbd>R</kbd>Tourner</li>
+          <li><kbd>Suppr</kbd>Démonter la sélection</li>
+          <li><kbd>Ctrl+C</kbd><kbd>Ctrl+V</kbd>Copier-coller</li>
+          <li><kbd>L</kbd>Afficher la grille</li>
+          <li><kbd>Clic droit</kbd>ou <kbd>Échap</kbd> annuler</li>
+        </ul>
+      </section>
+      <section>
+        <h4>Caméra</h4>
+        <ul>
+          <li><kbd>W A S D</kbd>ou flèches, déplacer</li>
+          <li><kbd>Molette</kbd>Zoom</li>
+          <li>Glisser au clic molette ou droit</li>
+          <li><kbd>F1</kbd>Cette aide</li>
+        </ul>
+      </section>
+    </div>
+    <button class="menu-btn primary" id="help-close" type="button">Fermer</button>
+  </div>
+</div>
 
 <script type="module">
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
@@ -1645,6 +1749,15 @@ canvas.addEventListener('wheel', (e) => {
 const keys = new Set();
 window.addEventListener('keydown', (e) => {
   keys.add(e.code);
+  if (e.code === 'F1') { e.preventDefault(); setHelp(helpEl.hidden); return; }
+  if (e.code === 'Escape') {
+    if (!helpEl.hidden) setHelp(false);
+    else if (!menuEl.hidden) { if (started) setMenu(false); }
+    else if (mode || paste || selected || multi.length) { setMode(null); selected = null; multi = []; }
+    else setMenu(true);
+    return;
+  }
+  if (paused) return;
   if (e.code === 'KeyR') {
     if (!mode && selected) {
       if (!selected.ug) rotateMachine(selected);
@@ -1663,7 +1776,6 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyB') toggleMode('generator');
   if (e.code === 'KeyP') toggleMode('pole');
   if (e.code === 'KeyL') toggleGrid();
-  if (e.code === 'Escape') { setMode(null); selected = null; multi = []; }
   if (e.code === 'Delete') {
     if (multi.length) {
       for (const m of [...multi]) if (!m.removed) removeMachine(m);
@@ -1682,6 +1794,27 @@ function toggleGrid() {
   btnGrid.setAttribute('aria-pressed', String(gridOverlay.visible));
 }
 btnGrid.addEventListener('click', toggleGrid);
+
+const menuEl = document.getElementById('menu');
+const helpEl = document.getElementById('help');
+const btnPlay = document.getElementById('menu-play');
+let started = false;
+let paused = true;
+function updatePause() { paused = !menuEl.hidden || !helpEl.hidden; }
+function setMenu(open) {
+  menuEl.hidden = !open;
+  btnPlay.textContent = started ? 'Reprendre' : 'Jouer';
+  updatePause();
+}
+function setHelp(open) {
+  helpEl.hidden = !open;
+  updatePause();
+}
+btnPlay.addEventListener('click', () => { started = true; setMenu(false); });
+document.getElementById('menu-help').addEventListener('click', () => setHelp(true));
+document.getElementById('help-close').addEventListener('click', () => setHelp(false));
+document.getElementById('btn-help').addEventListener('click', () => setHelp(true));
+document.getElementById('btn-menu').addEventListener('click', () => setMenu(true));
 
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
@@ -1702,7 +1835,22 @@ function panCamera(dt) {
 
 const statusEl = document.getElementById('status');
 const statsEl = document.getElementById('stats');
+const toolNameEl = document.getElementById('tool-name');
+const inspectorEl = document.getElementById('inspector');
+const inspectorTitle = document.getElementById('inspector-title');
+const inspectorList = document.getElementById('inspector-list');
+const MODE_LABELS = { drill: 'Foreuse', furnace: 'Fourneau', belt: 'Convoyeur', under: 'Sous-pont', harvester: 'Récolteur', generator: 'Générateur', pole: 'Poteau' };
 let hudTimer = 0;
+function setInspector(title, lines = []) {
+  inspectorEl.hidden = !title;
+  if (!title) return;
+  inspectorTitle.textContent = title;
+  inspectorList.replaceChildren(...lines.map(l => {
+    const li = document.createElement('li');
+    li.textContent = l;
+    return li;
+  }));
+}
 function describe(m) {
   const rate = `${rateOf(m.kind)}/min`;
   if (m.kind === 'drill') {
@@ -1733,7 +1881,7 @@ function updateHud(dt) {
   if (hudTimer > 0) return;
   hudTimer = 0.15;
   if (mode) {
-    const label = { drill: 'Foreuse', furnace: 'Fourneau', belt: 'Convoyeur', under: 'Sous-pont', harvester: 'Récolteur', generator: 'Générateur', pole: 'Poteau' }[mode];
+    const label = MODE_LABELS[mode];
     if (mode === 'belt' && lineDrag) {
       const r = lineDrag.route;
       if (!r || !r.valid) statusEl.textContent = `${r ? r.reason : 'Recherche du chemin'} · relâche pour annuler`;
@@ -1748,28 +1896,46 @@ function updateHud(dt) {
       const gap = Math.abs(spot.ix - underStart.ix) + Math.abs(spot.iz - underStart.iz);
       statusEl.textContent = `Sortie à ${gap} case(s) de l'entrée · clic gauche pour poser · clic droit pour annuler`;
     } else if (mode === 'harvester' && !nearestTree({ cx: spot.ix + 1, cz: spot.iz + 1 })) statusEl.textContent = 'Aucun arbre à proximité · la récolte ne démarrera pas';
-    else if (mode === 'pole') statusEl.textContent = `Poteau · relie les fourneaux et générateurs à moins de ${POLE_RANGE} cases · Suppr pour démonter`;
-    else if (mode === 'belt') statusEl.textContent = 'Convoyeur · maintiens le clic et glisse : la ligne se raccorde toute seule aux machines';
-    else statusEl.textContent = `${label}${spot.ore ? ` · gisement de ${ORES[spot.ore].name}` : ''} · débit ${rateOf(kindOf(mode))}/min · clic gauche pour poser · R pour tourner`;
+    else if (mode === 'pole') statusEl.textContent = `Poteau · relie les fourneaux et générateurs à moins de ${POLE_RANGE} cases`;
+    else if (mode === 'belt') statusEl.textContent = 'Maintiens le clic et glisse : la ligne se raccorde aux machines';
+    else statusEl.textContent = `${label}${spot.ore ? ` · gisement de ${ORES[spot.ore].name}` : ''} · ${rateOf(kindOf(mode))}/min · clic gauche pour poser · R pour tourner`;
   } else if (paste) {
     statusEl.textContent = paste.ok ? `Collage de ${clipboard.length} élément(s) · clic gauche pour poser · Échap pour annuler` : 'Collage impossible ici';
   } else if (multi.length) {
-    statusEl.textContent = `Sélection : ${multi.length} élément(s) · Suppr pour tout démonter · clic sur le vide pour désélectionner`;
+    statusEl.textContent = `Sélection de ${multi.length} élément(s) · clic sur le vide pour désélectionner`;
   } else if (selected) {
-    statusEl.textContent = describe(selected);
+    statusEl.textContent = 'Machine sélectionnée · clic sur le vide pour désélectionner';
   } else {
-    statusEl.textContent = 'Clique sur Foreuse, Fourneau ou Convoyeur pour commencer';
+    statusEl.textContent = 'Choisis un outil dans la barre du bas pour construire';
   }
-  statsEl.innerHTML = `Foreuses : ${drills.length} · Récolteurs : ${harvesters.length} · Fourneaux : ${furnaces.length}<br>` +
-    `Générateurs : ${generators.length} · Production : ${totalPower()} MW · Convoyeurs : ${belts.length}<br>` +
-    Object.entries(ORES).map(([k, o]) => `${o.name} extrait : ${stats.mined[k]}`).join('<br>') + '<br>' +
-    Object.keys(SMELT).map(k => `${INGOTS[SMELT[k]].name} produit : ${stats.smelted[k]}`).join('<br>');
+
+  toolNameEl.textContent = mode ? MODE_LABELS[mode] : paste ? 'Collage' : 'Aucun outil';
+  if (multi.length) setInspector('Sélection', [`${multi.length} élément(s)`, 'Suppr pour tout démonter']);
+  else if (selected && !mode && !paste) {
+    const [title, ...lines] = describe(selected).split(' · ');
+    setInspector(title, lines);
+  } else setInspector(null);
+
+  const row = (label, value) => `<div class="row"><span>${label}</span><b>${value}</b></div>`;
+  const section = (title, rows) => `<div class="stat-section"><h4>${title}</h4>${rows.join('')}</div>`;
+  statsEl.innerHTML =
+    section('Machines', [
+      row('Foreuses', drills.length),
+      row('Récolteurs', harvesters.length),
+      row('Fourneaux', furnaces.length),
+      row('Générateurs', generators.length),
+      row('Convoyeurs', belts.length),
+    ]) +
+    section('Énergie', [row('Production', `${totalPower()} MW`)]) +
+    section('Extraction', Object.entries(ORES).map(([k, o]) => row(o.name, stats.mined[k]))) +
+    section('Fusion', Object.keys(SMELT).map(k => row(INGOTS[SMELT[k]].name, stats.smelted[k])));
 }
 
 let lastTime = performance.now();
 function frame(now) {
-  const dt = Math.min(0.05, (now - lastTime) / 1000);
+  const rdt = Math.min(0.05, (now - lastTime) / 1000);
   lastTime = now;
+  const dt = paused ? 0 : rdt;
   const t = now / 1000;
   panCamera(dt);
   camera.position.copy(pivot).addScaledVector(VIEW, zoom);
@@ -1786,7 +1952,7 @@ function frame(now) {
   updateBelts(dt);
   updateEffects(dt);
   updateSelection();
-  updateHud(dt);
+  updateHud(rdt);
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
