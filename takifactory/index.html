@@ -263,6 +263,17 @@ function part(group, geo, mat, x, y, z) {
   return mesh;
 }
 
+function addOutputArrow(group, mats, topY) {
+  const shape = new THREE.Shape();
+  shape.moveTo(0.3, 0);
+  shape.lineTo(-0.2, 0.25);
+  shape.lineTo(-0.2, -0.25);
+  shape.closePath();
+  const geo = new THREE.ShapeGeometry(shape);
+  geo.rotateX(-Math.PI / 2);
+  part(group, geo, mats.lamp, 0.35, topY + 0.01, 0);
+}
+
 function buildDrill(mats) {
   const group = new THREE.Group();
   const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
@@ -272,6 +283,7 @@ function buildDrill(mats) {
   add(new THREE.CylinderGeometry(0.32, 0.4, 0.5, 14), mats.dark, 0, 1.75, 0);
   add(new THREE.BoxGeometry(0.9, 0.12, 0.04), mats.lamp, 0, 0.85, 0.77);
   add(new THREE.BoxGeometry(0.5, 0.4, 0.5), mats.dark, 0.95, 0.4, 0);
+  addOutputArrow(group, mats, 1.52);
 
   const rotor = new THREE.Group();
   rotor.position.y = 2.05;
@@ -301,6 +313,7 @@ function buildFurnace(mats) {
   add(new THREE.CylinderGeometry(0.2, 0.26, 1.2, 12), mats.dark, -0.35, 2.3, -0.35);
   add(new THREE.BoxGeometry(0.06, 0.6, 0.9), mats.lamp, 0.77, 0.7, 0);
   add(new THREE.BoxGeometry(0.5, 0.4, 0.5), mats.dark, 0.95, 0.4, 0);
+  addOutputArrow(group, mats, 1.82);
   return { group, lampMat: mats.lamp };
 }
 
@@ -312,6 +325,7 @@ function buildHarvester(mats) {
   add(new THREE.BoxGeometry(1.56, 0.12, 1.56), mats.trim, 0, 1.36, 0);
   add(new THREE.BoxGeometry(0.9, 0.12, 0.04), mats.lamp, 0, 0.8, 0.77);
   add(new THREE.BoxGeometry(0.5, 0.4, 0.5), mats.dark, 0.95, 0.4, 0);
+  addOutputArrow(group, mats, 1.42);
 
   const rotor = new THREE.Group();
   rotor.position.y = 1.7;
