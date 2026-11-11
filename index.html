@@ -4,21 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Atelier de Takiwaltek</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&display=swap">
     <style>
-        @font-face {
-            font-family: "Astral Delight";
-            src: url('fonts/AstralDelight-Black.ttf') format('truetype');
-            font-weight: 900;
-            font-display: swap;
-        }
-
-        @font-face {
-            font-family: "Batman Forever";
-            src: url('fonts/BatmanForever-Regular.ttf') format('truetype');
-            font-weight: 400;
-            font-display: swap;
-        }
-
         :root {
             --bg: #0a0c10;
             --panel: #121620;
@@ -29,7 +18,7 @@
             --accent: #00e08a;
             --accent-2: #38bdf8;
             --radius: 16px;
-            --font: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+            --font: "Orbitron", "Segoe UI", system-ui, -apple-system, sans-serif;
         }
 
         * { box-sizing: border-box; }
@@ -127,7 +116,7 @@
             justify-content: space-between;
             gap: 14px 24px;
             padding: 22px 26px;
-            overflow: hidden;
+            overflow: visible;
             perspective: 500px;
             background: linear-gradient(135deg, rgba(18, 22, 32, 0.95), rgba(18, 22, 32, 0.7));
             border: 1px solid var(--line);
@@ -136,9 +125,18 @@
         }
 
         .hero-text,
-        .quick-nav {
+        .dock {
             position: relative;
             z-index: 1;
+        }
+
+        .hero-bg {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            overflow: hidden;
+            border-radius: inherit;
+            pointer-events: none;
         }
 
         .hero-floor {
@@ -183,29 +181,37 @@
             to { background-position: 0 44px, 0 0; }
         }
 
-        .quick-nav {
+        .dock {
             display: flex;
             flex-wrap: wrap;
+            align-items: center;
             gap: 8px;
+            margin-top: 22px;
         }
 
-        .quick-nav a {
-            padding: 8px 14px;
-            border: 1px solid var(--line);
-            border-radius: 999px;
-            background: rgba(10, 12, 16, 0.6);
-            color: var(--text);
-            font-size: 0.85rem;
-            font-weight: 600;
-            text-decoration: none;
-            transition: border-color 0.2s ease, color 0.2s ease;
+        .dock > * {
+            flex: 0 0 auto;
+            animation: fadeUp 0.6s ease-out backwards;
         }
 
-        .quick-nav a:hover {
-            border-color: var(--accent);
-            color: var(--accent);
+        .dock > :nth-child(1) { --c: #e11d48; --d: #9f1239; animation-delay: 0.1s; }
+        .dock > :nth-child(2) { --c: #0ea5e9; --d: #075985; animation-delay: 0.14s; }
+        .dock > :nth-child(3) { --c: #8b5cf6; --d: #4c1d95; animation-delay: 0.18s; }
+        .dock > :nth-child(4) { --c: #10b981; --d: #065f46; animation-delay: 0.22s; }
+        .dock > :nth-child(5) { --c: #e11d48; --d: #9f1239; animation-delay: 0.26s; }
+        .dock > :nth-child(6) { --c: #0ea5e9; --d: #075985; animation-delay: 0.3s; }
+        .dock > :nth-child(7) { --c: #8b5cf6; --d: #4c1d95; animation-delay: 0.34s; }
+        .dock > :nth-child(8) { --c: #f59e0b; --d: #b45309; animation-delay: 0.38s; }
+
+        .dock .sat-menu-list {
+            right: auto;
+            min-width: 220px;
         }
 
+        .dock > .sat-menu:nth-child(4) .sat-menu-list {
+            left: auto;
+            right: 0;
+        }
         section[id] {
             scroll-margin-top: 20px;
         }
@@ -346,7 +352,7 @@
 
         .logo {
             margin: 0;
-            font-family: "Astral Delight", var(--font);
+            font-family: var(--font);
             font-size: clamp(1.7rem, 4.2vw, 2.7rem);
             font-weight: 900;
             line-height: 1.05;
@@ -379,91 +385,62 @@
             to { transform: scaleX(1); }
         }
 
-        .hub {
-            display: grid;
-            grid-template-columns: 1fr 300px;
-            gap: 18px;
-            align-items: start;
-            margin-top: 22px;
-        }
-
-        .tiles {
-            --c: #10b981;
-            --d: #065f46;
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 14px;
-        }
-
-        .tiles > :nth-child(1) { --c: #e11d48; --d: #9f1239; }
-        .tiles > :nth-child(2) { --c: #0ea5e9; --d: #075985; }
-        .tiles > :nth-child(3) { --c: #8b5cf6; --d: #4c1d95; }
-        .tiles > :nth-child(4) { --c: #10b981; --d: #065f46; }
-
-        .tiles > * {
-            animation: fadeUp 0.6s ease-out backwards;
-        }
-
-        .tiles > *:nth-child(1) { animation-delay: 0.1s; }
-        .tiles > *:nth-child(2) { animation-delay: 0.16s; }
-        .tiles > *:nth-child(3) { animation-delay: 0.22s; }
-        .tiles > *:nth-child(4) { animation-delay: 0.28s; }
-        .tiles > *:nth-child(5) { animation-delay: 0.34s; }
-
         .tile {
-            display: flex;
+            position: relative;
+            display: inline-flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding: 16px 18px;
+            justify-content: center;
+            gap: 8px;
+            padding: 9px 10px;
+            border: 0;
+            border-radius: 12px;
             background: linear-gradient(180deg, var(--c), var(--d));
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            border-radius: var(--radius);
             color: #fff;
-            font-family: "Batman Forever", var(--font);
-            font-size: 1.25rem;
-            font-weight: 400;
+            font-family: var(--font);
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+            text-transform: uppercase;
             text-decoration: none;
-            text-shadow: 0 3px 0 var(--d);
+            text-shadow: 0 2px 0 rgba(0, 0, 0, 0.35);
             cursor: pointer;
-            box-shadow: 0 6px 0 var(--d), 0 14px 24px rgba(0, 0, 0, 0.45);
+            box-shadow:
+                inset 0 2px 0 rgba(255, 255, 255, 0.45),
+                inset 0 -3px 0 rgba(0, 0, 0, 0.25),
+                0 6px 0 var(--d),
+                0 12px 18px rgba(0, 0, 0, 0.45);
             --lift: 0px;
             --rx: 0deg;
             --ry: 0deg;
-            transform: perspective(700px) translateY(var(--lift)) rotateX(var(--rx)) rotateY(var(--ry));
+            transform: perspective(500px) translateY(var(--lift)) rotateX(var(--rx)) rotateY(var(--ry));
             transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.2s ease;
         }
 
-        .tile::after {
-            content: "→";
-            color: #fff;
-            text-shadow: 0 3px 0 var(--d);
-            transition: transform 0.25s ease;
+        .tile::before {
+            content: "";
+            position: absolute;
+            inset: 3px 8px 55% 8px;
+            border-radius: 8px;
+            background: linear-gradient(rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0));
+            pointer-events: none;
         }
 
         .tile:hover {
-            --lift: -4px;
+            --lift: -3px;
             filter: brightness(1.08);
-            box-shadow: 0 9px 0 var(--d), 0 18px 30px rgba(0, 0, 0, 0.5);
-        }
-
-        .tile:hover::after {
-            transform: translateX(4px);
+            box-shadow:
+                inset 0 2px 0 rgba(255, 255, 255, 0.45),
+                inset 0 -3px 0 rgba(0, 0, 0, 0.25),
+                0 9px 0 var(--d),
+                0 18px 26px rgba(0, 0, 0, 0.5);
         }
 
         .tile:active {
             --lift: 4px;
-            box-shadow: 0 2px 0 var(--d), 0 6px 12px rgba(0, 0, 0, 0.4);
-        }
-
-        .games {
-            margin-top: 28px;
-        }
-
-        .games-title {
-            margin: 0 0 14px;
-            font-size: 1.05rem;
-            font-weight: 700;
+            box-shadow:
+                inset 0 2px 0 rgba(255, 255, 255, 0.3),
+                0 2px 0 var(--d),
+                0 6px 10px rgba(0, 0, 0, 0.4);
         }
 
         .sat-menu {
@@ -530,9 +507,11 @@
             border-radius: 10px;
             background: linear-gradient(180deg, var(--c), var(--d));
             color: #fff;
-            font-family: "Batman Forever", var(--font);
-            font-size: 1.15rem;
-            font-weight: 400;
+            font-family: var(--font);
+            font-size: 0.9rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
             text-decoration: none;
             text-shadow: 0 2px 0 var(--d);
             box-shadow: 0 4px 0 var(--d);
@@ -548,55 +527,6 @@
         .sat-menu-list a:active {
             transform: translateY(2px);
             box-shadow: 0 1px 0 var(--d);
-        }
-
-        .arcade {
-            position: relative;
-            padding: 24px;
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            overflow: hidden;
-            animation: fadeUp 0.7s ease-out 0.25s backwards;
-            --lift: 0px;
-            --rx: 0deg;
-            --ry: 0deg;
-            transform: perspective(800px) translateY(var(--lift)) rotateX(var(--rx)) rotateY(var(--ry));
-            transition: transform 0.3s ease, border-color 0.3s ease;
-        }
-
-        .arcade::before {
-            content: "";
-            position: absolute;
-            inset: -60%;
-            background: conic-gradient(from 0deg, transparent 0deg, rgba(56, 189, 248, 0.22) 60deg, transparent 120deg);
-            animation: spin 9s linear infinite;
-            pointer-events: none;
-        }
-
-        .arcade:hover {
-            --lift: -4px;
-            border-color: var(--accent-2);
-        }
-
-        .arcade > * {
-            position: relative;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .arcade h3 {
-            margin: 0 0 4px;
-            font-size: 1.3rem;
-            font-weight: 700;
-        }
-
-        .arcade p {
-            margin: 0 0 18px;
-            color: var(--muted);
-            font-size: 0.9rem;
         }
 
         .btn-primary {
@@ -942,23 +872,19 @@
             filter: brightness(1.15);
         }
 
-        @media (max-width: 860px) {
-            .hub {
-                grid-template-columns: 1fr;
-            }
-        }
-
         @media (max-width: 560px) {
             .page {
                 padding: 20px 14px 36px;
             }
-            .tiles {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+            .dock {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
             }
-            .tile {
-                gap: 8px;
-                padding: 18px 12px;
-                font-size: 0.8rem;
+            .dock .tile {
+                width: 100%;
+                padding: 9px 6px;
+                font-size: 0.7rem;
+                letter-spacing: 0.02em;
             }
         }
 
@@ -1036,18 +962,11 @@
                 <span class="eyebrow">Games collection</span>
                 <h1 class="logo">Atelier de Takiwaltek</h1>
             </div>
-            <nav class="quick-nav" aria-label="Accès rapide">
-                <a href="#liens">Liens</a>
-                <a href="#jeux">Jeux</a>
-                <a href="#steam">Steam</a>
-                <a href="#tchat">Tchat</a>
-            </nav>
-            <canvas class="hero-canvas" id="hero-3d" aria-hidden="true"></canvas>
-            <div class="hero-floor" aria-hidden="true"></div>
-        </header>
-
-        <section class="hub" id="liens">
-            <nav class="tiles" aria-label="Liens">
+            <div class="hero-bg" aria-hidden="true">
+                <canvas class="hero-canvas" id="hero-3d" aria-hidden="true"></canvas>
+                <div class="hero-floor"></div>
+            </div>
+            <nav class="dock" aria-label="Liens et jeux">
                 <a class="tile" href="https://www.youtube.com/@takiwaltek" target="_blank" rel="noopener">Vidéos</a>
                 <a class="tile" href="https://soundcloud.com/takiwalte" target="_blank" rel="noopener">Son</a>
                 <details class="sat-menu">
@@ -1067,23 +986,12 @@
                         <a href="https://satisfactory-calculator.com/fr/interactive-map#3;49935;130005|gameLayer|limestonePure;ironPure;copperPure;cateriumPure;coalPure;oilPure;hardDrives" target="_blank" rel="noopener">Carte officielle</a>
                     </div>
                 </details>
-            </nav>
-
-            <aside class="arcade">
-                <h3>NEON</h3>
-                <p>Idle game</p>
-                <a href="./1/index.html" class="btn-primary">Jouer →</a>
-            </aside>
-        </section>
-
-        <section class="games" id="jeux" aria-labelledby="games-title">
-            <h2 class="games-title" id="games-title">Jeux</h2>
-            <nav class="tiles" aria-label="Jeux originaux">
                 <a class="tile" href="./jeux/chasse-pixels/index.html">Chasse Pixels</a>
                 <a class="tile" href="./jeux/briques-tombantes/index.html">Briques tombantes</a>
                 <a class="tile" href="./jeux/chevalier-des-sables/index.html">Chevalier des sables</a>
+                <a class="tile" href="./1/index.html" title="NEON//REVOLUTION, jeu d'idle">NEON</a>
             </nav>
-        </section>
+        </header>
 
         <section class="steam" id="steam" aria-labelledby="steam-title">
             <div class="steam-head">
@@ -1355,7 +1263,7 @@
             document.body.append(dot, ring);
             document.documentElement.classList.add('has-cursor');
 
-            const HOVER_SEL = 'a, button, summary, .tile, .arcade';
+            const HOVER_SEL = 'a, button, summary, .tile';
             let lastSpark = 0;
 
             function spark(x, y, dx, dy) {
@@ -1413,7 +1321,7 @@
             if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
             if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-            document.querySelectorAll('.tile, .arcade').forEach(el => {
+            document.querySelectorAll('.tile').forEach(el => {
                 el.addEventListener('pointermove', e => {
                     const r = el.getBoundingClientRect();
                     const x = (e.clientX - r.left) / r.width - 0.5;
