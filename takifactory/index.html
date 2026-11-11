@@ -128,11 +128,13 @@
       <button class="menu-btn primary" id="menu-play" type="button">Jouer</button>
       <button class="menu-btn" id="menu-save" type="button">Sauvegarder l'usine</button>
       <button class="menu-btn" id="menu-load" type="button">Charger une usine</button>
+      <button class="menu-btn" id="menu-new" type="button">Recommencer une nouvelle partie</button>
       <button class="menu-btn" id="menu-help" type="button">Comment jouer</button>
       <a class="menu-btn" href="../index.html">Retour à l'atelier</a>
     </div>
     <input type="file" id="menu-file" accept="application/json,.json" hidden>
     <div class="menu-foot">Échap ouvre ce menu à tout moment</div>
+    <div class="menu-foot">La partie est sauvegardée automatiquement dans ce navigateur.</div>
     <div class="menu-foot" id="save-msg"></div>
   </div>
 </div>
@@ -2585,6 +2587,42 @@ menuFile.addEventListener('change', async () => {
   } catch (err) {
     saveMsg.textContent = err.message || 'Chargement impossible';
   }
+});
+
+const AUTOSAVE_KEY = 'takifactory.partie.v1';
+let lastAutosave = null;
+let resetting = false;
+function autosave() {
+  if (resetting) return;
+  try {
+    const json = JSON.stringify(serializeFactory());
+    if (json !== lastAutosave) {
+      localStorage.setItem(AUTOSAVE_KEY, json);
+      lastAutosave = json;
+    }
+  } catch {
+    // Stockage indisponible : la partie reste jouable sans sauvegarde.
+  }
+}
+try {
+  const saved = localStorage.getItem(AUTOSAVE_KEY);
+  if (saved) {
+    const count = loadFactory(JSON.parse(saved));
+    lastAutosave = saved;
+    started = true;
+    setMenu(true);
+    saveMsg.textContent = `Partie reprise (${count} élément${count > 1 ? 's' : ''})`;
+  }
+} catch {
+  localStorage.removeItem(AUTOSAVE_KEY);
+}
+setInterval(autosave, 2000);
+window.addEventListener('pagehide', autosave);
+document.getElementById('menu-new').addEventListener('click', () => {
+  if (!confirm('Recommencer une nouvelle partie ? La partie en cours sera effacée.')) return;
+  resetting = true;
+  localStorage.removeItem(AUTOSAVE_KEY);
+  location.reload();
 });
 
 window.addEventListener('resize', () => {
