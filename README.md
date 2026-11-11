@@ -1,20 +1,30 @@
-# NEON//REVOLUTION
+# Atelier de Takiwaltek
 
-An idle game about hacking through a neon cyberpunk network.
+Site de présentation des projets de Takiwaltek, publié sur GitHub Pages : https://takiwaltek.github.io/Games/
 
-## Play
+## Contenu du site
 
-Play online: https://takiwaltek.github.io/Games/
+- **Accueil** (`index.html`) : liens vers les projets, nouveautés Steam et tchat en direct (Firebase).
+- **Calculateur** (`calculateur/`) : planificateur de production Satisfactory. Le code source est dans un autre projet, seul le build est ici.
+- **Carte de la base** (`carte/`) : carte Satisfactory.
+- **Jeux** :
+  - `jeux/chasse-pixels/`
+  - `jeux/briques-tombantes/`
+  - `jeux/chevalier-des-sables/`
+- **À propos** (`a-propos/`).
+- **NEON//REVOLUTION** (`1/`) : jeu d'idle sur un réseau cyberpunk. Clic sur le cœur ou touche **Espace** pour générer des octets, touche **M** pour acheter tous les niveaux disponibles, sauvegarde automatique dans le navigateur.
 
-To run locally, open `index.html` in a modern browser. No installation or build step is needed.
+## Déploiement
 
-- Click the core or press **Space** to generate bytes.
-- Buy process upgrades; press **M** to buy all available levels.
-- Overclock maxed-out processes, reboot for permanent progression, and complete contracts.
-- Progress is saved automatically in the browser. Use the System tab to export or import a save.
+Le workflow `.github/workflows/pages.yml` publie le dépôt sur GitHub Pages :
 
-## Project files
+- à chaque push sur `main` ;
+- chaque jour à 06 h UTC ;
+- en lancement manuel.
 
-- `index.html` — game page
-- `css/style.css` — interface and effects
-- `js/` — game data, progression engine, visuals and interface
+Avant la publication, `scripts/fetch-steam-news.mjs` génère le fil des nouveautés Steam.
+
+## Tester en local
+
+Lance un serveur statique à la racine du dépôt plutôt que d'ouvrir `index.html` directement, car le chargement du fil Steam peut échouer sur un fichier local.
+
