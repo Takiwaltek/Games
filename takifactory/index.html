@@ -506,7 +506,7 @@ function nearestTree(m) {
 
 const MATS = {
   dark: new THREE.MeshStandardMaterial({ color: 0x23293a, roughness: 0.6, metalness: 0.4 }),
-  steel: new THREE.MeshStandardMaterial({ color: 0x5a6578, roughness: 0.4, metalness: 0.7 }),
+  steel: new THREE.MeshStandardMaterial({ color: 0xc4ccd8, roughness: 0.35, metalness: 0.6 }),
   trim: new THREE.MeshStandardMaterial({ color: 0xf0a030, roughness: 0.4, metalness: 0.3 }),
   pipe: new THREE.MeshStandardMaterial({ color: 0xc27a3a, roughness: 0.35, metalness: 0.8 })
 };
@@ -547,6 +547,7 @@ function addInputArrow(group, mats, topY) {
 // Socle lumineux, montants d'angle et capots, commun à toutes les machines (topY = dessus du capot)
 function addFrame(group, mats, topY) {
   part(group, new THREE.BoxGeometry(2.02, 0.04, 2.02), mats.trim, 0, 0.32, 0);
+  for (let i = -2; i <= 2; i++) part(group, new THREE.BoxGeometry(0.14, 0.14, 0.02), mats.trim, i * 0.4, 0.15, 1.01).rotation.z = 0.6;
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
     const x = sx * 0.75, z = sz * 0.75;
     part(group, new THREE.CylinderGeometry(0.06, 0.06, topY - 0.3, 8), mats.steel, x, (topY + 0.3) / 2, z);
