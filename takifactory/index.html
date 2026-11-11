@@ -8,24 +8,21 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-  :root { --neon: #00f0ff; --magenta: #ff2bd6; --violet: #7b2cff; --panel: rgba(10, 6, 24, .8); }
-  html, body { margin: 0; height: 100%; overflow: hidden; background: radial-gradient(ellipse at 50% 30%, #1a0b33 0%, #05030f 70%); color: #e9f7ff; font-family: Orbitron, system-ui, sans-serif; }
-  body::after { content: ""; position: fixed; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(255, 255, 255, .03) 0 1px, transparent 1px 3px); }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #070b14; color: #d8f7ff; font-family: Orbitron, system-ui, sans-serif; }
   canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; }
   .hud { position: fixed; pointer-events: none; }
-  .title { top: 14px; left: 16px; font-weight: 800; font-size: 1.1rem; letter-spacing: .1em; color: #fff; text-shadow: 0 0 6px var(--neon), 0 0 18px var(--magenta); }
-  .title small { display: block; margin-top: 4px; color: var(--neon); font-weight: 400; font-size: .6rem; letter-spacing: .25em; text-shadow: 0 0 8px var(--neon); }
-  .back { position: fixed; top: 14px; right: 16px; font-size: .7rem; letter-spacing: .08em; color: var(--neon); text-decoration: none; text-shadow: 0 0 8px var(--neon); pointer-events: auto; }
-  .stats { top: 52px; right: 16px; text-align: right; font-size: .7rem; line-height: 1.7; color: #d9c8ff; text-shadow: 0 0 6px rgba(123, 44, 255, .9); }
-  .status { top: 14px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: .75rem; padding: 8px 18px; color: #fff; border: 1px solid var(--neon); border-radius: 4px; background: var(--panel); box-shadow: 0 0 14px rgba(0, 240, 255, .35), inset 0 0 12px rgba(0, 240, 255, .15); }
+  .title { top: 14px; left: 16px; font-weight: 800; letter-spacing: .08em; color: #3ef0a8; text-shadow: 0 0 12px rgba(62, 240, 168, .5); }
+  .title small { display: block; margin-top: 4px; color: #7fd6ff; font-weight: 400; font-size: .65rem; letter-spacing: .15em; }
+  .back { position: fixed; top: 14px; right: 16px; font-size: .7rem; color: #7fd6ff; text-decoration: none; pointer-events: auto; }
+  .stats { top: 52px; right: 16px; text-align: right; font-size: .7rem; line-height: 1.7; color: #b9e9ff; }
+  .status { top: 14px; left: 50%; transform: translateX(-50%); white-space: nowrap; font-size: .75rem; padding: 7px 16px; border: 1px solid rgba(127, 214, 255, .4); border-radius: 999px; background: rgba(8, 14, 26, .75); }
   .toolbar { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; }
-  .toolbar button { font: inherit; font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; white-space: nowrap; color: #fff; padding: 11px 18px; border: 1px solid var(--neon); border-radius: 4px; cursor: pointer; background: linear-gradient(180deg, rgba(0, 240, 255, .28), rgba(0, 240, 255, .06)); box-shadow: 0 0 12px rgba(0, 240, 255, .35), inset 0 0 10px rgba(0, 240, 255, .2); text-shadow: 0 0 6px var(--neon); transition: transform .1s, box-shadow .15s; }
-  .toolbar button:hover { box-shadow: 0 0 20px rgba(0, 240, 255, .6), inset 0 0 14px rgba(0, 240, 255, .3); }
-  .toolbar button:active { transform: translateY(2px); }
-  .toolbar button[aria-pressed="true"] { border-color: var(--magenta); background: linear-gradient(180deg, rgba(255, 43, 214, .42), rgba(255, 43, 214, .1)); box-shadow: 0 0 20px rgba(255, 43, 214, .6), inset 0 0 12px rgba(255, 43, 214, .3); text-shadow: 0 0 8px var(--magenta); }
-  .toolbar button.alt { border-color: var(--violet); background: linear-gradient(180deg, rgba(123, 44, 255, .35), rgba(123, 44, 255, .08)); box-shadow: 0 0 12px rgba(123, 44, 255, .4), inset 0 0 10px rgba(123, 44, 255, .2); text-shadow: 0 0 6px var(--violet); }
-  .help { left: 16px; top: 64px; max-width: calc(100vw - 300px); font-size: .62rem; line-height: 1.8; color: #a99cd0; }
-  .select-box { display: none; border: 1px solid var(--magenta); background: rgba(255, 43, 214, .12); box-shadow: 0 0 12px rgba(255, 43, 214, .4); }
+  .toolbar button { font: inherit; font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; color: #fff; padding: 10px 18px; border: 0; border-radius: 10px; cursor: pointer; background: linear-gradient(#3ef0a8, #13986a); box-shadow: 0 4px 0 #0b5a40; }
+  .toolbar button:active { transform: translateY(3px); box-shadow: 0 1px 0 #0b5a40; }
+  .toolbar button[aria-pressed="true"] { background: linear-gradient(#ffb347, #c96d12); box-shadow: 0 4px 0 #7a400a; }
+  .toolbar button.alt { background: linear-gradient(#7fd6ff, #2a7ca8); box-shadow: 0 4px 0 #17485f; }
+  .help { left: 16px; top: 64px; max-width: calc(100vw - 300px); font-size: .62rem; line-height: 1.8; color: #8fa8c0; }
+  .select-box { display: none; border: 1px solid #7fd6ff; background: rgba(127, 214, 255, .12); }
 </style>
 </head>
 <body>
@@ -138,16 +135,16 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x05030f);
-scene.fog = new THREE.Fog(0x05030f, 130, 280);
+scene.background = new THREE.Color(0x070b14);
+scene.fog = new THREE.Fog(0x070b14, 130, 280);
 
 const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.5, 400);
 const pivot = new THREE.Vector3();
 const VIEW = new THREE.Vector3(0, 1, 0.9).normalize();
 let zoom = 30;
 
-scene.add(new THREE.HemisphereLight(0x9d7bff, 0x0b0420, 0.9));
-const sun = new THREE.DirectionalLight(0xd6f4ff, 1.5);
+scene.add(new THREE.HemisphereLight(0xbfe6ff, 0x1a1624, 0.9));
+const sun = new THREE.DirectionalLight(0xfff1dc, 1.7);
 sun.position.set(-25, 45, 18);
 sun.castShadow = true;
 sun.shadow.mapSize.set(2048, 2048);
@@ -168,7 +165,7 @@ function valueNoise(x, z) {
   return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
 }
 const patchAt = (x, z) => valueNoise(x * 0.09, z * 0.09) * 0.6 + valueNoise(x * 0.23 + 17, z * 0.23 - 5) * 0.3 + valueNoise(x * 0.6 - 3, z * 0.6 + 11) * 0.1;
-const cGrass = new THREE.Color(0x2a1866), cTint = new THREE.Color(0x0f5c6e), cRock = new THREE.Color(0x3a2a66), cSnow = new THREE.Color(0x8fe9ff), cSoil = new THREE.Color(0x2a0f3d);
+const cGrass = new THREE.Color(0x2f6b3c), cTint = new THREE.Color(0x46804a), cRock = new THREE.Color(0x6a6e78), cSnow = new THREE.Color(0xe4edf5), cSoil = new THREE.Color(0x4d3f2c);
 const tmpColor = new THREE.Color();
 for (let i = 0; i < gPos.count; i++) {
   const x = gPos.getX(i), z = gPos.getZ(i), h = heightAt(x, z);
@@ -197,7 +194,7 @@ for (const d of DEPOSITS) {
   scene.add(ring);
 
   const count = Math.round(d.r * d.r * 1.2);
-  const rocks = new THREE.InstancedMesh(rockGeo, new THREE.MeshStandardMaterial({ color: ORES[d.ore].color, emissive: ORES[d.ore].color, emissiveIntensity: 0.25, roughness: 0.6 }), count);
+  const rocks = new THREE.InstancedMesh(rockGeo, new THREE.MeshStandardMaterial({ color: ORES[d.ore].color, roughness: 0.6 }), count);
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3();
   for (let i = 0; i < count; i++) {
     const a = Math.random() * Math.PI * 2, r = Math.sqrt(Math.random()) * (d.r - 0.8);
@@ -215,8 +212,8 @@ for (const d of DEPOSITS) {
 
 const TREE_MAX = 700;
 const trees = [];
-const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.08, 0.1, 0.6, 6), new THREE.MeshStandardMaterial({ color: 0x2a1446, roughness: 0.9 }), TREE_MAX);
-const crowns = new THREE.InstancedMesh(new THREE.ConeGeometry(0.42, 1.3, 7), new THREE.MeshStandardMaterial({ color: 0x0f7a7a, emissive: 0x00a0aa, emissiveIntensity: 0.35, roughness: 0.6 }), TREE_MAX);
+const trunks = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.08, 0.1, 0.6, 6), new THREE.MeshStandardMaterial({ color: 0x5a3b22, roughness: 0.9 }), TREE_MAX);
+const crowns = new THREE.InstancedMesh(new THREE.ConeGeometry(0.42, 1.3, 7), new THREE.MeshStandardMaterial({ color: 0x1f5a2e, roughness: 0.8 }), TREE_MAX);
 {
   const m = new THREE.Matrix4(), q = new THREE.Quaternion(), p = new THREE.Vector3(), s = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   let n = 0;
@@ -283,11 +280,11 @@ function nearestTree(m) {
 }
 
 const MATS = {
-  dark: new THREE.MeshStandardMaterial({ color: 0x17132e, roughness: 0.5, metalness: 0.6 }),
-  steel: new THREE.MeshStandardMaterial({ color: 0x3d4580, roughness: 0.35, metalness: 0.8 }),
-  trim: new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x00c8d6, emissiveIntensity: 0.7, roughness: 0.3, metalness: 0.2 })
+  dark: new THREE.MeshStandardMaterial({ color: 0x23293a, roughness: 0.6, metalness: 0.4 }),
+  steel: new THREE.MeshStandardMaterial({ color: 0x5a6578, roughness: 0.4, metalness: 0.7 }),
+  trim: new THREE.MeshStandardMaterial({ color: 0xf0a030, roughness: 0.4, metalness: 0.3 })
 };
-const ghostMat = new THREE.MeshStandardMaterial({ color: 0x00f0ff, emissive: 0x00a0c0, emissiveIntensity: 0.9, transparent: true, opacity: 0.4, depthWrite: false });
+const ghostMat = new THREE.MeshStandardMaterial({ color: 0x3ef0a8, emissive: 0x13986a, emissiveIntensity: 0.8, transparent: true, opacity: 0.4, depthWrite: false });
 const GHOST_MATS = { dark: ghostMat, steel: ghostMat, trim: ghostMat, lamp: ghostMat };
 
 function part(group, geo, mat, x, y, z) {
