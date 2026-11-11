@@ -2622,6 +2622,34 @@ function updateHud(dt) {
     ]);
 }
 
+const cloudMat = new THREE.MeshLambertMaterial({ color: 0xf2f6ff, emissive: 0x3a4252, transparent: true, opacity: 0, depthWrite: false, fog: false });
+const cloudPuff = new THREE.SphereGeometry(1, 12, 8);
+const clouds = [];
+for (let i = 0; i < 24; i++) {
+  const cloud = new THREE.Group();
+  const puffs = 5 + Math.floor(hash2(i, 5) * 4);
+  for (let k = 0; k < puffs; k++) {
+    const puff = new THREE.Mesh(cloudPuff, cloudMat);
+    const r = 2.5 + hash2(i + k, 9) * 2.5;
+    puff.scale.set(r, r * 0.55, r * 0.8);
+    puff.position.set((hash2(k, i + 2) - 0.5) * 16, (hash2(k + 3, i) - 0.5) * 2, (hash2(i, k + 6) - 0.5) * 10);
+    cloud.add(puff);
+  }
+  cloud.position.set((hash2(i, 13) - 0.5) * 200, 46 + hash2(i, 17) * 12, (hash2(i, 19) - 0.5) * 200);
+  cloud.userData.speed = 1.5 + hash2(i, 23) * 2;
+  scene.add(cloud);
+  clouds.push(cloud);
+}
+function updateClouds(dt) {
+  const k = smooth(55, 95, zoom);
+  cloudMat.opacity = 0.45 * k;
+  for (const cloud of clouds) {
+    cloud.visible = k > 0.01;
+    cloud.position.x += cloud.userData.speed * dt;
+    if (cloud.position.x > 110) cloud.position.x -= 220;
+  }
+}
+
 let lastTime = performance.now();
 function frame(now) {
   const rdt = Math.min(0.05, (now - lastTime) / 1000);
@@ -2633,6 +2661,7 @@ function frame(now) {
   camera.position.copy(pivot).addScaledVector(VIEW, zoom);
   camera.lookAt(pivot);
   camera.updateMatrixWorld();
+  updateClouds(dt);
   updateGhost(t);
   updatePaste(t);
   updateDrills(dt);
