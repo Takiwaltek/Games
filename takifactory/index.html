@@ -158,12 +158,13 @@ const groundGeo = new THREE.PlaneGeometry(MAP * 2, MAP * 2, 200, 200);
 groundGeo.rotateX(-Math.PI / 2);
 const gPos = groundGeo.attributes.position;
 const gCol = new Float32Array(gPos.count * 3);
-const cGrass = new THREE.Color(0x1c1046), cRock = new THREE.Color(0x3a2a66), cSnow = new THREE.Color(0x8fe9ff), cSoil = new THREE.Color(0x2a0f3d);
+const cGrass = new THREE.Color(0x2a1866), cTint = new THREE.Color(0x0f5c6e), cRock = new THREE.Color(0x3a2a66), cSnow = new THREE.Color(0x8fe9ff), cSoil = new THREE.Color(0x2a0f3d);
 const tmpColor = new THREE.Color();
 for (let i = 0; i < gPos.count; i++) {
   const x = gPos.getX(i), z = gPos.getZ(i), h = heightAt(x, z);
   gPos.setY(i, h);
-  tmpColor.copy(cGrass).lerp(cRock, smooth(2, 8, h)).lerp(cSnow, smooth(11, 15, h));
+  const patch = 0.5 + 0.35 * Math.sin(x * 1.7) * Math.cos(z * 1.3) + 0.15 * Math.sin((x + z) * 3.1);
+  tmpColor.copy(cGrass).lerp(cTint, patch * 0.45).lerp(cRock, smooth(2, 8, h)).lerp(cSnow, smooth(11, 15, h));
   if (oreAt(x, z)) tmpColor.lerp(cSoil, 0.85);
   tmpColor.toArray(gCol, i * 3);
 }
