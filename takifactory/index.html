@@ -58,6 +58,19 @@
   .help-grid h4 { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; font-family: system-ui, sans-serif; }
   .help-grid ul { margin: 0; padding: 0; list-style: none; font-size: .88rem; line-height: 1.9; }
   kbd { font-family: inherit; font-size: .75rem; padding: 1px 6px; margin-right: 4px; border-radius: 5px; border: 1px solid var(--line); background: #0f180b; color: var(--gold); }
+  .tool-btn.locked { opacity: .45; }
+  .bar { height: 6px; margin: 8px 0; border-radius: 3px; background: #0f180b; overflow: hidden; }
+  .bar[hidden], .notice[hidden] { display: none; }
+  .bar span { display: block; height: 100%; width: 0; background: var(--grass); }
+  .inspector-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .inspector-actions .menu-btn { padding: 6px 10px; font-size: .8rem; }
+  .inspector-actions .menu-btn[aria-pressed="true"] { border-color: var(--grass); color: var(--gold); }
+  .notice { position: fixed; top: 96px; left: 50%; transform: translateX(-50%); z-index: 5; padding: 8px 16px; font-size: .85rem; pointer-events: none; }
+  .tech-card { width: min(620px, 92vw); }
+  .tech-list { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 10px; max-height: 58vh; overflow: auto; }
+  .tech-node { display: grid; gap: 4px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+  .tech-node button { justify-self: start; }
+  .tech-node small { opacity: .75; }
   .select-box { position: fixed; display: none; border: 1px solid var(--grass); background: rgba(143, 207, 90, .15); pointer-events: none; }
 </style>
 </head>
@@ -79,9 +92,12 @@
   <summary>Statistiques</summary>
   <div id="stats"></div>
 </details>
+<div class="notice panel" id="notice" hidden></div>
 <aside class="panel inspector" id="inspector" hidden>
   <h3 id="inspector-title"></h3>
   <ul id="inspector-list"></ul>
+  <div class="bar" id="inspector-bar" hidden><span></span></div>
+  <div class="inspector-actions" id="inspector-actions"></div>
 </aside>
 <div class="select-box" id="select-box"></div>
 <nav class="toolbar panel">
@@ -92,6 +108,10 @@
   <button class="tool-btn" id="btn-harvester" type="button" aria-pressed="false" title="Récolteur : abat les arbres proches"><span class="key">H</span>Récolteur</button>
   <button class="tool-btn" id="btn-generator" type="button" aria-pressed="false" title="Générateur : brûle la biomasse"><span class="key">B</span>Générateur</button>
   <button class="tool-btn" id="btn-pole" type="button" aria-pressed="false" title="Poteau : relie les machines électriques"><span class="key">P</span>Poteau</button>
+  <button class="tool-btn" id="btn-constructor" type="button" aria-pressed="false" title="Constructeur : fabrique plaques et tiges de fer"><span class="key">J</span>Constructeur</button>
+  <button class="tool-btn" id="btn-container" type="button" aria-pressed="false" title="Conteneur : stocke jusqu'à 5000 objets"><span class="key">K</span>Conteneur</button>
+  <span class="sep"></span>
+  <button class="tool-btn" id="btn-tech" type="button" aria-pressed="false" title="Arbre technologique (T)"><span class="key">T</span>Technologies</button>
   <span class="sep"></span>
   <button class="tool-btn" id="btn-grid" type="button" aria-pressed="false" title="Afficher ou masquer la grille"><span class="key">L</span>Grille</button>
   <button class="tool-btn cancel" id="btn-cancel" type="button" title="Annuler l'outil (Échap)">Annuler</button>
@@ -112,6 +132,14 @@
     <div class="menu-foot" id="save-msg"></div>
   </div>
 </div>
+<div class="overlay" id="tech" hidden>
+  <div class="panel menu-card tech-card">
+    <div class="menu-logo">Technologies</div>
+    <div class="menu-sub">Achetées avec les ressources stockées dans le Hub</div>
+    <ul class="tech-list" id="tech-list"></ul>
+    <button class="menu-btn primary" id="tech-close" type="button">Fermer</button>
+  </div>
+</div>
 <div class="overlay" id="help" hidden>
   <div class="panel menu-card wide">
     <h2 class="help-title">Comment jouer</h2>
@@ -126,6 +154,8 @@
           <li><kbd>H</kbd>Récolteur, près des arbres</li>
           <li><kbd>B</kbd>Générateur, brûle la biomasse</li>
           <li><kbd>P</kbd>Poteau, relie l'électricité</li>
+          <li><kbd>J</kbd>Constructeur, fabrique plaques ou tiges</li>
+          <li><kbd>K</kbd>Conteneur, stocke jusqu'à 5000 objets</li>
         </ul>
       </section>
       <section>
@@ -146,6 +176,14 @@
           <li><kbd>Molette</kbd>Zoom</li>
           <li>Glisser au clic molette ou droit</li>
           <li><kbd>F1</kbd>Cette aide</li>
+        </ul>
+      </section>
+      <section>
+        <h4>Progression</h4>
+        <ul>
+          <li>Le Hub offre une foreuse et un récolteur</li>
+          <li>Les machines tirent leurs coûts du stock du Hub</li>
+          <li><kbd>T</kbd>Arbre technologique, achats au Hub</li>
         </ul>
       </section>
     </div>
@@ -185,11 +223,11 @@ const FORESTS = [
   { x: -30, z: -68, r: 14 }
 ];
 const MAP = 100;
-const SIZE = { drill: 2, furnace: 2, belt: 1, under: 1, harvester: 2, generator: 2, pole: 1 };
+const SIZE = { drill: 2, furnace: 2, belt: 1, under: 1, harvester: 2, generator: 2, pole: 1, constructor: 2, container: 2, hub: 3 };
 const BUFFER_MAX = 4;
 const MINE_INTERVAL = 1;
 const ORE_TARGET = new THREE.Vector3(0.95, 0.8, 0);
-const STACK_SLOTS = [0, 1, 2, 3].map(k => new THREE.Vector3(1.45 + (k >> 1) * 0.3, 0.13, k & 1 ? 0.3 : -0.3));
+const STACK_SLOTS = [0, 1, 2, 3, 4, 5, 6, 7].map(k => new THREE.Vector3(1.45 + ((k & 3) >> 1) * 0.3, 0.13 + (k >> 2) * 0.26, k & 1 ? 0.3 : -0.3));
 // Quarter-turn index d: rotation.y = d * PI/2 maps local +x onto DIRS[d]
 const DIRS = [[1, 0], [0, -1], [-1, 0], [0, 1]];
 const BELT_SPEED = 0.8;
@@ -212,8 +250,34 @@ const POLE_RANGE = 7;
 const POLE_H = 2.4;
 const INGOTS = {
   ironIngot: { name: 'Lingot de fer', color: 0xd9dde6 },
-  copperIngot: { name: 'Lingot de cuivre', color: 0xf08a4b }
+  copperIngot: { name: 'Lingot de cuivre', color: 0xf08a4b },
+  ironPlate: { name: 'Plaque de fer', color: 0xc4cad6 },
+  ironRod: { name: 'Tige de fer', color: 0x9aa3b5 }
 };
+// Recettes du constructeur : des lingots en entrée, des pièces en sortie
+const RECIPES = {
+  ironPlate: { name: 'Plaques de fer', input: 'ironIngot', inCount: 3, out: 'ironPlate', outCount: 2, time: 6 },
+  ironRod: { name: 'Tiges de fer', input: 'ironIngot', inCount: 1, out: 'ironRod', outCount: 1, time: 4 }
+};
+const CONSTR_INPUT = 6;
+const CONSTR_BUFFER = 4;
+const CONSTR_MW = 5;
+const CONTAINER_CAP = 5000;
+const CONTAINER_RATE = 1;
+const HUB_POS = { ix: -6, iz: -4 };
+// Coût d'une foreuse ou d'un récolteur supplémentaire (les premiers sont offerts par le Hub)
+const COSTS = { drill: { ironPlate: 5 }, harvester: { ironRod: 5 } };
+// Arbre technologique, payé avec les ressources stockées dans le Hub
+const TECH = [
+  { id: 'furnace', name: 'Fourneau', desc: 'Débloque le fourneau (touche G)', cost: { iron: 100 }, needs: [] },
+  { id: 'container', name: 'Conteneur', desc: 'Stocke jusqu\'à 5000 objets (touche K)', cost: { iron: 150 }, needs: ['furnace'] },
+  { id: 'constructor', name: 'Constructeur', desc: 'Fabrique plaques et tiges de fer (touche J)', cost: { ironIngot: 200 }, needs: ['furnace'] },
+  { id: 'drillSpeed', name: 'Foreuse rapide', desc: 'Les foreuses extraient 25 % plus vite', cost: { iron: 50 }, needs: [] },
+  { id: 'buffer', name: 'Sorties élargies', desc: 'Double la capacité de sortie des machines', cost: { iron: 80 }, needs: ['drillSpeed'] },
+  { id: 'power', name: 'Générateur amélioré', desc: 'Les générateurs produisent 50 % de plus', cost: { ironIngot: 80 }, needs: ['constructor'] }
+];
+const UNLOCK_OF = { furnace: 'furnace', container: 'container', constructor: 'constructor' };
+const POWERED = new Set(['pole', 'generator', 'furnace', 'constructor']);
 
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
@@ -622,6 +686,61 @@ function buildGenerator(mats) {
   return { group, lampMat: mats.lamp, smokePorts, smokeT: 0 };
 }
 
+function buildHub(mats) {
+  const group = new THREE.Group();
+  const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
+  add(new THREE.BoxGeometry(3, 0.3, 3), mats.dark, 0, 0.15, 0);
+  add(new THREE.BoxGeometry(2.5, 1.8, 2.5), mats.steel, 0, 1.2, 0);
+  add(new THREE.BoxGeometry(2.6, 0.14, 2.6), mats.trim, 0, 2.17, 0);
+  add(new THREE.BoxGeometry(1.6, 0.9, 0.05), mats.lamp, 0, 1.2, 1.27);
+  add(new THREE.CylinderGeometry(0.5, 0.5, 0.5, 16), mats.dark, 0, 2.5, 0);
+  add(new THREE.TorusGeometry(0.62, 0.05, 8, 20), mats.trim, 0, 2.5, 0).rotation.x = Math.PI / 2;
+  return { group, lampMat: mats.lamp, smokePorts: [], smokeT: 0 };
+}
+
+function buildConstructor(mats) {
+  const group = new THREE.Group();
+  const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
+  add(new THREE.BoxGeometry(2, 0.3, 2), mats.dark, 0, 0.15, 0);
+  add(new THREE.BoxGeometry(1.5, 1.2, 1.5), mats.steel, 0, 0.9, 0);
+  add(new THREE.BoxGeometry(1.56, 0.12, 1.56), mats.trim, 0, 1.56, 0);
+  add(new THREE.BoxGeometry(0.06, 0.6, 0.9), mats.lamp, 0.77, 0.8, 0);
+  add(new THREE.BoxGeometry(0.5, 0.4, 0.5), mats.dark, 0.95, 0.4, 0);
+  addOutputArrow(group, mats, 1.62);
+  addInputArrow(group, mats, 1.62);
+  addFrame(group, mats, 1.62);
+  addVents(group, mats, 0.9);
+  const gear = new THREE.Group();
+  gear.position.set(0, 1.95, 0);
+  group.add(gear);
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.22, 0.2, 10), mats.trim);
+  hub.rotation.x = Math.PI / 2;
+  gear.add(hub);
+  for (let k = 0; k < 6; k++) {
+    const tooth = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, 0.12), mats.steel);
+    const a = (k / 6) * Math.PI * 2;
+    tooth.position.set(Math.cos(a) * 0.3, Math.sin(a) * 0.3, 0);
+    gear.add(tooth);
+  }
+  const smokePorts = addPipework(group, mats, 1.62);
+  return { group, lampMat: mats.lamp, smokePorts, smokeT: 0, gear };
+}
+
+function buildContainer(mats) {
+  const group = new THREE.Group();
+  const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
+  add(new THREE.BoxGeometry(2, 0.3, 2), mats.dark, 0, 0.15, 0);
+  add(new THREE.BoxGeometry(1.7, 1.3, 1.7), mats.steel, 0, 0.95, 0);
+  for (const y of [0.5, 0.95, 1.4]) add(new THREE.BoxGeometry(1.74, 0.05, 1.74), mats.trim, 0, y, 0);
+  add(new THREE.BoxGeometry(1.76, 0.1, 1.76), mats.trim, 0, 1.63, 0);
+  add(new THREE.BoxGeometry(0.06, 0.5, 0.9), mats.lamp, 0.87, 0.9, 0);
+  addOutputArrow(group, mats, 1.7);
+  addInputArrow(group, mats, 1.7);
+  addFrame(group, mats, 1.7);
+  const smokePorts = addPipework(group, mats, 1.7);
+  return { group, lampMat: mats.lamp, smokePorts, smokeT: 0 };
+}
+
 function buildPole(mats) {
   const group = new THREE.Group();
   const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
@@ -718,15 +837,24 @@ ghostLine.visible = false;
 selectLine.visible = false;
 scene.add(ghostLine, selectLine);
 
+const constructors = [];
+const containers = [];
+const hubs = [];
 const drills = [];
 const furnaces = [];
 const harvesters = [];
 const generators = [];
 const poles = [];
 const belts = [];
-const LISTS = { drill: drills, harvester: harvesters, furnace: furnaces, generator: generators, pole: poles, belt: belts };
+const LISTS = { drill: drills, harvester: harvesters, furnace: furnaces, generator: generators, pole: poles, belt: belts, constructor: constructors, container: containers };
+const ALL = () => [...drills, ...harvesters, ...furnaces, ...generators, ...poles, ...belts, ...constructors, ...containers];
+const SELECTABLE = () => [...ALL(), ...hubs];
 const occupied = new Map();
-const stats = { mined: { iron: 0, copper: 0, coal: 0, limestone: 0, biomass: 0 }, smelted: { iron: 0, copper: 0 } };
+const stats = { mined: { iron: 0, copper: 0, coal: 0, limestone: 0, biomass: 0 }, smelted: { iron: 0, copper: 0 }, crafted: { ironPlate: 0, ironRod: 0 } };
+// Stock du Hub, cadeaux de départ (une foreuse et un récolteur) et technologies achetées
+const hubState = { stock: {}, gifts: { drill: 1, harvester: 1 }, tech: new Set() };
+let simTime = 0;
+const mineLog = [];
 let mode = null;
 let rot = 0;
 let ghost = null;
@@ -799,7 +927,7 @@ function spawnOre(d, key = d.ore) {
     mesh.rotation.set(k * 5, k * 3, 0);
   }, () => {
     d.inFlight--;
-    stats.mined[key]++;
+    noteMined(key);
     if (d.removed) {
       scene.remove(mesh);
       return;
@@ -874,7 +1002,7 @@ function spawnFragment(d) {
 function updateDrills(dt) {
   for (const d of drills) {
     flushOutbox(d);
-    const running = d.outbox.length + d.inFlight < BUFFER_MAX;
+    const running = d.outbox.length + d.inFlight < buffered(BUFFER_MAX);
     d.rotor.rotation.y += dt * (running ? 5 : 0.3);
     d.lampMat.emissive.setHex(running ? ORES[d.ore].color : 0xff3344);
     if (!running) {
@@ -898,8 +1026,8 @@ function updateDrills(dt) {
     }
     tickSmoke(d, dt);
     d.timer += dt;
-    if (d.timer >= MINE_INTERVAL) {
-      d.timer -= MINE_INTERVAL;
+    if (d.timer >= mineInterval()) {
+      d.timer -= mineInterval();
       spawnOre(d);
     }
   }
@@ -909,7 +1037,7 @@ function updateHarvesters(dt) {
   for (const h of harvesters) {
     flushOutbox(h);
     if (!h.target || !h.target.alive) h.target = nearestTree(h);
-    const running = !!h.target && h.outbox.length + h.inFlight < BUFFER_MAX;
+    const running = !!h.target && h.outbox.length + h.inFlight < buffered(BUFFER_MAX);
     h.rotor.rotation.y += dt * (running ? 6 : 0.3);
     h.lampMat.emissive.setHex(running ? ORES.biomass.color : 0xff3344);
     if (!running) {
@@ -944,8 +1072,73 @@ function updateGenerators(dt) {
   }
 }
 
+function powerMW() {
+  return hasTech('power') ? 45 : POWER_MW;
+}
+
+function mwOf(u) {
+  return u.kind === 'constructor' ? CONSTR_MW : FURNACE_MW;
+}
+
 function totalPower() {
-  return generators.filter(g => g.burning).length * POWER_MW;
+  return generators.filter(g => g.burning).length * powerMW();
+}
+
+// Historique des extractions, pour le rythme affiché à l'écran
+function noteMined(key) {
+  stats.mined[key]++;
+  mineLog.push({ t: simTime, key });
+}
+function harvestPerMinute() {
+  while (mineLog.length && simTime - mineLog[0].t > 60) mineLog.shift();
+  return mineLog.length;
+}
+
+function hasTech(id) {
+  return hubState.tech.has(id);
+}
+function unlocked(kind) {
+  const id = UNLOCK_OF[kind];
+  return !id || hasTech(id);
+}
+function mineInterval() {
+  return hasTech('drillSpeed') ? 0.8 : MINE_INTERVAL;
+}
+// Capacité de sortie d'une machine, doublée par la technologie « Sorties élargies »
+function buffered(n) {
+  return hasTech('buffer') ? n * 2 : n;
+}
+
+// Vérifie qu'on peut financer les machines demandées (cadeau du Hub d'abord, sinon achat), sans rien dépenser
+function planFunding(kinds) {
+  const gifts = { ...hubState.gifts };
+  const stock = { ...hubState.stock };
+  const plans = [];
+  for (const kind of kinds) {
+    if (!unlocked(kind)) return null;
+    if (!COSTS[kind]) { plans.push(null); continue; }
+    if (gifts[kind] > 0) { gifts[kind]--; plans.push('gift'); continue; }
+    const cost = COSTS[kind];
+    if (!Object.entries(cost).every(([k, n]) => (stock[k] || 0) >= n)) return null;
+    for (const [k, n] of Object.entries(cost)) stock[k] -= n;
+    plans.push('paid');
+  }
+  return plans;
+}
+function applyFunding(kind, plan) {
+  if (plan === 'gift') hubState.gifts[kind]--;
+  if (plan === 'paid') for (const [k, n] of Object.entries(COSTS[kind])) hubState.stock[k] -= n;
+}
+// Rend le cadeau ou les ressources d'une machine supprimée
+function refundFunding(m) {
+  if (m.funding === 'gift') hubState.gifts[m.kind]++;
+  if (m.funding === 'paid') for (const [k, n] of Object.entries(COSTS[m.kind])) hubState.stock[k] = (hubState.stock[k] || 0) + n;
+  m.funding = null;
+}
+
+let notice = null;
+function notify(text) {
+  notice = { text, until: performance.now() + 3000 };
 }
 
 // Réseau électrique : un poteau relie tout ce qui est à portée (poteaux, générateurs, fourneaux)
@@ -961,7 +1154,7 @@ function poleTargets(x, z, self) {
   const near = (n) => n !== self && Math.hypot(n.cx - x, n.cz - z) <= POLE_RANGE;
   const targets = poles.filter(near);
   let machine = null, best = Infinity;
-  for (const m of [...generators, ...furnaces]) {
+  for (const m of [...generators, ...furnaces, ...constructors]) {
     if (!near(m)) continue;
     const d = Math.hypot(m.cx - x, m.cz - z);
     if (d < best) { best = d; machine = m; }
@@ -971,7 +1164,7 @@ function poleTargets(x, z, self) {
 }
 
 function rebuildPower() {
-  const nodes = [...poles, ...generators, ...furnaces];
+  const nodes = [...poles, ...generators, ...furnaces, ...constructors];
   const parent = new Map(nodes.map(n => [n, n]));
   const root = (n) => {
     while (parent.get(n) !== n) n = parent.get(n);
@@ -988,11 +1181,11 @@ function rebuildPower() {
   const nets = new Map();
   for (const n of nodes) {
     const r = root(n);
-    if (!nets.has(r)) nets.set(r, { gens: [], furnaces: [], sat: 0 });
+    if (!nets.has(r)) nets.set(r, { gens: [], users: [], sat: 0 });
     const net = nets.get(r);
     n.net = net;
     if (n.kind === 'generator') net.gens.push(n);
-    if (n.kind === 'furnace') net.furnaces.push(n);
+    if (n.kind === 'furnace' || n.kind === 'constructor') net.users.push(n);
   }
   powerNets = [...nets.values()];
   const pts = [];
@@ -1006,8 +1199,8 @@ function rebuildPower() {
 // Part de la demande couverte : 1 si la production du réseau suffit à tous ses fourneaux
 function updatePower() {
   for (const net of powerNets) {
-    const supply = net.gens.filter(g => g.burning).length * POWER_MW;
-    const demand = net.furnaces.length * FURNACE_MW;
+    const supply = net.gens.filter(g => g.burning).length * powerMW();
+    const demand = net.users.reduce((sum, u) => sum + mwOf(u), 0);
     net.sat = demand ? Math.min(1, supply / demand) : 1;
   }
 }
@@ -1015,7 +1208,7 @@ function updatePower() {
 function updateFurnaces(dt) {
   for (const f of furnaces) {
     flushOutbox(f);
-    if (!f.current && f.input.length && f.outbox.length < FURNACE_BUFFER) {
+    if (!f.current && f.input.length && f.outbox.length < buffered(FURNACE_BUFFER)) {
       f.current = f.input.shift();
       f.timer = 0;
     }
@@ -1034,6 +1227,56 @@ function updateFurnaces(dt) {
     }
     tickSmoke(f, dt, !!f.current);
     f.lampMat.emissive.setHex(f.current ? 0xff7a1a : 0x2a1100);
+  }
+}
+
+// Constructeur : consomme des lingots selon la recette, puis pose les pièces dans sa sortie
+function updateConstructors(dt) {
+  for (const c of constructors) {
+    flushOutbox(c);
+    const r = RECIPES[c.current || c.recipe];
+    if (!c.current && c.input.length >= r.inCount && c.outbox.length + r.outCount <= buffered(CONSTR_BUFFER)) {
+      c.input.splice(0, r.inCount);
+      c.current = c.recipe;
+      c.timer = 0;
+    }
+    if (c.current) {
+      c.timer += dt * (c.net ? c.net.sat : 0);
+      if (c.timer >= r.time) {
+        for (let i = 0; i < r.outCount; i++) {
+          const mesh = new THREE.Mesh(ingotGeo, itemMats[r.out]);
+          mesh.position.copy(STACK_SLOTS[c.outbox.length]);
+          mesh.castShadow = true;
+          c.group.add(mesh);
+          c.outbox.push({ key: r.out, mesh });
+        }
+        stats.crafted[r.out] += r.outCount;
+        c.current = null;
+      }
+    }
+    if (c.gear && c.current) c.gear.rotation.z -= dt * 2;
+    tickSmoke(c, dt, !!c.current);
+    c.lampMat.emissive.setHex(c.current ? 0x3ea8ff : 0x0a1a2a);
+  }
+}
+
+// Conteneur : sort un objet par seconde vers ce qui se trouve devant lui
+function updateContainers(dt) {
+  for (const c of containers) {
+    c.timer += dt;
+    if (c.timer < 1 / CONTAINER_RATE) continue;
+    const out = frontOf(c);
+    if (!out) continue;
+    const key = Object.keys(c.stock).find(k => c.stock[k] > 0 && accepts(out, k));
+    if (!key) continue;
+    c.timer = 0;
+    c.stock[key]--;
+    if (!c.stock[key]) delete c.stock[key];
+    c.total--;
+    const mesh = new THREE.Mesh(ORES[key] ? oreGeo : ingotGeo, itemMats[key]);
+    mesh.position.set(c.cx, c.y + 1.2, c.cz);
+    scene.add(mesh);
+    offerTo(out, { key, mesh, t: 0 }, 0, false, (c.rot + 2) % 4);
   }
 }
 
@@ -1132,6 +1375,9 @@ function accepts(target, key, fromPair = false) {
   if (target.kind === 'belt') return (fromPair || target.ug !== 'out') && target.items.every(it => it.t >= SPACING);
   if (target.kind === 'furnace') return !!SMELT[key] && target.input.length < FURNACE_INPUT;
   if (target.kind === 'generator') return key === 'biomass' && target.input.length < GEN_INPUT;
+  if (target.kind === 'hub') return true;
+  if (target.kind === 'constructor') return key === RECIPES[target.recipe].input && target.input.length < CONSTR_INPUT;
+  if (target.kind === 'container') return target.total < CONTAINER_CAP;
   return false;
 }
 
@@ -1141,6 +1387,13 @@ function offerTo(target, item, t, fromPair = false, entry = undefined) {
     item.t = t;
     item.e = entry;
     target.items.push(item);
+  } else if (target.kind === 'hub') {
+    scene.remove(item.mesh);
+    hubState.stock[item.key] = (hubState.stock[item.key] || 0) + 1;
+  } else if (target.kind === 'container') {
+    scene.remove(item.mesh);
+    target.stock[item.key] = (target.stock[item.key] || 0) + 1;
+    target.total++;
   } else {
     scene.remove(item.mesh);
     target.input.push(item.key);
@@ -1174,18 +1427,21 @@ function evaluateSpot(ix, iz, size, needOre) {
 }
 
 function centerOf(kind, ix, iz) {
-  return kind === 'belt' || kind === 'pole' ? [ix + 0.5, iz + 0.5] : [ix + 1, iz + 1];
+  if (kind === 'belt' || kind === 'pole') return [ix + 0.5, iz + 0.5];
+  if (kind === 'hub') return [ix + 1.5, iz + 1.5];
+  return [ix + 1, iz + 1];
 }
 // Distance from the centre to the cell just in front of the machine
 function reachOf(kind) {
   return kind === 'belt' ? 1 : 1.5;
 }
 const kindOf = (tool) => (tool === 'under' ? 'belt' : tool);
-function rateOf(kind) {
-  if (kind === 'drill') return 60 / MINE_INTERVAL;
+function rateOf(kind, recipe = 'ironPlate') {
+  if (kind === 'drill') return 60 / mineInterval();
   if (kind === 'furnace') return 60 / SMELT_TIME;
   if (kind === 'harvester') return 60 / HARVEST_TIME;
   if (kind === 'generator') return 60 / BURN_TIME;
+  if (kind === 'constructor') return 60 / RECIPES[recipe].time;
   return BELT_RATE;
 }
 
@@ -1206,6 +1462,9 @@ function buildMachine(kind, mats, ug) {
   if (kind === 'harvester') return buildHarvester(mats);
   if (kind === 'generator') return buildGenerator(mats);
   if (kind === 'pole') return buildPole(mats);
+  if (kind === 'constructor') return buildConstructor(mats);
+  if (kind === 'container') return buildContainer(mats);
+  if (kind === 'hub') return buildHub(mats);
   return ug ? buildUnderground(mats, ug) : buildBelt(mats);
 }
 function startGhost(tool) {
@@ -1231,10 +1490,22 @@ const modeButtons = {
   under: document.getElementById('btn-under'),
   harvester: document.getElementById('btn-harvester'),
   generator: document.getElementById('btn-generator'),
-  pole: document.getElementById('btn-pole')
+  pole: document.getElementById('btn-pole'),
+  constructor: document.getElementById('btn-constructor'),
+  container: document.getElementById('btn-container')
 };
 const btnCancel = document.getElementById('btn-cancel');
+const itemName = (k) => (ORES[k] ? ORES[k].name : INGOTS[k].name);
+const costText = (kind) => Object.entries(COSTS[kind]).map(([k, n]) => `${n} ${itemName(k)}`).join(', ');
+function blockedReason(kind) {
+  if (!unlocked(kind)) return `${TECH.find(t => t.id === UNLOCK_OF[kind]).name} pas encore débloqué (touche T)`;
+  return `Il faut ${costText(kind)} dans le Hub`;
+}
 function setMode(next) {
+  if (next && !unlocked(next)) {
+    notify(blockedReason(next));
+    return;
+  }
   stopPaste();
   if (underStart) {
     removeMachine(underStart);
@@ -1289,7 +1560,7 @@ function updateGhost(t) {
   ghost.group.position.set(cx, h + 0.1 + Math.sin(t * 3) * 0.05, cz);
   ghost.group.rotation.y = r * Math.PI / 2;
   ghostLine.position.set(cx, h + 0.06, cz);
-  ghostLine.scale.setScalar(size === 1 ? 0.5 : 1);
+  ghostLine.scale.setScalar(size / 2);
   if (mode === 'pole') {
     const pts = poleTargets(cx, cz, null).flatMap(n => [new THREE.Vector3(cx, h + POLE_H, cz), new THREE.Vector3(n.cx, n.y + POLE_H, n.cz)]);
     poleGhostCables.geometry.dispose();
@@ -1313,7 +1584,8 @@ let lineDrag = null;
 
 const inGrid = (ix, iz) => ix >= -MAP && ix < MAP && iz >= -MAP && iz < MAP;
 const cellFree = (ix, iz) => inGrid(ix, iz) && !occupied.has(cellKey(ix, iz));
-const hasOutput = (m) => m.kind === 'drill' || m.kind === 'harvester' || m.kind === 'furnace';
+const hasOutput = (m) => m.kind === 'drill' || m.kind === 'harvester' || m.kind === 'furnace' || m.kind === 'constructor' || m.kind === 'container';
+const isSink = (m) => m.kind === 'furnace' || m.kind === 'generator' || m.kind === 'constructor' || m.kind === 'container' || m.kind === 'hub';
 const dirIndex = (dx, dz) => DIRS.findIndex(([x, z]) => x === dx && z === dz);
 
 // Cases libres collées au bord d'une machine, avec la rotation qui pointe vers elle
@@ -1389,7 +1661,7 @@ function computeRoute(hx, hz) {
   let endMachine = null;
   if (hit && hit === startMachine) {
     goals = new Map([[cellKey(start.ix, start.iz), { ix: start.ix, iz: start.iz, rot: -1 }]]);
-  } else if (hit && (hit.kind === 'furnace' || hit.kind === 'generator')) {
+  } else if (hit && isSink(hit)) {
     endMachine = hit;
     goals = entryCellsOf(hit);
     if (!goals.size) return { valid: false, cells: [], reason: 'Entrée bloquée' };
@@ -1533,17 +1805,19 @@ function updateLine(t) {
   ghostMat.opacity = 0.34 + 0.1 * Math.sin(t * 5);
 }
 
-function placeAt(kind, ix, iz, ore, ug, r) {
+function placeAt(kind, ix, iz, ore, ug, r, plan = null) {
   const [cx, cz] = centerOf(kind, ix, iz);
-  const lampColor = kind === 'drill' ? ORES[ore].color : kind === 'harvester' ? ORES.biomass.color : kind === 'pole' ? 0xffd166 : 0xff7a1a;
+  const lampColor = kind === 'drill' ? ORES[ore].color : kind === 'harvester' ? ORES.biomass.color : kind === 'pole' ? 0xffd166 : kind === 'constructor' ? 0x3ea8ff : kind === 'hub' ? 0x3ef0a8 : 0xff7a1a;
   const lamp = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: lampColor, emissiveIntensity: 1.4 });
   const built = buildMachine(kind, { dark: MATS.dark, steel: MATS.steel, trim: MATS.trim, pipe: MATS.pipe, lamp }, ug);
   const m = {
     ...built, kind, ore, ix, iz, cx, cz, rot: r, ug, pair: null, net: null,
     size: SIZE[kind], reach: reachOf(kind), y: heightAt(cx, cz),
-    list: LISTS[kind],
-    outbox: [], input: [], items: [], current: null, timer: 0, inFlight: 0, removed: false, burning: false, target: null
+    list: kind === 'hub' ? hubs : LISTS[kind],
+    outbox: [], input: [], items: [], current: null, timer: 0, inFlight: 0, removed: false, burning: false, target: null,
+    recipe: 'ironPlate', stock: {}, total: 0, funding: plan
   };
+  if (plan) applyFunding(kind, plan);
   m.group.position.set(cx, m.y, cz);
   m.group.rotation.y = r * Math.PI / 2;
   scene.add(m.group);
@@ -1552,7 +1826,7 @@ function placeAt(kind, ix, iz, ore, ug, r) {
     for (let j = iz; j < iz + m.size; j++) occupied.set(cellKey(i, j), m);
   }
   if (kind === 'belt') refreshBeltNeighbours(m);
-  if (kind === 'pole' || kind === 'generator' || kind === 'furnace') rebuildPower();
+  if (POWERED.has(kind)) rebuildPower();
   playPlacement(m.group, kind === 'drill' ? ORES[ore].color : kind === 'harvester' ? ORES.biomass.color : (kind === 'furnace' || kind === 'generator') ? 0xff7a1a : 0x7fd6ff);
   return m;
 }
@@ -1571,12 +1845,17 @@ function tryPlace() {
     refreshGhost();
     return;
   }
-  placeAt(mode, spot.ix, spot.iz, mode === 'harvester' ? 'biomass' : spot.ore, null, rot);
+  const plans = planFunding([mode]);
+  if (!plans) {
+    notify(blockedReason(mode));
+    return;
+  }
+  placeAt(mode, spot.ix, spot.iz, mode === 'harvester' ? 'biomass' : spot.ore, null, rot, plans[0]);
 }
 
 function selectAt() {
   raycaster.setFromCamera(pointer, camera);
-  const all = [...drills, ...harvesters, ...furnaces, ...generators, ...poles, ...belts];
+  const all = SELECTABLE();
   const hits = raycaster.intersectObjects(all.map(m => m.group), true);
   selected = null;
   multi = [];
@@ -1589,8 +1868,7 @@ function selectAt() {
 function selectArea(x0, y0, x1, y1) {
   const left = Math.min(x0, x1), right = Math.max(x0, x1);
   const top = Math.min(y0, y1), bottom = Math.max(y0, y1);
-  const all = [...drills, ...harvesters, ...furnaces, ...generators, ...poles, ...belts];
-  multi = all.filter((m) => {
+  multi = ALL().filter((m) => {
     const v = m.group.position.clone().project(camera);
     if (v.z > 1) return false;
     const sx = (v.x + 1) / 2 * window.innerWidth;
@@ -1604,7 +1882,7 @@ let clipboard = null;
 let paste = null;
 
 function copySelection() {
-  const src = (multi.length ? multi : selected ? [selected] : []).filter(m => !m.removed);
+  const src = (multi.length ? multi : selected ? [selected] : []).filter(m => !m.removed && m.kind !== 'hub');
   const chosen = new Set(src);
   // Un sous-pont n'est copié que si ses deux bouts sont sélectionnés
   const list = src.filter(m => !m.ug || (m.pair && chosen.has(m.pair)));
@@ -1612,7 +1890,7 @@ function copySelection() {
   const minIx = Math.min(...list.map(m => m.ix));
   const minIz = Math.min(...list.map(m => m.iz));
   clipboard = list.map(m => ({
-    kind: m.kind, ore: m.ore, rot: m.rot, ug: m.ug, size: m.size,
+    kind: m.kind, ore: m.ore, rot: m.rot, ug: m.ug, size: m.size, recipe: m.recipe,
     dx: m.ix - minIx, dz: m.iz - minIz,
     pair: m.pair ? list.indexOf(m.pair) : -1
   }));
@@ -1661,7 +1939,7 @@ function updatePaste(t) {
     g.rotation.y = it.rot * Math.PI / 2;
     return { x, z, ore: it.kind === 'drill' ? check.ore : it.ore };
   });
-  paste.ok = ok;
+  paste.ok = ok && planFunding(clipboard.map(it => it.kind)) !== null;
   ghostMat.color.setHex(ok ? 0x3ef0a8 : 0xff4d6d);
   ghostMat.emissive.setHex(ok ? 0x13986a : 0x8a1630);
   ghostMat.opacity = 0.34 + 0.1 * Math.sin(t * 5);
@@ -1669,9 +1947,16 @@ function updatePaste(t) {
 
 function tryPaste() {
   if (!paste || !paste.ok) return;
+  const plans = planFunding(clipboard.map(it => it.kind));
+  if (!plans) {
+    notify('Ressources insuffisantes pour coller');
+    return;
+  }
   const made = paste.cells.map((c, k) => {
     const it = clipboard[k];
-    return it.ug ? placeAt('belt', c.x, c.z, null, it.ug, it.rot) : placeAt(it.kind, c.x, c.z, c.ore, null, it.rot);
+    const m = it.ug ? placeAt('belt', c.x, c.z, null, it.ug, it.rot) : placeAt(it.kind, c.x, c.z, c.ore, null, it.rot, plans[k]);
+    if (it.recipe) m.recipe = it.recipe;
+    return m;
   });
   clipboard.forEach((it, k) => {
     if (it.pair >= 0) made[k].pair = made[it.pair];
@@ -1682,17 +1967,23 @@ function tryPaste() {
 }
 
 function rotateMachine(m) {
+  if (m.kind === 'hub') return;
   m.rot = (m.rot + 1) % 4;
   m.group.rotation.y = m.rot * Math.PI / 2;
 }
 
-function removeMachine(m) {
+function removeMachine(m, refund = true) {
+  if (m.kind === 'hub') {
+    notify('Le Hub ne se supprime pas');
+    return;
+  }
   const partner = m.pair;
   m.pair = null;
   if (partner) {
     partner.pair = null;
-    removeMachine(partner);
+    removeMachine(partner, refund);
   }
+  if (refund) refundFunding(m);
   m.removed = true;
   scene.remove(m.group);
   for (let i = m.ix; i < m.ix + m.size; i++) {
@@ -1710,7 +2001,7 @@ function removeMachine(m) {
   m.list.splice(m.list.indexOf(m), 1);
   if (selected === m) selected = null;
   multi = multi.filter(x => x !== m);
-  if (m.kind === 'pole' || m.kind === 'generator' || m.kind === 'furnace') rebuildPower();
+  if (POWERED.has(m.kind)) rebuildPower();
 }
 
 function updateSelection() {
@@ -1718,7 +2009,7 @@ function updateSelection() {
   if (selected) {
     const p = selected.group.position;
     selectLine.position.set(p.x, p.y + 0.06, p.z);
-    selectLine.scale.setScalar(selected.size === 1 ? 0.5 : 1);
+    selectLine.scale.setScalar(selected.size / 2);
   }
   let i = 0;
   for (const m of multi) {
@@ -1730,7 +2021,7 @@ function updateSelection() {
     const p = m.group.position;
     ring.visible = true;
     ring.position.set(p.x, p.y + 0.06, p.z);
-    ring.scale.setScalar(m.size === 1 ? 0.5 : 1);
+    ring.scale.setScalar(m.size / 2);
   }
   for (; i < areaRings.length; i++) areaRings[i].visible = false;
 }
@@ -1809,12 +2100,14 @@ window.addEventListener('keydown', (e) => {
   keys.add(e.code);
   if (e.code === 'F1') { e.preventDefault(); setHelp(helpEl.hidden); return; }
   if (e.code === 'Escape') {
-    if (!helpEl.hidden) setHelp(false);
+    if (!techEl.hidden) setTech(false);
+    else if (!helpEl.hidden) setHelp(false);
     else if (!menuEl.hidden) { if (started) setMenu(false); }
     else if (mode || paste || selected || multi.length) { setMode(null); selected = null; multi = []; }
     else setMenu(true);
     return;
   }
+  if (e.code === 'KeyT' && menuEl.hidden && helpEl.hidden) { setTech(techEl.hidden); return; }
   if (paused) return;
   if (e.code === 'KeyR') {
     if (!mode && selected) {
@@ -1833,6 +2126,8 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyH') toggleMode('harvester');
   if (e.code === 'KeyB') toggleMode('generator');
   if (e.code === 'KeyP') toggleMode('pole');
+  if (e.code === 'KeyJ') toggleMode('constructor');
+  if (e.code === 'KeyK') toggleMode('container');
   if (e.code === 'KeyL') toggleGrid();
   if (e.code === 'Delete') {
     if (multi.length) {
@@ -1858,7 +2153,9 @@ const helpEl = document.getElementById('help');
 const btnPlay = document.getElementById('menu-play');
 let started = false;
 let paused = true;
-function updatePause() { paused = !menuEl.hidden || !helpEl.hidden; }
+const techEl = document.getElementById('tech');
+const techList = document.getElementById('tech-list');
+function updatePause() { paused = !menuEl.hidden || !helpEl.hidden || !techEl.hidden; }
 function setMenu(open) {
   menuEl.hidden = !open;
   btnPlay.textContent = started ? 'Reprendre' : 'Jouer';
@@ -1871,19 +2168,73 @@ function setHelp(open) {
 btnPlay.addEventListener('click', () => { started = true; setMenu(false); });
 document.getElementById('menu-help').addEventListener('click', () => setHelp(true));
 document.getElementById('help-close').addEventListener('click', () => setHelp(false));
+document.getElementById('btn-tech').addEventListener('click', () => setTech(true));
+document.getElementById('tech-close').addEventListener('click', () => setTech(false));
+// Arbre technologique : achats payés avec le stock du Hub
+function setTech(open) {
+  techEl.hidden = !open;
+  if (open) renderTech();
+  updatePause();
+}
+function techStatus(t) {
+  if (hasTech(t.id)) return 'Acquise';
+  return t.needs.every(hasTech) ? 'Disponible' : 'Verrouillée';
+}
+function renderTech() {
+  techList.replaceChildren(...TECH.map((t) => {
+    const li = document.createElement('li');
+    li.className = 'tech-node';
+    const name = document.createElement('b');
+    name.textContent = t.name;
+    const desc = document.createElement('span');
+    desc.textContent = t.desc;
+    const cost = document.createElement('small');
+    cost.textContent = `Coût : ${Object.entries(t.cost).map(([k, n]) => `${n} ${itemName(k)}`).join(', ')}`;
+    const needs = document.createElement('small');
+    if (t.needs.length) needs.textContent = `Requiert : ${t.needs.map(id => TECH.find(x => x.id === id).name).join(', ')}`;
+    const status = techStatus(t);
+    const btn = actionButton(status === 'Disponible' ? 'Acheter' : status, () => buyTech(t.id));
+    btn.disabled = status !== 'Disponible';
+    li.append(name, desc, cost, needs, btn);
+    return li;
+  }));
+}
+function buyTech(id) {
+  const t = TECH.find(x => x.id === id);
+  if (!t || hasTech(id)) return;
+  if (!t.needs.every(hasTech)) {
+    notify('Technologie précédente requise');
+    return;
+  }
+  if (!Object.entries(t.cost).every(([k, n]) => (hubState.stock[k] || 0) >= n)) {
+    notify('Ressources insuffisantes dans le Hub');
+    return;
+  }
+  for (const [k, n] of Object.entries(t.cost)) hubState.stock[k] -= n;
+  hubState.tech.add(id);
+  notify(`${t.name} débloqué`);
+  renderTech();
+  refreshUnlocks();
+}
+function refreshUnlocks() {
+  for (const k in modeButtons) modeButtons[k].classList.toggle('locked', !unlocked(k));
+}
 document.getElementById('btn-help').addEventListener('click', () => setHelp(true));
 document.getElementById('btn-menu').addEventListener('click', () => setMenu(true));
 
 const SAVE_VERSION = 1;
 const saveMsg = document.getElementById('save-msg');
 function serializeFactory() {
-  const all = [...drills, ...harvesters, ...furnaces, ...generators, ...poles, ...belts].filter(m => !m.removed);
+  const all = ALL().filter(m => !m.removed);
   const index = new Map(all.map((m, k) => [m, k]));
   return {
     version: SAVE_VERSION,
+    hub: { stock: { ...hubState.stock }, gifts: { ...hubState.gifts }, tech: [...hubState.tech] },
     machines: all.map(m => ({
       kind: m.kind, ore: m.ore ?? null, ix: m.ix, iz: m.iz, rot: m.rot, ug: m.ug ?? null,
-      pair: m.pair && index.has(m.pair) ? index.get(m.pair) : -1
+      pair: m.pair && index.has(m.pair) ? index.get(m.pair) : -1,
+      recipe: m.kind === 'constructor' ? m.recipe : null,
+      stock: m.kind === 'container' ? { ...m.stock } : null
     }))
   };
 }
@@ -1895,6 +2246,7 @@ function loadFactory(data) {
     const size = SIZE[d.kind];
     if (!LISTS[d.kind] || !Number.isInteger(d.ix) || !Number.isInteger(d.iz) || !Number.isInteger(d.rot)) throw invalid();
     if (d.kind === 'drill' && !ORES[d.ore]) throw invalid();
+    if (d.recipe != null && !RECIPES[d.recipe]) throw invalid();
     if (!inGrid(d.ix, d.iz) || !inGrid(d.ix + size - 1, d.iz + size - 1)) throw new Error('Machine hors de la carte');
     for (let i = d.ix; i < d.ix + size; i++) {
       for (let j = d.iz; j < d.iz + size; j++) {
@@ -1903,9 +2255,14 @@ function loadFactory(data) {
       }
     }
   }
-  for (const m of [...drills, ...harvesters, ...furnaces, ...generators, ...poles, ...belts]) {
-    if (!m.removed) removeMachine(m);
+  const hub = data.hub ?? {};
+  const isItem = (k) => Boolean(ORES[k] || INGOTS[k]);
+  for (const m of ALL()) {
+    if (!m.removed) removeMachine(m, false);
   }
+  hubState.stock = Object.fromEntries(Object.entries(hub.stock ?? {}).filter(([k, n]) => isItem(k) && Number.isFinite(n) && n > 0));
+  hubState.gifts = { drill: hub.gifts?.drill ?? 1, harvester: hub.gifts?.harvester ?? 1 };
+  hubState.tech = new Set((hub.tech ?? []).filter(id => TECH.some(t => t.id === id)));
   setMode(null);
   selected = null;
   multi = [];
@@ -1913,7 +2270,20 @@ function loadFactory(data) {
   const made = data.machines.map(d => placeAt(d.kind, d.ix, d.iz, d.ore, d.ug, d.rot));
   data.machines.forEach((d, k) => {
     if (d.pair >= 0 && made[d.pair]) made[k].pair = made[d.pair];
+    if (d.recipe) made[k].recipe = d.recipe;
+    if (d.stock) {
+      let total = 0;
+      for (const [item, n] of Object.entries(d.stock)) {
+        const add = Math.min(Number.isFinite(n) ? n : 0, CONTAINER_CAP - total);
+        if (isItem(item) && add > 0) {
+          made[k].stock[item] = add;
+          total += add;
+        }
+      }
+      made[k].total = total;
+    }
   });
+  refreshUnlocks();
   return made.length;
 }
 
@@ -1974,42 +2344,133 @@ const toolNameEl = document.getElementById('tool-name');
 const inspectorEl = document.getElementById('inspector');
 const inspectorTitle = document.getElementById('inspector-title');
 const inspectorList = document.getElementById('inspector-list');
-const MODE_LABELS = { drill: 'Foreuse', furnace: 'Fourneau', belt: 'Convoyeur', under: 'Sous-pont', harvester: 'Récolteur', generator: 'Générateur', pole: 'Poteau' };
+const MODE_LABELS = { drill: 'Foreuse', furnace: 'Fourneau', belt: 'Convoyeur', under: 'Sous-pont', harvester: 'Récolteur', generator: 'Générateur', pole: 'Poteau', constructor: 'Constructeur', container: 'Conteneur' };
+const noticeEl = document.getElementById('notice');
+const inspectorActions = document.getElementById('inspector-actions');
+const inspectorBar = document.getElementById('inspector-bar');
+let inspectorKey = null;
 let hudTimer = 0;
-function setInspector(title, lines = []) {
+function setInspector(title, lines = [], actions = [], key = null, progress = null) {
   inspectorEl.hidden = !title;
-  if (!title) return;
+  if (!title) {
+    inspectorKey = null;
+    return;
+  }
   inspectorTitle.textContent = title;
   inspectorList.replaceChildren(...lines.map(l => {
     const li = document.createElement('li');
     li.textContent = l;
     return li;
   }));
+  inspectorBar.hidden = progress === null;
+  if (progress !== null) inspectorBar.firstElementChild.style.width = `${Math.round(progress * 100)}%`;
+  // Les boutons ne sont reconstruits qu'au changement de machine, sinon on perd le clic en cours
+  if (key !== inspectorKey) {
+    inspectorKey = key;
+    inspectorActions.replaceChildren(...actions);
+  }
 }
-function describe(m) {
-  const rate = `${rateOf(m.kind)}/min`;
+const actionButton = (label, onClick, pressed = false) => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'menu-btn';
+  b.textContent = label;
+  b.setAttribute('aria-pressed', String(pressed));
+  b.addEventListener('click', onClick);
+  return b;
+};
+// Change la recette d'un constructeur ; les lingots qui ne servent plus rejoignent le stock du Hub
+function setRecipe(m, id) {
+  if (m.recipe === id) return;
+  const keep = RECIPES[id].input;
+  const stray = m.input.filter(it => it.key !== keep);
+  m.input = m.input.filter(it => it.key === keep);
+  m.recipe = id;
+  for (const it of stray) {
+    it.mesh.removeFromParent();
+    hubState.stock[it.key] = (hubState.stock[it.key] || 0) + 1;
+  }
+  inspectorKey = null;
+}
+// Contenu du panneau d'inspection : entrée, sortie et progression de chaque machine
+function inspect(m) {
+  const hint = m.ug ? 'Suppr pour démonter' : 'R tourne · Suppr pour démonter';
+  if (m.kind === 'hub') {
+    const stock = Object.entries(hubState.stock).filter(([, n]) => n > 0).map(([k, n]) => `${itemName(k)} : ${n}`);
+    return {
+      title: 'Hub',
+      lines: [`Foreuses offertes : ${hubState.gifts.drill} · Récolteurs offerts : ${hubState.gifts.harvester}`, ...(stock.length ? stock : ['Stock vide'])],
+      actions: [], progress: null
+    };
+  }
   if (m.kind === 'drill') {
-    const state = m.outbox.length >= BUFFER_MAX ? 'sortie pleine' : 'en marche';
-    return `Foreuse ${ORES[m.ore].name} · débit ${rate} · ${state} · ${m.outbox.length}/${BUFFER_MAX} · R tourne · Suppr pour démonter`;
+    const full = m.outbox.length >= buffered(BUFFER_MAX);
+    return {
+      title: `Foreuse ${ORES[m.ore].name}`,
+      lines: [`Débit : ${rateOf('drill')}/min`, `Sortie : ${m.outbox.length}/${buffered(BUFFER_MAX)}`, full ? 'Sortie pleine' : 'En marche', hint],
+      actions: [], progress: null
+    };
   }
   if (m.kind === 'harvester') {
-    const state = !nearestTree(m) ? 'aucun arbre à proximité' : m.outbox.length >= BUFFER_MAX ? 'sortie pleine' : 'en marche';
-    return `Récolteur · débit ${rate} · ${state} · ${m.outbox.length}/${BUFFER_MAX} · R tourne · Suppr pour démonter`;
+    const state = !nearestTree(m) ? 'Aucun arbre à proximité' : m.outbox.length >= buffered(BUFFER_MAX) ? 'Sortie pleine' : 'En marche';
+    return {
+      title: 'Récolteur',
+      lines: [`Débit : ${rateOf('harvester')}/min`, `Sortie : ${m.outbox.length}/${buffered(BUFFER_MAX)}`, state, hint],
+      actions: [], progress: null
+    };
   }
   if (m.kind === 'generator') {
-    return `Générateur biomasse · ${m.burning ? POWER_MW : 0} MW · ${m.input.length}/${GEN_INPUT} biomasse en attente · consomme ${rate} · R tourne · Suppr pour démonter`;
+    return {
+      title: 'Générateur biomasse',
+      lines: [`Puissance : ${m.burning ? powerMW() : 0} MW`, `Biomasse en attente : ${m.input.length}/${GEN_INPUT}`, `Consomme : ${rateOf('generator')}/min`, hint],
+      actions: [], progress: null
+    };
   }
-  if (m.kind === 'pole') return `Poteau électrique · portée ${POLE_RANGE} cases · Suppr pour démonter`;
+  if (m.kind === 'pole') return { title: 'Poteau électrique', lines: [`Portée : ${POLE_RANGE} cases`, 'Suppr pour démonter'], actions: [], progress: null };
   if (m.kind === 'furnace') {
-    const power = `alimentation ${Math.round((m.net ? m.net.sat : 0) * 100)} %`;
-    return `Fourneau · débit ${rate} · ${power} · ${m.current ? 'fusion en cours' : 'en attente'} · ${m.input.length} entrée(s) · ${m.outbox.length}/${FURNACE_BUFFER} lingot(s) · R tourne · Suppr pour démonter`;
+    return {
+      title: 'Fourneau',
+      lines: [
+        `Alimentation : ${Math.round((m.net ? m.net.sat : 0) * 100)} %`,
+        `Entrée : ${m.input.length} minerai(s) en attente`,
+        `Sortie : ${m.outbox.length}/${buffered(FURNACE_BUFFER)} lingot(s)`,
+        m.current ? 'Fusion en cours' : 'En attente',
+        hint
+      ],
+      actions: [], progress: m.current ? clamp(m.timer / SMELT_TIME, 0, 1) : 0
+    };
+  }
+  if (m.kind === 'constructor') {
+    const r = RECIPES[m.recipe];
+    return {
+      title: 'Constructeur',
+      lines: [
+        `Recette : ${r.name}`,
+        `Entrée : ${m.input.length}/${CONSTR_INPUT} lingot(s), ${r.inCount} par pièce`,
+        `Sortie : ${m.outbox.length}/${buffered(CONSTR_BUFFER)}`,
+        `Débit : ${rateOf('constructor', m.recipe)}/min`,
+        m.current ? 'Fabrication en cours' : 'En attente',
+        hint
+      ],
+      actions: Object.entries(RECIPES).map(([id, rec]) => actionButton(rec.name, () => setRecipe(m, id), m.recipe === id)),
+      progress: m.current ? clamp(m.timer / RECIPES[m.current].time, 0, 1) : 0
+    };
+  }
+  if (m.kind === 'container') {
+    const items = Object.entries(m.stock).map(([k, n]) => `${itemName(k)} : ${n}`);
+    return {
+      title: 'Conteneur',
+      lines: [`Stock : ${m.total}/${CONTAINER_CAP}`, ...(items.length ? items : ['Vide']), `Sortie : ${CONTAINER_RATE} objet/s vers l'avant`, 'Suppr pour démonter'],
+      actions: [], progress: m.total / CONTAINER_CAP
+    };
   }
   if (m.ug) {
     const link = m.pair ? `relié à ${Math.abs(m.pair.ix - m.ix) + Math.abs(m.pair.iz - m.iz)} case(s)` : 'non relié';
-    return `Sous-pont ${m.ug === 'in' ? 'entrée' : 'sortie'} · débit ${rate} · ${link} · Suppr pour démonter`;
+    return { title: `Sous-pont ${m.ug === 'in' ? 'entrée' : 'sortie'}`, lines: [`Débit : ${rateOf('belt')}/min`, link, hint], actions: [], progress: null };
   }
-  return `Convoyeur · débit ${rate} · ${m.items.length} objet(s) · R tourne · Suppr pour démonter`;
+  return { title: 'Convoyeur', lines: [`Débit : ${rateOf('belt')}/min`, `Objets : ${m.items.length}`, hint], actions: [], progress: null };
 }
+
 
 function updateHud(dt) {
   hudTimer -= dt;
@@ -2045,11 +2506,13 @@ function updateHud(dt) {
   }
 
   toolNameEl.textContent = mode ? MODE_LABELS[mode] : paste ? 'Collage' : 'Aucun outil';
-  if (multi.length) setInspector('Sélection', [`${multi.length} élément(s)`, 'Suppr pour tout démonter']);
+  if (multi.length) setInspector('Sélection', [`${multi.length} élément(s)`, 'Suppr pour tout démonter'], [], 'multi');
   else if (selected && !mode && !paste) {
-    const [title, ...lines] = describe(selected).split(' · ');
-    setInspector(title, lines);
+    const info = inspect(selected);
+    setInspector(info.title, info.lines, info.actions, selected, info.progress);
   } else setInspector(null);
+  noticeEl.hidden = !notice || performance.now() > notice.until;
+  if (!noticeEl.hidden) noticeEl.textContent = notice.text;
 
   const row = (label, value) => `<div class="row"><span>${label}</span><b>${value}</b></div>`;
   const section = (title, rows) => `<div class="stat-section"><h4>${title}</h4>${rows.join('')}</div>`;
@@ -2058,12 +2521,21 @@ function updateHud(dt) {
       row('Foreuses', drills.length),
       row('Récolteurs', harvesters.length),
       row('Fourneaux', furnaces.length),
+      row('Constructeurs', constructors.length),
+      row('Conteneurs', containers.length),
       row('Générateurs', generators.length),
       row('Convoyeurs', belts.length),
     ]) +
     section('Énergie', [row('Production', `${totalPower()} MW`)]) +
     section('Extraction', Object.entries(ORES).map(([k, o]) => row(o.name, stats.mined[k]))) +
-    section('Fusion', Object.keys(SMELT).map(k => row(INGOTS[SMELT[k]].name, stats.smelted[k])));
+    section('Récolte', [row('Par minute', harvestPerMinute())]) +
+    section('Fusion', Object.keys(SMELT).map(k => row(INGOTS[SMELT[k]].name, stats.smelted[k]))) +
+    section('Fabrication', Object.keys(stats.crafted).map(k => row(INGOTS[k].name, stats.crafted[k]))) +
+    section('Hub', [
+      row('Foreuses offertes', hubState.gifts.drill),
+      row('Récolteurs offerts', hubState.gifts.harvester),
+      ...Object.entries(hubState.stock).filter(([, n]) => n > 0).map(([k, n]) => row(itemName(k), n))
+    ]);
 }
 
 let lastTime = performance.now();
@@ -2071,6 +2543,7 @@ function frame(now) {
   const rdt = Math.min(0.05, (now - lastTime) / 1000);
   lastTime = now;
   const dt = paused ? 0 : rdt;
+  simTime += dt;
   const t = now / 1000;
   panCamera(dt);
   camera.position.copy(pivot).addScaledVector(VIEW, zoom);
@@ -2084,6 +2557,8 @@ function frame(now) {
   updateGenerators(dt);
   updatePower();
   updateFurnaces(dt);
+  updateConstructors(dt);
+  updateContainers(dt);
   updateBelts(dt);
   updateEffects(dt);
   updateSelection();
@@ -2091,6 +2566,8 @@ function frame(now) {
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
+placeAt('hub', HUB_POS.ix, HUB_POS.iz, null, null, 0);
+refreshUnlocks();
 requestAnimationFrame(frame);
 </script>
 </body>
