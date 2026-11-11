@@ -43,7 +43,14 @@
   .tool-btn[aria-pressed="true"] { background: linear-gradient(#f0c15a, #b87a22); color: #201405; border-color: #ffe49a; box-shadow: 0 3px 0 #6b4612; }
   .tool-btn.cancel { background: linear-gradient(#8c5a3a, #5a3620); }
   .tool-btn .key { position: absolute; top: -8px; left: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 6px; font-size: .7rem; line-height: 18px; text-align: center; background: #0f180b; border: 1px solid var(--line); color: var(--gold); }
-  .tool-btn[data-count]::after { content: attr(data-count); position: absolute; bottom: -8px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 6px; font-size: .7rem; line-height: 18px; text-align: center; background: #0f180b; border: 1px solid var(--line); color: var(--cream); }
+  .tool-row { display: flex; align-items: center; gap: 6px; width: 100%; margin: 0; padding: 4px 6px; background: none; border: 0; border-bottom: 1px dashed rgba(232, 205, 140, .15); border-radius: 6px; font: inherit; font-size: .85rem; color: var(--cream); text-align: left; cursor: pointer; }
+  .tool-row:hover { background: rgba(232, 205, 140, .08); }
+  .tool-row[aria-pressed="true"] { background: rgba(240, 193, 90, .18); color: var(--gold); }
+  .tool-row.locked { opacity: .45; }
+  .tool-row .kbd { min-width: 18px; height: 18px; padding: 0 4px; border-radius: 5px; font-size: .65rem; line-height: 16px; text-align: center; background: #0f180b; border: 1px solid var(--line); color: var(--gold); }
+  .tool-row .name { flex: 1; }
+  .tool-row .placed { color: var(--cream); font-weight: 600; }
+  .tool-row .stock { color: var(--gold); font-size: .75rem; }
   .overlay { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(10, 18, 8, .5), rgba(6, 12, 5, .88)); backdrop-filter: blur(3px); }
   .overlay[hidden] { display: none; }
   .menu-card { width: min(380px, calc(100vw - 32px)); padding: 28px 26px 22px; text-align: center; }
@@ -59,7 +66,6 @@
   .help-grid h4 { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; font-family: system-ui, sans-serif; }
   .help-grid ul { margin: 0; padding: 0; list-style: none; font-size: .88rem; line-height: 1.9; }
   kbd { font-family: inherit; font-size: .75rem; padding: 1px 6px; margin-right: 4px; border-radius: 5px; border: 1px solid var(--line); background: #0f180b; color: var(--gold); }
-  .tool-btn.locked { opacity: .45; }
   .bar { height: 6px; margin: 8px 0; border-radius: 3px; background: #0f180b; overflow: hidden; }
   .bar[hidden], .notice[hidden] { display: none; }
   .bar span { display: block; height: 100%; width: 0; background: var(--grass); }
@@ -91,6 +97,7 @@
 </header>
 <details class="panel stats-wrap" open>
   <summary>Statistiques</summary>
+  <div class="stat-section"><h4>Machines</h4><div id="machine-list"></div></div>
   <div id="stats"></div>
 </details>
 <div class="notice panel" id="notice" hidden></div>
@@ -102,16 +109,6 @@
 </aside>
 <div class="select-box" id="select-box"></div>
 <nav class="toolbar panel">
-  <button class="tool-btn" id="btn-drill" type="button" aria-pressed="false" title="Foreuse : à poser sur un gisement"><span class="key">F</span>Foreuse</button>
-  <button class="tool-btn" id="btn-furnace" type="button" aria-pressed="false" title="Fourneau : transforme le minerai en lingots"><span class="key">G</span>Fourneau</button>
-  <button class="tool-btn" id="btn-belt" type="button" aria-pressed="false" title="Convoyeur : maintiens le clic et glisse"><span class="key">C</span>Convoyeur</button>
-  <button class="tool-btn" id="btn-under" type="button" aria-pressed="false" title="Sous-pont : traverse une autre ligne"><span class="key">U</span>Sous-pont</button>
-  <button class="tool-btn" id="btn-harvester" type="button" aria-pressed="false" title="Récolteur : abat les arbres proches"><span class="key">H</span>Récolteur</button>
-  <button class="tool-btn" id="btn-generator" type="button" aria-pressed="false" title="Générateur : brûle la biomasse"><span class="key">B</span>Générateur</button>
-  <button class="tool-btn" id="btn-pole" type="button" aria-pressed="false" title="Poteau : relie les machines électriques"><span class="key">P</span>Poteau</button>
-  <button class="tool-btn" id="btn-constructor" type="button" aria-pressed="false" title="Constructeur : fabrique plaques et tiges de fer"><span class="key">J</span>Constructeur</button>
-  <button class="tool-btn" id="btn-container" type="button" aria-pressed="false" title="Conteneur : stocke jusqu'à 5000 objets"><span class="key">K</span>Conteneur</button>
-  <span class="sep"></span>
   <button class="tool-btn" id="btn-tech" type="button" aria-pressed="false" title="Arbre technologique (T)"><span class="key">T</span>Technologies</button>
   <span class="sep"></span>
   <button class="tool-btn" id="btn-grid" type="button" aria-pressed="false" title="Afficher ou masquer la grille"><span class="key">L</span>Grille</button>
@@ -1615,17 +1612,30 @@ function refreshGhost() {
   if (mode) startGhost(mode);
 }
 
-const modeButtons = {
-  drill: document.getElementById('btn-drill'),
-  furnace: document.getElementById('btn-furnace'),
-  belt: document.getElementById('btn-belt'),
-  under: document.getElementById('btn-under'),
-  harvester: document.getElementById('btn-harvester'),
-  generator: document.getElementById('btn-generator'),
-  pole: document.getElementById('btn-pole'),
-  constructor: document.getElementById('btn-constructor'),
-  container: document.getElementById('btn-container')
-};
+const TOOL_ROWS = [
+  { key: 'drill', name: 'Foreuses', letter: 'F', placed: () => drills.length },
+  { key: 'furnace', name: 'Fourneaux', letter: 'G', placed: () => furnaces.length },
+  { key: 'belt', name: 'Convoyeurs', letter: 'C', placed: () => belts.length },
+  { key: 'under', name: 'Sous-ponts', letter: 'U', placed: () => belts.filter(m => m.pair).length / 2 },
+  { key: 'harvester', name: 'Récolteurs', letter: 'H', placed: () => harvesters.length },
+  { key: 'generator', name: 'Générateurs', letter: 'B', placed: () => generators.length },
+  { key: 'pole', name: 'Poteaux', letter: 'P', placed: () => poles.length },
+  { key: 'constructor', name: 'Constructeurs', letter: 'J', placed: () => constructors.length },
+  { key: 'container', name: 'Conteneurs', letter: 'K', placed: () => containers.length }
+];
+// Lignes cliquables de la section Machines : créées une fois, seuls leurs compteurs changent
+const machineList = document.getElementById('machine-list');
+const toolRows = {};
+for (const t of TOOL_ROWS) {
+  const row = document.createElement('button');
+  row.type = 'button';
+  row.className = 'tool-row';
+  row.title = `${t.name} (touche ${t.letter})`;
+  row.innerHTML = `<kbd class="kbd">${t.letter}</kbd><span class="name">${t.name}</span><span class="placed">0</span><span class="stock">×0</span>`;
+  row.addEventListener('click', () => toggleMode(t.key));
+  machineList.appendChild(row);
+  toolRows[t.key] = row;
+}
 const btnCancel = document.getElementById('btn-cancel');
 const itemName = (k) => (ORES[k] ? ORES[k].name : INGOTS[k].name);
 function blockedReason(key) {
@@ -1655,7 +1665,7 @@ function setMode(next) {
     multi = [];
     startGhost(next);
   }
-  for (const k in modeButtons) modeButtons[k].setAttribute('aria-pressed', String(mode === k));
+  for (const k in toolRows) toolRows[k].setAttribute('aria-pressed', String(mode === k));
 }
 const toggleMode = (m) => setMode(mode === m ? null : m);
 
@@ -2292,7 +2302,7 @@ window.addEventListener('keydown', (e) => {
 window.addEventListener('keyup', e => keys.delete(e.code));
 window.addEventListener('blur', () => keys.clear());
 
-for (const k in modeButtons) modeButtons[k].addEventListener('click', () => toggleMode(k));
+
 btnCancel.addEventListener('click', () => { setMode(null); selected = null; multi = []; });
 const btnGrid = document.getElementById('btn-grid');
 function toggleGrid() {
@@ -2428,9 +2438,12 @@ function buyTech(id) {
   refreshUnlocks();
 }
 function refreshUnlocks() {
-  for (const k in modeButtons) {
-    modeButtons[k].classList.toggle('locked', !unlocked(k));
-    modeButtons[k].dataset.count = hubState.inventory[k] || 0;
+  for (const t of TOOL_ROWS) {
+    const row = toolRows[t.key];
+    row.classList.toggle('locked', !unlocked(t.key));
+    row.setAttribute('aria-pressed', String(mode === t.key));
+    row.querySelector('.placed').textContent = t.placed();
+    row.querySelector('.stock').textContent = `×${hubState.inventory[t.key] || 0}`;
   }
 }
 document.getElementById('btn-help').addEventListener('click', () => setHelp(true));
@@ -2718,9 +2731,10 @@ function updateHud(dt) {
   } else if (selected) {
     statusEl.textContent = 'Machine sélectionnée · clic sur le vide pour désélectionner';
   } else {
-    statusEl.textContent = 'Choisis un outil dans la barre du bas pour construire';
+    statusEl.textContent = 'Choisis une machine dans Statistiques › Machines pour construire';
   }
 
+  refreshUnlocks();
   toolNameEl.textContent = mode ? MODE_LABELS[mode] : paste ? 'Collage' : 'Aucun outil';
   if (multi.length) setInspector('Sélection', [`${multi.length} élément(s)`, 'Suppr pour tout démonter'], [], 'multi');
   else if (selected && !mode && !paste) {
@@ -2733,15 +2747,6 @@ function updateHud(dt) {
   const row = (label, value) => `<div class="row"><span>${label}</span><b>${value}</b></div>`;
   const section = (title, rows) => `<div class="stat-section"><h4>${title}</h4>${rows.join('')}</div>`;
   statsEl.innerHTML =
-    section('Machines', [
-      row('Foreuses', drills.length),
-      row('Récolteurs', harvesters.length),
-      row('Fourneaux', furnaces.length),
-      row('Constructeurs', constructors.length),
-      row('Conteneurs', containers.length),
-      row('Générateurs', generators.length),
-      row('Convoyeurs', belts.length),
-    ]) +
     section('Énergie', [row('Production', `${totalPower()} MW`)]) +
     section('Extraction', Object.entries(ORES).map(([k, o]) => row(o.name, stats.mined[k]))) +
     section('Récolte', [row('Par minute', harvestPerMinute())]) +
