@@ -40,7 +40,7 @@
   <button id="btn-generator" type="button" aria-pressed="false">Générateur</button>
   <button id="btn-cancel" class="alt" type="button">Annuler</button>
 </div>
-<div class="hud help">Clic gauche : poser · R : tourner (ou la machine sélectionnée) · clic droit ou Échap : annuler<br>Convoyeur (C) : maintiens le clic et glisse, la ligne se trace seule et se raccorde aux machines<br>Clic sur une machine : sélectionner · glisser dans le vide : sélectionner une zone · Suppr : démonter · F foreuse · G fourneau · U sous-pont · H récolteur · B générateur<br>WASD / flèches ou glisser avec le clic molette ou droit : déplacer la vue · Molette : zoom</div>
+<div class="hud help">Clic gauche : poser · R : tourner (ou la machine sélectionnée) · clic droit ou Échap : annuler<br>Convoyeur (C) : maintiens le clic et glisse, la ligne se trace seule et se raccorde aux machines<br>Clic sur une machine : sélectionner · glisser dans le vide : sélectionner une zone · Suppr : démonter · Ctrl+C / Ctrl+V : copier-coller la sélection · F foreuse · G fourneau · U sous-pont · H récolteur · B générateur<br>WASD / flèches ou glisser avec le clic molette ou droit : déplacer la vue · Molette : zoom</div>
 <canvas id="scene"></canvas>
 
 <script type="module">
@@ -728,6 +728,7 @@ const modeButtons = {
 };
 const btnCancel = document.getElementById('btn-cancel');
 function setMode(next) {
+  stopPaste();
   if (underStart) {
     removeMachine(underStart);
     underStart = null;
@@ -1061,6 +1062,87 @@ function selectArea(x0, y0, x1, y1) {
   selected = null;
 }
 
+let clipboard = null;
+let paste = null;
+
+function copySelection() {
+  const src = (multi.length ? multi : selected ? [selected] : []).filter(m => !m.removed);
+  const chosen = new Set(src);
+  // Un sous-pont n'est copié que si ses deux bouts sont sélectionnés
+  const list = src.filter(m => !m.ug || (m.pair && chosen.has(m.pair)));
+  if (!list.length) return;
+  const minIx = Math.min(...list.map(m => m.ix));
+  const minIz = Math.min(...list.map(m => m.iz));
+  clipboard = list.map(m => ({
+    kind: m.kind, ore: m.ore, rot: m.rot, ug: m.ug, size: m.size,
+    dx: m.ix - minIx, dz: m.iz - minIz,
+    pair: m.pair ? list.indexOf(m.pair) : -1
+  }));
+}
+
+function startPaste() {
+  if (!clipboard) return;
+  setMode(null);
+  paste = {
+    groups: clipboard.map((it) => {
+      const built = buildMachine(it.kind, GHOST_MATS, it.ug);
+      built.group.traverse(o => { if (o.isMesh) o.castShadow = false; });
+      scene.add(built.group);
+      return built.group;
+    }),
+    cells: [],
+    ok: false
+  };
+}
+
+function stopPaste() {
+  if (!paste) return;
+  for (const g of paste.groups) scene.remove(g);
+  paste = null;
+}
+
+function updatePaste(t) {
+  if (!paste) return;
+  const p = pickGround();
+  if (!p) {
+    for (const g of paste.groups) g.visible = false;
+    paste.ok = false;
+    return;
+  }
+  const ix = Math.floor(p.x), iz = Math.floor(p.z);
+  let ok = true;
+  paste.cells = clipboard.map((it, k) => {
+    const x = ix + it.dx, z = iz + it.dz;
+    const inside = inGrid(x, z) && inGrid(x + it.size - 1, z + it.size - 1);
+    const check = inside ? evaluateSpot(x, z, it.size, it.kind === 'drill') : { ok: false };
+    if (!check.ok) ok = false;
+    const [cx, cz] = centerOf(it.kind, x, z);
+    const g = paste.groups[k];
+    g.visible = true;
+    g.position.set(cx, heightAt(cx, cz) + 0.1 + Math.sin(t * 3) * 0.05, cz);
+    g.rotation.y = it.rot * Math.PI / 2;
+    return { x, z, ore: it.kind === 'drill' ? check.ore : it.ore };
+  });
+  paste.ok = ok;
+  ghostMat.color.setHex(ok ? 0x3ef0a8 : 0xff4d6d);
+  ghostMat.emissive.setHex(ok ? 0x13986a : 0x8a1630);
+  ghostMat.opacity = 0.34 + 0.1 * Math.sin(t * 5);
+}
+
+function tryPaste() {
+  if (!paste || !paste.ok) return;
+  const made = paste.cells.map((c, k) => {
+    const it = clipboard[k];
+    return it.ug ? placeAt('belt', c.x, c.z, null, it.ug, it.rot) : placeAt(it.kind, c.x, c.z, c.ore, null, it.rot);
+  });
+  clipboard.forEach((it, k) => {
+    if (it.pair >= 0) made[k].pair = made[it.pair];
+  });
+  paste.ok = false;
+  multi = made;
+  selected = null;
+}
+
 function rotateMachine(m) {
   m.rot = (m.rot + 1) % 4;
   m.group.rotation.y = m.rot * Math.PI / 2;
@@ -1123,6 +1205,7 @@ canvas.addEventListener('pointerdown', (e) => {
   if (e.button !== 0) return;
   if (mode === 'belt') beginLine();
   else if (mode) tryPlace();
+  else if (paste) tryPaste();
   else areaDrag = { x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, moved: false };
 });
 window.addEventListener('pointermove', (e) => {
@@ -1184,7 +1267,10 @@ window.addEventListener('keydown', (e) => {
   }
   if (e.code === 'KeyF') toggleMode('drill');
   if (e.code === 'KeyG') toggleMode('furnace');
-  if (e.code === 'KeyC') toggleMode('belt');
+  const cmd = e.ctrlKey || e.metaKey;
+  if (cmd && e.code === 'KeyC') copySelection();
+  if (cmd && e.code === 'KeyV') startPaste();
+  if (e.code === 'KeyC' && !cmd) toggleMode('belt');
   if (e.code === 'KeyU') toggleMode('under');
   if (e.code === 'KeyH') toggleMode('harvester');
   if (e.code === 'KeyB') toggleMode('generator');
@@ -1266,6 +1352,8 @@ function updateHud(dt) {
     } else if (mode === 'harvester' && !nearestTree({ cx: spot.ix + 1, cz: spot.iz + 1 })) statusEl.textContent = 'Aucun arbre à proximité · la récolte ne démarrera pas';
     else if (mode === 'belt') statusEl.textContent = 'Convoyeur · maintiens le clic et glisse : la ligne se raccorde toute seule aux machines';
     else statusEl.textContent = `${label}${spot.ore ? ` · gisement de ${ORES[spot.ore].name}` : ''} · débit ${rateOf(kindOf(mode))}/min · clic gauche pour poser · R pour tourner`;
+  } else if (paste) {
+    statusEl.textContent = paste.ok ? `Collage de ${clipboard.length} élément(s) · clic gauche pour poser · Échap pour annuler` : 'Collage impossible ici';
   } else if (multi.length) {
     statusEl.textContent = `Sélection : ${multi.length} élément(s) · Suppr pour tout démonter · clic sur le vide pour désélectionner`;
   } else if (selected) {
@@ -1289,6 +1377,7 @@ function frame(now) {
   camera.lookAt(pivot);
   camera.updateMatrixWorld();
   updateGhost(t);
+  updatePaste(t);
   updateDrills(dt);
   updateHarvesters(dt);
   updateGenerators(dt);
