@@ -292,9 +292,9 @@ const SHOP = [
 const shopItem = (id) => SHOP.find(i => i.id === id);
 // Arbre technologique, payé avec les ressources stockées dans le Hub
 const TECH = [
-  { id: 'furnace', name: 'Fourneau', desc: 'Débloque le fourneau (touche G)', cost: { iron: 100 }, needs: [] },
-  { id: 'container', name: 'Conteneur', desc: 'Stocke jusqu\'à 5000 objets (touche K)', cost: { iron: 150 }, needs: ['furnace'] },
-  { id: 'constructor', name: 'Constructeur', desc: 'Fabrique plaques et tiges de fer (touche J)', cost: { ironIngot: 200 }, needs: ['furnace'] },
+  { id: 'furnace', name: 'Fourneau', desc: 'Débloque le fourneau (touche G) + 1 offert', cost: { iron: 100 }, needs: [] },
+  { id: 'container', name: 'Conteneur', desc: 'Stocke jusqu\'à 5000 objets (touche K) + 1 offert', cost: { iron: 150 }, needs: ['furnace'] },
+  { id: 'constructor', name: 'Constructeur', desc: 'Fabrique plaques et tiges de fer (touche J) + 1 offert', cost: { ironIngot: 200 }, needs: ['furnace'] },
   { id: 'drillSpeed', name: 'Foreuse rapide', desc: 'Les foreuses extraient 25 % plus vite', cost: { iron: 50 }, needs: [] },
   { id: 'buffer', name: 'Sorties élargies', desc: 'Double la capacité de sortie des machines', cost: { iron: 80 }, needs: ['drillSpeed'] },
   { id: 'power', name: 'Générateur amélioré', desc: 'Les générateurs produisent 50 % de plus', cost: { ironIngot: 80 }, needs: ['constructor'] }
@@ -2439,7 +2439,9 @@ function buyTech(id) {
   }
   for (const [k, n] of Object.entries(t.cost)) hubState.stock[k] -= n;
   hubState.tech.add(id);
-  notify(`${t.name} débloqué`);
+  const gift = UNLOCK_OF[id];
+  if (gift) hubState.inventory[gift] = (hubState.inventory[gift] || 0) + 1;
+  notify(gift ? `${t.name} débloqué : 1 ${shopItem(gift).name} offert` : `${t.name} débloqué`);
   renderTech();
   refreshUnlocks();
 }
