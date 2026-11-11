@@ -274,6 +274,56 @@
             animation: spark-fade 0.55s ease-out forwards;
         }
 
+        .discord-mini {
+            position: fixed;
+            right: 16px;
+            bottom: 16px;
+            z-index: 50;
+            width: 300px;
+            max-width: calc(100vw - 32px);
+            overflow: hidden;
+            border: 1px solid rgba(88, 101, 242, 0.5);
+            border-radius: 12px;
+            background: rgba(15, 18, 28, 0.94);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .discord-mini summary {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            color: #c9d1ff;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            list-style: none;
+        }
+
+        .discord-mini summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .discord-mini summary::after {
+            content: '–';
+        }
+
+        .discord-mini:not([open]) summary::after {
+            content: '+';
+        }
+
+        .discord-mini iframe {
+            display: block;
+            width: 100%;
+            height: 320px;
+            border: 0;
+        }
+
+        html.has-cursor .discord-mini,
+        html.has-cursor .discord-mini * {
+            cursor: auto !important;
+        }
+
         @keyframes spark-fade {
             from {
                 opacity: 1;
@@ -1014,6 +1064,8 @@
                 <details class="sat-menu">
                     <summary class="tile"><span class="menu-title">Satisfactory</span></summary>
                     <div class="sat-menu-list">
+                        <a href="https://www.satisfactorygame.com/" target="_blank" rel="noopener">Site officiel du jeu</a>
+                        <a href="https://satisfactoryfr.com/" target="_blank" rel="noopener">Satisfactory France</a>
                         <a href="./calculateur/index.html">Calculateur</a>
                         <a href="./carte/index.html">Carte de la base</a>
                         <a href="https://satisfactory-calculator.com/fr/interactive-map#3;49935;130005|gameLayer|limestonePure;ironPure;copperPure;cateriumPure;coalPure;oilPure;hardDrives" target="_blank" rel="noopener">Carte officielle</a>
@@ -1076,6 +1128,11 @@
             <p>Développé avec passion · <a href="https://github.com/Takiwaltek/Games" class="footer-link">GitHub</a></p>
         </footer>
     </main>
+
+    <details class="discord-mini" id="discord-mini" open>
+        <summary>Discord officiel</summary>
+        <iframe src="https://discord.com/widget?id=370472939054956546&theme=dark" title="Serveur Discord officiel de Satisfactory" loading="lazy" allowtransparency="true"></iframe>
+    </details>
 
     <dialog class="pseudo-dialog" id="pseudo-dialog" aria-labelledby="pseudo-title">
         <form class="pseudo-form" id="chat-name-form">
@@ -1348,6 +1405,11 @@
             });
 
             document.addEventListener('pointerup', () => ring.classList.remove('is-click'));
+
+            // Au-dessus de l'iframe Discord, le pointeur n'envoie plus d'événements : on masque le curseur animé
+            document.querySelector('.discord-mini').addEventListener('pointerenter', () => {
+                document.documentElement.classList.remove('cursor-active');
+            });
         }
 
         // Effet 3D : les cartes s'inclinent vers le pointeur (souris uniquement)
