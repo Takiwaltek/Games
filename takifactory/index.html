@@ -38,9 +38,10 @@
   <button id="btn-under" type="button" aria-pressed="false">Sous-pont</button>
   <button id="btn-harvester" type="button" aria-pressed="false">Récolteur</button>
   <button id="btn-generator" type="button" aria-pressed="false">Générateur</button>
+  <button id="btn-pole" type="button" aria-pressed="false">Poteau</button>
   <button id="btn-cancel" class="alt" type="button">Annuler</button>
 </div>
-<div class="hud help">Clic gauche : poser · R : tourner (ou la machine sélectionnée) · clic droit ou Échap : annuler<br>Convoyeur (C) : maintiens le clic et glisse, la ligne se trace seule et se raccorde aux machines<br>Clic sur une machine : sélectionner · glisser dans le vide : sélectionner une zone · Suppr : démonter · Ctrl+C / Ctrl+V : copier-coller la sélection · F foreuse · G fourneau · U sous-pont · H récolteur · B générateur<br>WASD / flèches ou glisser avec le clic molette ou droit : déplacer la vue · Molette : zoom</div>
+<div class="hud help">Clic gauche : poser · R : tourner (ou la machine sélectionnée) · clic droit ou Échap : annuler<br>Convoyeur (C) : maintiens le clic et glisse, la ligne se trace seule et se raccorde aux machines<br>Clic sur une machine : sélectionner · glisser dans le vide : sélectionner une zone · Suppr : démonter · Ctrl+C / Ctrl+V : copier-coller la sélection · F foreuse · G fourneau · U sous-pont · H récolteur · B générateur · P poteau<br>WASD / flèches ou glisser avec le clic molette ou droit : déplacer la vue · Molette : zoom</div>
 <canvas id="scene"></canvas>
 
 <script type="module">
@@ -75,7 +76,7 @@ const FORESTS = [
   { x: -30, z: -68, r: 14 }
 ];
 const MAP = 100;
-const SIZE = { drill: 2, furnace: 2, belt: 1, under: 1, harvester: 2, generator: 2 };
+const SIZE = { drill: 2, furnace: 2, belt: 1, under: 1, harvester: 2, generator: 2, pole: 1 };
 const BUFFER_MAX = 4;
 const MINE_INTERVAL = 1;
 const ORE_TARGET = new THREE.Vector3(0.95, 0.8, 0);
@@ -96,6 +97,9 @@ const HARVEST_RADIUS = 4;
 const GEN_INPUT = 4;
 const BURN_TIME = 4;
 const POWER_MW = 30;
+const FURNACE_MW = 10;
+const POLE_RANGE = 7;
+const POLE_H = 2.4;
 const INGOTS = {
   ironIngot: { name: 'Lingot de fer', color: 0xd9dde6 },
   copperIngot: { name: 'Lingot de cuivre', color: 0xf08a4b }
@@ -356,6 +360,16 @@ function buildGenerator(mats) {
   return { group, lampMat: mats.lamp };
 }
 
+function buildPole(mats) {
+  const group = new THREE.Group();
+  const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
+  add(new THREE.BoxGeometry(0.5, 0.35, 0.5), mats.dark, 0, 0.175, 0);
+  add(new THREE.BoxGeometry(0.16, 2.3, 0.16), mats.steel, 0, 1.5, 0);
+  add(new THREE.BoxGeometry(1.0, 0.1, 0.12), mats.trim, 0, 2.35, 0);
+  add(new THREE.BoxGeometry(0.2, 0.2, 0.2), mats.lamp, 0, 2.55, 0);
+  return { group };
+}
+
 // Bande plate en arc autour de (cx, cz), entre les angles a0 et a1 (même repère que la forme droite)
 function arcBand(r0, r1, a0, a1, y0, h, cx, cz) {
   const s = new THREE.Shape();
@@ -446,8 +460,9 @@ const drills = [];
 const furnaces = [];
 const harvesters = [];
 const generators = [];
+const poles = [];
 const belts = [];
-const LISTS = { drill: drills, harvester: harvesters, furnace: furnaces, generator: generators, belt: belts };
+const LISTS = { drill: drills, harvester: harvesters, furnace: furnaces, generator: generators, pole: poles, belt: belts };
 const occupied = new Map();
 const stats = { mined: { iron: 0, copper: 0, coal: 0, limestone: 0, biomass: 0 }, smelted: { iron: 0, copper: 0 } };
 let mode = null;
@@ -597,6 +612,55 @@ function totalPower() {
   return generators.filter(g => g.burning).length * POWER_MW;
 }
 
+// Réseau électrique : un poteau relie tout ce qui est à portée (poteaux, générateurs, fourneaux)
+let powerNets = [];
+const cables = new THREE.LineSegments(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xffd166 }));
+scene.add(cables);
+
+function rebuildPower() {
+  const nodes = [...poles, ...generators, ...furnaces];
+  const parent = new Map(nodes.map(n => [n, n]));
+  const root = (n) => {
+    while (parent.get(n) !== n) n = parent.get(n);
+    return n;
+  };
+  const links = [];
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const a = nodes[i], b = nodes[j];
+      if (a.kind !== 'pole' && b.kind !== 'pole') continue;
+      if (Math.hypot(a.cx - b.cx, a.cz - b.cz) > POLE_RANGE) continue;
+      links.push([a, b]);
+      parent.set(root(a), root(b));
+    }
+  }
+  const nets = new Map();
+  for (const n of nodes) {
+    const r = root(n);
+    if (!nets.has(r)) nets.set(r, { gens: [], furnaces: [], sat: 0 });
+    const net = nets.get(r);
+    n.net = net;
+    if (n.kind === 'generator') net.gens.push(n);
+    if (n.kind === 'furnace') net.furnaces.push(n);
+  }
+  powerNets = [...nets.values()];
+  const pts = [];
+  for (const [a, b] of links) {
+    pts.push(new THREE.Vector3(a.cx, a.y + POLE_H, a.cz), new THREE.Vector3(b.cx, b.y + POLE_H, b.cz));
+  }
+  cables.geometry.dispose();
+  cables.geometry = new THREE.BufferGeometry().setFromPoints(pts);
+}
+
+// Part de la demande couverte : 1 si la production du réseau suffit à tous ses fourneaux
+function updatePower() {
+  for (const net of powerNets) {
+    const supply = net.gens.filter(g => g.burning).length * POWER_MW;
+    const demand = net.furnaces.length * FURNACE_MW;
+    net.sat = demand ? Math.min(1, supply / demand) : 1;
+  }
+}
+
 function updateFurnaces(dt) {
   for (const f of furnaces) {
     flushOutbox(f);
@@ -605,7 +669,7 @@ function updateFurnaces(dt) {
       f.timer = 0;
     }
     if (f.current) {
-      f.timer += dt;
+      f.timer += dt * (f.net ? f.net.sat : 0);
       if (f.timer >= SMELT_TIME) {
         const key = SMELT[f.current];
         const mesh = new THREE.Mesh(ingotGeo, itemMats[key]);
@@ -758,7 +822,7 @@ function evaluateSpot(ix, iz, size, needOre) {
 }
 
 function centerOf(kind, ix, iz) {
-  return kind === 'belt' ? [ix + 0.5, iz + 0.5] : [ix + 1, iz + 1];
+  return kind === 'belt' || kind === 'pole' ? [ix + 0.5, iz + 0.5] : [ix + 1, iz + 1];
 }
 // Distance from the centre to the cell just in front of the machine
 function reachOf(kind) {
@@ -789,6 +853,7 @@ function buildMachine(kind, mats, ug) {
   if (kind === 'furnace') return buildFurnace(mats);
   if (kind === 'harvester') return buildHarvester(mats);
   if (kind === 'generator') return buildGenerator(mats);
+  if (kind === 'pole') return buildPole(mats);
   return ug ? buildUnderground(mats, ug) : buildBelt(mats);
 }
 function startGhost(tool) {
@@ -813,7 +878,8 @@ const modeButtons = {
   belt: document.getElementById('btn-belt'),
   under: document.getElementById('btn-under'),
   harvester: document.getElementById('btn-harvester'),
-  generator: document.getElementById('btn-generator')
+  generator: document.getElementById('btn-generator'),
+  pole: document.getElementById('btn-pole')
 };
 const btnCancel = document.getElementById('btn-cancel');
 function setMode(next) {
@@ -851,7 +917,7 @@ function updateGhost(t) {
   ghost.group.visible = true;
   ghostLine.visible = true;
   const size = SIZE[mode];
-  const onGrid = mode === 'belt' || mode === 'under';
+  const onGrid = mode === 'belt' || mode === 'under' || mode === 'pole';
   let ix = onGrid ? Math.floor(p.x) : Math.round(p.x - 1);
   let iz = onGrid ? Math.floor(p.z) : Math.round(p.z - 1);
   let r = rot;
@@ -907,6 +973,18 @@ function entryCellsOf(m) {
   return cells;
 }
 
+// Cases libres autour d'un convoyeur où un tronçon peut se raccorder (jamais devant lui)
+function beltEntryCells(b) {
+  const cells = new Map();
+  for (let d = 0; d < 4; d++) {
+    if (d === b.rot) continue;
+    const ni = b.ix + DIRS[d][0];
+    const nj = b.iz + DIRS[d][1];
+    if (cellFree(ni, nj)) cells.set(cellKey(ni, nj), { ix: ni, iz: nj, rot: (d + 2) % 4 });
+  }
+  return cells;
+}
+
 class MinHeap {
   constructor() { this.a = []; }
   get size() { return this.a.length; }
@@ -956,6 +1034,10 @@ function computeRoute(hx, hz) {
     endMachine = hit;
     goals = entryCellsOf(hit);
     if (!goals.size) return { valid: false, cells: [], reason: 'Entrée bloquée' };
+  } else if (hit && hit.kind === 'belt' && !hit.ug) {
+    endMachine = hit;
+    goals = beltEntryCells(hit);
+    if (!goals.size) return { valid: false, cells: [], reason: 'Convoyeur entouré' };
   } else if (!hit && inGrid(hx, hz)) {
     goals = new Map([[cellKey(hx, hz), { ix: hx, iz: hz, rot: -1 }]]);
   } else {
@@ -1040,6 +1122,11 @@ function beginLine() {
   selected = null;
 }
 
+function cancelLine() {
+  lineDrag = null;
+  lineGroup.visible = false;
+}
+
 function endLine() {
   const route = lineDrag && lineDrag.route;
   lineDrag = null;
@@ -1089,11 +1176,11 @@ function updateLine(t) {
 
 function placeAt(kind, ix, iz, ore, ug, r) {
   const [cx, cz] = centerOf(kind, ix, iz);
-  const lampColor = kind === 'drill' ? ORES[ore].color : kind === 'harvester' ? ORES.biomass.color : 0xff7a1a;
+  const lampColor = kind === 'drill' ? ORES[ore].color : kind === 'harvester' ? ORES.biomass.color : kind === 'pole' ? 0xffd166 : 0xff7a1a;
   const lamp = new THREE.MeshStandardMaterial({ color: 0x111111, emissive: lampColor, emissiveIntensity: 1.4 });
   const built = buildMachine(kind, { dark: MATS.dark, steel: MATS.steel, trim: MATS.trim, lamp }, ug);
   const m = {
-    ...built, kind, ore, ix, iz, cx, cz, rot: r, ug, pair: null,
+    ...built, kind, ore, ix, iz, cx, cz, rot: r, ug, pair: null, net: null,
     size: SIZE[kind], reach: reachOf(kind), y: heightAt(cx, cz),
     list: LISTS[kind],
     outbox: [], input: [], items: [], current: null, timer: 0, inFlight: 0, removed: false, burning: false, target: null
@@ -1106,6 +1193,7 @@ function placeAt(kind, ix, iz, ore, ug, r) {
     for (let j = iz; j < iz + m.size; j++) occupied.set(cellKey(i, j), m);
   }
   if (kind === 'belt') refreshBeltNeighbours(m);
+  if (kind === 'pole' || kind === 'generator' || kind === 'furnace') rebuildPower();
   playPlacement(m.group, kind === 'drill' ? ORES[ore].color : kind === 'harvester' ? ORES.biomass.color : (kind === 'furnace' || kind === 'generator') ? 0xff7a1a : 0x7fd6ff);
   return m;
 }
@@ -1129,7 +1217,7 @@ function tryPlace() {
 
 function selectAt() {
   raycaster.setFromCamera(pointer, camera);
-  const all = [...drills, ...harvesters, ...furnaces, ...generators, ...belts];
+  const all = [...drills, ...harvesters, ...furnaces, ...generators, ...poles, ...belts];
   const hits = raycaster.intersectObjects(all.map(m => m.group), true);
   selected = null;
   multi = [];
@@ -1142,7 +1230,7 @@ function selectAt() {
 function selectArea(x0, y0, x1, y1) {
   const left = Math.min(x0, x1), right = Math.max(x0, x1);
   const top = Math.min(y0, y1), bottom = Math.max(y0, y1);
-  const all = [...drills, ...harvesters, ...furnaces, ...generators, ...belts];
+  const all = [...drills, ...harvesters, ...furnaces, ...generators, ...poles, ...belts];
   multi = all.filter((m) => {
     const v = m.group.position.clone().project(camera);
     if (v.z > 1) return false;
@@ -1263,6 +1351,7 @@ function removeMachine(m) {
   m.list.splice(m.list.indexOf(m), 1);
   if (selected === m) selected = null;
   multi = multi.filter(x => x !== m);
+  if (m.kind === 'pole' || m.kind === 'generator' || m.kind === 'furnace') rebuildPower();
 }
 
 function updateSelection() {
@@ -1293,6 +1382,8 @@ const selectBox = document.getElementById('select-box');
 canvas.addEventListener('pointermove', setPointer);
 canvas.addEventListener('mousedown', (e) => {
   if (e.button === 1) e.preventDefault();
+  // Pas de pointerdown pour un second bouton pendant un glisser : on annule ici
+  if (e.button === 2 && lineDrag) cancelLine();
 });
 canvas.addEventListener('pointerdown', (e) => {
   setPointer(e);
@@ -1373,6 +1464,7 @@ window.addEventListener('keydown', (e) => {
   if (e.code === 'KeyU') toggleMode('under');
   if (e.code === 'KeyH') toggleMode('harvester');
   if (e.code === 'KeyB') toggleMode('generator');
+  if (e.code === 'KeyP') toggleMode('pole');
   if (e.code === 'Escape') { setMode(null); selected = null; multi = []; }
   if (e.code === 'Delete') {
     if (multi.length) {
@@ -1420,8 +1512,10 @@ function describe(m) {
   if (m.kind === 'generator') {
     return `Générateur biomasse · ${m.burning ? POWER_MW : 0} MW · ${m.input.length}/${GEN_INPUT} biomasse en attente · consomme ${rate} · R tourne · Suppr pour démonter`;
   }
+  if (m.kind === 'pole') return `Poteau électrique · portée ${POLE_RANGE} cases · Suppr pour démonter`;
   if (m.kind === 'furnace') {
-    return `Fourneau · débit ${rate} · ${m.current ? 'fusion en cours' : 'en attente'} · ${m.input.length} entrée(s) · ${m.outbox.length}/${FURNACE_BUFFER} lingot(s) · R tourne · Suppr pour démonter`;
+    const power = `alimentation ${Math.round((m.net ? m.net.sat : 0) * 100)} %`;
+    return `Fourneau · débit ${rate} · ${power} · ${m.current ? 'fusion en cours' : 'en attente'} · ${m.input.length} entrée(s) · ${m.outbox.length}/${FURNACE_BUFFER} lingot(s) · R tourne · Suppr pour démonter`;
   }
   if (m.ug) {
     const link = m.pair ? `relié à ${Math.abs(m.pair.ix - m.ix) + Math.abs(m.pair.iz - m.iz)} case(s)` : 'non relié';
@@ -1435,12 +1529,13 @@ function updateHud(dt) {
   if (hudTimer > 0) return;
   hudTimer = 0.15;
   if (mode) {
-    const label = { drill: 'Foreuse', furnace: 'Fourneau', belt: 'Convoyeur', under: 'Sous-pont', harvester: 'Récolteur', generator: 'Générateur' }[mode];
+    const label = { drill: 'Foreuse', furnace: 'Fourneau', belt: 'Convoyeur', under: 'Sous-pont', harvester: 'Récolteur', generator: 'Générateur', pole: 'Poteau' }[mode];
     if (mode === 'belt' && lineDrag) {
       const r = lineDrag.route;
       if (!r || !r.valid) statusEl.textContent = `${r ? r.reason : 'Recherche du chemin'} · relâche pour annuler`;
       else {
-        const target = r.endMachine ? ` · raccordée à ${r.endMachine.kind === 'furnace' ? 'un fourneau' : 'un générateur'}` : '';
+        const JOIN = { furnace: 'un fourneau', generator: 'un générateur', belt: 'un convoyeur' };
+        const target = r.endMachine ? ` · raccordée à ${JOIN[r.endMachine.kind]}` : '';
         statusEl.textContent = `Ligne de ${r.cells.length} convoyeur(s)${target} · relâche pour poser`;
       }
     } else if (!spot) statusEl.textContent = 'Déplace la souris sur la carte';
@@ -1449,6 +1544,7 @@ function updateHud(dt) {
       const gap = Math.abs(spot.ix - underStart.ix) + Math.abs(spot.iz - underStart.iz);
       statusEl.textContent = `Sortie à ${gap} case(s) de l'entrée · clic gauche pour poser · clic droit pour annuler`;
     } else if (mode === 'harvester' && !nearestTree({ cx: spot.ix + 1, cz: spot.iz + 1 })) statusEl.textContent = 'Aucun arbre à proximité · la récolte ne démarrera pas';
+    else if (mode === 'pole') statusEl.textContent = `Poteau · relie les fourneaux et générateurs à moins de ${POLE_RANGE} cases · Suppr pour démonter`;
     else if (mode === 'belt') statusEl.textContent = 'Convoyeur · maintiens le clic et glisse : la ligne se raccorde toute seule aux machines';
     else statusEl.textContent = `${label}${spot.ore ? ` · gisement de ${ORES[spot.ore].name}` : ''} · débit ${rateOf(kindOf(mode))}/min · clic gauche pour poser · R pour tourner`;
   } else if (paste) {
@@ -1480,6 +1576,7 @@ function frame(now) {
   updateDrills(dt);
   updateHarvesters(dt);
   updateGenerators(dt);
+  updatePower();
   updateFurnaces(dt);
   updateBelts(dt);
   updateEffects(dt);
