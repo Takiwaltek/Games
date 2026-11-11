@@ -284,6 +284,7 @@ const MATS = {
   steel: new THREE.MeshStandardMaterial({ color: 0x5a6578, roughness: 0.4, metalness: 0.7 }),
   trim: new THREE.MeshStandardMaterial({ color: 0xf0a030, roughness: 0.4, metalness: 0.3 })
 };
+const ARROW_MAT = new THREE.MeshStandardMaterial({ color: 0xfff1c1, emissive: 0xffd166, emissiveIntensity: 1.1 });
 const ghostMat = new THREE.MeshStandardMaterial({ color: 0x3ef0a8, emissive: 0x13986a, emissiveIntensity: 0.8, transparent: true, opacity: 0.4, depthWrite: false });
 const GHOST_MATS = { dark: ghostMat, steel: ghostMat, trim: ghostMat, lamp: ghostMat };
 
@@ -299,9 +300,9 @@ function part(group, geo, mat, x, y, z) {
 // Deux flèches par côté (une par case de la machine 2×2), toutes deux orientées dans le sens du flux
 function addArrows(group, mat, topY, x, tag) {
   const shape = new THREE.Shape();
-  shape.moveTo(0.25, 0);
-  shape.lineTo(-0.25, 0.25);
-  shape.lineTo(-0.25, -0.25);
+  shape.moveTo(0.32, 0);
+  shape.lineTo(-0.32, 0.32);
+  shape.lineTo(-0.32, -0.32);
   shape.closePath();
   const geo = new THREE.ShapeGeometry(shape);
   geo.rotateX(-Math.PI / 2);
@@ -313,7 +314,7 @@ function addOutputArrow(group, mats, topY) {
 }
 
 function addInputArrow(group, mats, topY) {
-  addArrows(group, mats.dark, topY, -0.5, 'in');
+  addArrows(group, ARROW_MAT, topY, -0.5, 'in');
 }
 
 // Socle lumineux, montants d'angle et capots, commun à toutes les machines (topY = dessus du capot)
