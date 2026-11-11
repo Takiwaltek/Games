@@ -638,6 +638,15 @@ function addVents(group, mats, y) {
   for (let i = -1; i <= 1; i++) part(group, new THREE.BoxGeometry(0.03, 0.4, 0.08), mats.dark, -0.765, y, i * 0.22);
 }
 
+// Détails communs : pieds sous les coins, boulons sur le dessus (half = demi-largeur du corps)
+function addDetails(group, mats, half, topY) {
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+    const x = sx * (half - 0.15), z = sz * (half - 0.15);
+    part(group, new THREE.BoxGeometry(0.22, 0.08, 0.22), mats.dark, x, 0.04, z);
+    part(group, new THREE.CylinderGeometry(0.035, 0.035, 0.04, 6), mats.steel, x, topY + 0.02, z);
+  }
+}
+
 // Tuyau cintré passant par les points pts, avec un joint à chaque point
 function addPipe(group, mats, pts) {
   const curve = new THREE.CatmullRomCurve3(pts.map(p => new THREE.Vector3(...p)), false, 'centripetal');
@@ -666,6 +675,7 @@ function buildDrill(mats) {
   addOutputArrow(group, mats, 1.52);
   addFrame(group, mats, 1.52);
   addVents(group, mats, 0.85);
+  addDetails(group, mats, 0.75, 1.52);
 
   const pistons = [];
   for (const sz of [-1, 1]) for (const sx of [-0.45, 0.45]) {
@@ -709,6 +719,9 @@ function buildFurnace(mats) {
   addInputArrow(group, mats, 1.82);
   addFrame(group, mats, 1.82);
   addVents(group, mats, 1.0);
+  addDetails(group, mats, 0.75, 1.82);
+  add(new THREE.BoxGeometry(0.9, 0.55, 0.04), mats.dark, 0, 0.7, 0.77);
+  add(new THREE.BoxGeometry(0.6, 0.3, 0.02), mats.lamp, 0, 0.7, 0.8);
   part(group, new THREE.TorusGeometry(0.24, 0.03, 8, 16), mats.steel, -0.35, 2.9, -0.35).rotation.x = Math.PI / 2;
   add(new THREE.CylinderGeometry(0.18, 0.18, 0.04, 12), mats.lamp, -0.35, 2.92, -0.35);
   const smokePorts = addPipework(group, mats, 1.82);
@@ -727,6 +740,7 @@ function buildHarvester(mats) {
   addOutputArrow(group, mats, 1.42);
   addFrame(group, mats, 1.42);
   addVents(group, mats, 0.8);
+  addDetails(group, mats, 0.75, 1.42);
   add(new THREE.CylinderGeometry(0.12, 0.12, 0.3, 10), mats.dark, 0, 1.57, 0);
 
   const rotor = new THREE.Group();
@@ -758,6 +772,7 @@ function buildGenerator(mats) {
   addInputArrow(group, mats, 1.42);
   addFrame(group, mats, 1.42);
   addVents(group, mats, 0.8);
+  addDetails(group, mats, 0.75, 1.42);
   for (const sx of [-1, 1]) part(group, new THREE.CylinderGeometry(0.5, 0.5, 0.05, 16), mats.steel, sx * 0.6, 1.75, 0).rotation.z = Math.PI / 2;
   part(group, new THREE.CylinderGeometry(0.1, 0.1, 0.04, 12), mats.trim, 0.78, 1.15, -0.4).rotation.z = Math.PI / 2;
   add(new THREE.CylinderGeometry(0.02, 0.02, 0.7, 6), mats.steel, 0.5, 1.77, 0.5);
@@ -774,6 +789,7 @@ function buildHub(mats) {
   add(new THREE.BoxGeometry(2.5, 1.8, 2.5), mats.steel, 0, 1.2, 0);
   add(new THREE.BoxGeometry(2.6, 0.14, 2.6), mats.trim, 0, 2.17, 0);
   add(new THREE.BoxGeometry(1.6, 0.9, 0.05), mats.lamp, 0, 1.2, 1.27);
+  addDetails(group, mats, 1.25, 2.17);
   add(new THREE.CylinderGeometry(0.5, 0.5, 0.5, 16), mats.dark, 0, 2.5, 0);
   add(new THREE.TorusGeometry(0.62, 0.05, 8, 20), mats.trim, 0, 2.5, 0).rotation.x = Math.PI / 2;
   return { group, lampMat: mats.lamp, smokePorts: [], smokeT: 0 };
@@ -792,6 +808,7 @@ function buildConstructor(mats) {
   addInputArrow(group, mats, 1.62);
   addFrame(group, mats, 1.62);
   addVents(group, mats, 0.9);
+  addDetails(group, mats, 0.75, 1.62);
   const gear = new THREE.Group();
   gear.position.set(0, 1.95, 0);
   group.add(gear);
@@ -821,6 +838,7 @@ function buildContainer(mats) {
   addOutputArrow(group, mats, 1.7);
   addInputArrow(group, mats, 1.7);
   addFrame(group, mats, 1.7);
+  addDetails(group, mats, 0.85, 1.7);
   const smokePorts = addPipework(group, mats, 1.7);
   return { group, lampMat: mats.lamp, smokePorts, smokeT: 0 };
 }
