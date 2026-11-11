@@ -821,6 +821,24 @@ function buildGenerator(mats) {
   return { group, lampMat: mats.lamp, smokePorts, smokeT: 0 };
 }
 
+// Petit texte « HUB » posé sur le carré lumineux de façade
+function addHubLabel(group) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 144;
+  const g = canvas.getContext('2d');
+  g.font = 'bold 40px sans-serif';
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillStyle = '#0b2a1f';
+  g.fillText('HUB', 128, 72);
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const label = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.9), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+  label.position.set(0, 1.2, 1.305);
+  group.add(label);
+}
+
 function buildHub(mats) {
   const group = new THREE.Group();
   const add = (geo, mat, x, y, z) => part(group, geo, mat, x, y, z);
@@ -828,6 +846,10 @@ function buildHub(mats) {
   add(new THREE.BoxGeometry(2.5, 1.8, 2.5), mats.steel, 0, 1.2, 0);
   add(new THREE.BoxGeometry(2.6, 0.14, 2.6), mats.trim, 0, 2.17, 0);
   add(new THREE.BoxGeometry(1.6, 0.9, 0.05), mats.lamp, 0, 1.2, 1.27);
+  addHubLabel(group);
+  // Entrées : petits carrés de chaque côté de la façade et flèche d'entrée sur le dessus
+  for (const sx of [-1, 1]) add(new THREE.BoxGeometry(0.22, 0.22, 0.06), mats.steel, sx * 1.0, 1.2, 1.26);
+  addArrows(group, ARROW_MAT, 2.24, -0.9, 'in');
   addDetails(group, mats, 1.25, 2.17);
   add(new THREE.CylinderGeometry(0.5, 0.5, 0.5, 16), mats.dark, 0, 2.5, 0);
   add(new THREE.TorusGeometry(0.62, 0.05, 8, 20), mats.trim, 0, 2.5, 0).rotation.x = Math.PI / 2;
@@ -2735,7 +2757,7 @@ function inspect(m) {
     return {
       title: 'Fourneau',
       lines: [
-        `Alimentation : ${Math.round((m.net ? m.net.sat : 0) * 100)} %`,
+        `Électricité : ${mwOf(m)} MW`,
         `Entrée : ${m.input.length} minerai(s) en attente`,
         `Consomme : ${Math.round(rateOf('furnace'))} minerai/min`,
         `Sortie : ${m.outbox.length}/${buffered(FURNACE_BUFFER)} lingot(s)`,
@@ -2752,6 +2774,7 @@ function inspect(m) {
       title: 'Constructeur',
       lines: [
         `Recette : ${r.name}`,
+        `Électricité : ${mwOf(m)} MW`,
         `Entrée : ${m.input.length}/${CONSTR_INPUT} lingot(s), ${r.inCount} par pièce`,
         `Sortie : ${m.outbox.length}/${buffered(CONSTR_BUFFER)}`,
         `Consomme : ${Math.round(rateOf('constructor', m.recipe) * r.inCount)} ${itemName(r.input).toLowerCase()}/min`,
