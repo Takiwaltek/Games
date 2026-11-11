@@ -1186,7 +1186,7 @@
             const piston = place(new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.16), purple), -0.7, -0.6);
 
             // Colonne avec jauge au sommet
-            place(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.65, 16), metal), 0.85, -0.225);
+            place(new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 1.77, 16), metal), 0.85, -0.165);
             const gauge = place(new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.05, 24), metal), 0.85, 0.72);
             gauge.rotation.x = Math.PI / 2;
             const needlePivot = place(new THREE.Group(), 0.85, 0.72, 0.05);
@@ -1194,22 +1194,34 @@
             needle.position.set(0, 0.05, 0);
             needlePivot.add(needle);
 
-            // Tuyaux et flux lumineux qui les parcourent
+            // Tuyaux en angle droit, brides posées sur la cuve, le caisson ou la colonne,
+            // avec des flux lumineux qui les parcourent
             const pipes = [];
             function pipe(points, radius, speed) {
-                const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(...p)));
-                root.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 80, radius, 12, false), pipeMat));
+                const path = new THREE.CurvePath();
+                for (let i = 0; i < points.length - 1; i++) {
+                    path.add(new THREE.LineCurve3(new THREE.Vector3(...points[i]), new THREE.Vector3(...points[i + 1])));
+                }
+                root.add(new THREE.Mesh(new THREE.TubeGeometry(path, 64, radius, 12, false), pipeMat));
+                const last = points.length - 1;
+                for (const [p, q] of [[points[0], points[1]], [points[last], points[last - 1]]]) {
+                    const flange = new THREE.Mesh(new THREE.CylinderGeometry(radius * 2.2, radius * 2.2, 0.03, 16), metal);
+                    flange.position.set(...p);
+                    flange.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(...q).sub(new THREE.Vector3(...p)).normalize());
+                    root.add(flange);
+                }
                 const flows = [];
                 for (let i = 0; i < 4; i++) {
                     const dot = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), green);
                     root.add(dot);
                     flows.push(dot);
                 }
-                pipes.push({ curve, flows, speed });
+                pipes.push({ curve: path, flows, speed });
             }
-            pipe([[-0.3, 0.45, 0], [-0.3, 0.7, 0.05], [-0.05, 0.8, 0.25], [0.35, 0.8, 0.25], [0.6, 0.6, 0.05], [0.85, 0.35, 0]], 0.04, 0.12);
-            pipe([[0.5, -0.85, 0], [0.7, -0.85, 0.2], [0.85, -0.85, 0.2]], 0.035, 0.18);
-            pipe([[-0.45, -0.7, -0.25], [-0.75, -0.65, -0.45], [-0.9, -0.35, -0.5], [-0.75, -0.05, -0.4], [-0.5, 0.0, -0.15]], 0.035, 0.15);
+            // Cuve -> haut de la colonne, caisson -> colonne, piston -> caisson
+            pipe([[-0.3, 0.45, 0], [-0.3, 0.55, 0], [0.75, 0.55, 0]], 0.04, 0.12);
+            pipe([[0.5, -0.75, 0], [0.75, -0.75, 0]], 0.035, 0.18);
+            pipe([[-0.5, -0.75, 0], [-0.7, -0.75, 0]], 0.035, 0.15);
 
             return {
                 root,
@@ -1266,7 +1278,7 @@
             group.add(machine.root);
             // Échelle et hauteur réduites pour tenir au-dessus de la rangée de boutons
             group.scale.setScalar(0.6);
-            group.position.y = 0.45;
+            group.position.y = 0.15;
 
             let tx = 0;
             let ty = 0;
