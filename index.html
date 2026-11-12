@@ -1383,59 +1383,81 @@
             const SCROLL_SPEED = 1.2;
             const TRAIL_MAX = 60;
             const GRID_Y = grid.position.y + 0.04;
-            const bike = new THREE.Mesh(
-                new THREE.BoxGeometry(0.16, 0.08, 0.4),
-                new THREE.MeshBasicMaterial({ color: 0xffffff })
-            );
-            scene.add(bike);
-            const trailGeo = new THREE.BufferGeometry();
-            const trailBuf = new Float32Array(TRAIL_MAX * 3);
-            trailGeo.setAttribute('position', new THREE.BufferAttribute(trailBuf, 3));
-            const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0xbffcff }));
-            trail.frustumCulled = false;
-            scene.add(trail);
-            // Position sur la grille (coordonnées locales, entières sur les lignes)
-            const rider = { x: -4, z: -1, dir: [1, 0], p: 0 };
-            // Cap de la moto, lissé pour que le virage soit progressif
-            let heading = Math.atan2(1, 0);
-            const trailPts = [];
+            const BIKE_COLORS = [0x38e8ff, 0xff8a2b, 0xff3ea5, 0xffe14d];
+            // Limites en coordonnées monde, calculées depuis le champ de vision réel de la caméra
+            const inBounds = (x, z, scroll) => {
+                const zw = z + scroll;
+                const halfAtDepth = (CAM_Z - zw) * Math.tan(THREE.MathUtils.degToRad(FOV / 2)) * camera.aspect * 0.7;
+                return Math.abs(x) <= halfAtDepth && zw <= -0.6 && zw >= -4;
+            };
+            function createBike(color, scroll) {
+                const mesh = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.16, 0.08, 0.4),
+                    new THREE.MeshBasicMaterial({ color })
+                );
+                scene.add(mesh);
+                const trailGeo = new THREE.BufferGeometry();
+                const trailBuf = new Float32Array(TRAIL_MAX * 3);
+                trailGeo.setAttribute('position', new THREE.BufferAttribute(trailBuf, 3));
+                const line = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color }));
+                line.frustumCulled = false;
+                scene.add(line);
+                const dir = Math.random() < 0.5 ? [1, 0] : [0, 1];
+                // Coordonnées locales à la grille (entières sur les lignes), départ dans la zone visible
+                let x = Math.floor(Math.random() * 5) - 2;
+                const z = Math.round(-scroll) - 2 - Math.floor(Math.random() * 2);
+                if (!inBounds(x, z, scroll)) x = 0;
+                return {
+                    mesh,
+                    trailGeo,
+                    trailBuf,
+                    trailPts: [],
+                    p: Math.random(),
+                    dir,
+                    x,
+                    z,
+                    heading: Math.atan2(dir[0], dir[1])
+                };
+            }
+            const bikes = BIKE_COLORS.map(c => createBike(c, performance.now() / 1000 * SCROLL_SPEED));
             let lastT = performance.now() / 1000;
-            const inBounds = (x, z) => Math.abs(x) <= 6 && z <= 0 && z >= -6;
-            function pickDir() {
-                const [dx, dz] = rider.dir;
+            function pickDir(r, scroll) {
+                const [dx, dz] = r.dir;
                 const sides = dx !== 0 ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]];
                 if (Math.random() < 0.5) sides.reverse();
-                if (inBounds(rider.x + dx, rider.z + dz) && Math.random() > 0.3) return rider.dir;
-                return sides.find(([sx, sz]) => inBounds(rider.x + sx, rider.z + sz)) || [-dx, -dz];
+                if (inBounds(r.x + dx, r.z + dz, scroll) && Math.random() > 0.3) return r.dir;
+                return sides.find(([sx, sz]) => inBounds(r.x + sx, r.z + sz, scroll)) || [-dx, -dz];
             }
-            // Décalage continu (non bouclé) : la moto et sa traînée ne doivent pas sauter quand la grille reboucle
-            function updateRider(dt, scroll) {
-                rider.p += BIKE_SPEED * dt;
-                while (rider.p >= 1) {
-                    rider.p -= 1;
-                    rider.x += rider.dir[0];
-                    rider.z += rider.dir[1];
-                    rider.dir = pickDir();
+            // Décalage continu (non bouclé) : les motos et leurs traînées ne doivent pas sauter quand la grille reboucle
+            function updateBikes(dt, scroll) {
+                for (const r of bikes) {
+                    r.p += BIKE_SPEED * dt;
+                    while (r.p >= 1) {
+                        r.p -= 1;
+                        r.x += r.dir[0];
+                        r.z += r.dir[1];
+                        r.dir = pickDir(r, scroll);
+                    }
+                    const px = r.x + r.dir[0] * r.p;
+                    const pz = r.z + r.dir[1] * r.p;
+                    const last = r.trailPts[r.trailPts.length - 1];
+                    if (!last || Math.hypot(px - last[0], pz - last[1]) > 0.08) {
+                        r.trailPts.push([px, pz]);
+                        if (r.trailPts.length > TRAIL_MAX) r.trailPts.shift();
+                    }
+                    r.mesh.position.set(px, GRID_Y, pz + scroll);
+                    const target = Math.atan2(r.dir[0], r.dir[1]);
+                    const turn = Math.atan2(Math.sin(target - r.heading), Math.cos(target - r.heading));
+                    r.heading += turn * Math.min(1, dt * 12);
+                    r.mesh.rotation.y = r.heading;
+                    r.trailPts.forEach(([x, z], i) => {
+                        r.trailBuf[i * 3] = x;
+                        r.trailBuf[i * 3 + 1] = GRID_Y;
+                        r.trailBuf[i * 3 + 2] = z + scroll;
+                    });
+                    r.trailGeo.setDrawRange(0, r.trailPts.length);
+                    r.trailGeo.attributes.position.needsUpdate = true;
                 }
-                const px = rider.x + rider.dir[0] * rider.p;
-                const pz = rider.z + rider.dir[1] * rider.p;
-                const last = trailPts[trailPts.length - 1];
-                if (!last || Math.hypot(px - last[0], pz - last[1]) > 0.08) {
-                    trailPts.push([px, pz]);
-                    if (trailPts.length > TRAIL_MAX) trailPts.shift();
-                }
-                bike.position.set(px, GRID_Y, pz + scroll);
-                const target = Math.atan2(rider.dir[0], rider.dir[1]);
-                const turn = Math.atan2(Math.sin(target - heading), Math.cos(target - heading));
-                heading += turn * Math.min(1, dt * 12);
-                bike.rotation.y = heading;
-                trailPts.forEach(([x, z], i) => {
-                    trailBuf[i * 3] = x;
-                    trailBuf[i * 3 + 1] = GRID_Y;
-                    trailBuf[i * 3 + 2] = z + scroll;
-                });
-                trailGeo.setDrawRange(0, trailPts.length);
-                trailGeo.attributes.position.needsUpdate = true;
             }
 
             function resize() {
@@ -1477,7 +1499,7 @@
                 head.root.rotation.x += (pitch - head.root.rotation.x) * 0.12;
                 machine.update(t);
                 grid.position.z = (t * SCROLL_SPEED) % 1;
-                updateRider(Math.min(0.05, t - lastT), t * SCROLL_SPEED);
+                updateBikes(Math.min(0.05, t - lastT), t * SCROLL_SPEED);
                 lastT = t;
                 renderer.render(scene, camera);
             }
