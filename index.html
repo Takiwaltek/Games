@@ -208,7 +208,8 @@
             min-width: 220px;
         }
 
-        .dock > .sat-menu:nth-child(4) .sat-menu-list {
+        .dock > .sat-menu:nth-child(4) .sat-menu-list,
+        .dock > .games-menu .sat-menu-list {
             left: auto;
             right: 0;
         }
@@ -968,10 +969,6 @@
                 <div class="hero-floor"></div>
             </div>
             <nav class="dock" aria-label="Liens et jeux">
-                <a class="tile tile-featured" href="./takifactory/index.html" title="TakiFactory, usine 3D façon Satisfactory (en développement)">
-                    TakiFactory
-                    <span class="tile-badge">En développement</span>
-                </a>
                 <a class="tile" href="https://www.youtube.com/@takiwaltek" target="_blank" rel="noopener">Vidéos</a>
                 <a class="tile" href="https://soundcloud.com/takiwalte" target="_blank" rel="noopener">Son</a>
                 <details class="sat-menu">
@@ -988,13 +985,20 @@
                         <a href="https://satisfactoryfr.com/" target="_blank" rel="noopener">Satisfactory France</a>
                         <a href="./calculateur/index.html">Calculateur</a>
                         <a href="./carte/index.html">Carte de la base</a>
+                        <a href="https://catenary-world.web.app/" target="_blank" rel="noopener" title="Carte 3D avec ta sauvegarde Satisfactory">Carte 3D</a>
                         <a href="https://satisfactory-calculator.com/fr/interactive-map#3;49935;130005|gameLayer|limestonePure;ironPure;copperPure;cateriumPure;coalPure;oilPure;hardDrives" target="_blank" rel="noopener">Carte officielle</a>
                     </div>
                 </details>
-                <a class="tile" href="./jeux/chasse-pixels/index.html">Chasse Pixels</a>
-                <a class="tile" href="./jeux/briques-tombantes/index.html">Briques tombantes</a>
-                <a class="tile" href="./jeux/chevalier-des-sables/index.html">Chevalier des sables</a>
-                <a class="tile" href="./1/index.html" title="NEON//REVOLUTION, jeu d'idle">NEON</a>
+                <details class="sat-menu games-menu">
+                    <summary class="tile"><span class="menu-title">Jeux créés par Takiwaltek</span></summary>
+                    <div class="sat-menu-list">
+                        <a href="./takifactory/index.html" title="TakiFactory, usine 3D façon Satisfactory (en développement)">TakiFactory</a>
+                        <a href="./jeux/chasse-pixels/index.html">Chasse Pixels</a>
+                        <a href="./jeux/briques-tombantes/index.html">Briques tombantes</a>
+                        <a href="./jeux/chevalier-des-sables/index.html">Chevalier des sables</a>
+                        <a href="./1/index.html" title="NEON//REVOLUTION, jeu d'idle">NEON</a>
+                    </div>
+                </details>
             </nav>
         </header>
 
