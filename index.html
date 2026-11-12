@@ -1346,16 +1346,24 @@
             root.add(baseTrim);
 
             // Petit bras droit : la main sort du côté du casque et tapote le bord du bouton
+            const UPPER = 0.15;
             const arm = new THREE.Group();
             arm.position.set(0.2, -0.2, 0);
             root.add(arm);
-            const sleeve = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.2, 4, 8), helmetMat);
-            sleeve.position.y = -0.13;
-            arm.add(sleeve);
-            arm.add(outlineOf(sleeve, 1.25));
+            const upper = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.08, 4, 8), helmetMat);
+            upper.position.y = -UPPER / 2;
+            arm.add(upper);
+            arm.add(outlineOf(upper, 1.25));
+            const elbow = new THREE.Group();
+            elbow.position.y = -UPPER;
+            arm.add(elbow);
+            const forearm = new THREE.Mesh(new THREE.CapsuleGeometry(0.032, 0.08, 4, 8), helmetMat);
+            forearm.position.y = -UPPER / 2;
+            elbow.add(forearm);
+            elbow.add(outlineOf(forearm, 1.25));
             const hand = new THREE.Group();
-            hand.position.y = -0.3;
-            arm.add(hand);
+            hand.position.y = -UPPER;
+            elbow.add(hand);
             // Contour blanc de la main : une coque en face arrière, un peu plus grande
             const addHandPart = (geo, pos, rotZ, edgeScale) => {
                 const part = new THREE.Group();
@@ -1389,9 +1397,10 @@
                 }
                 const p = (t - sipStart) / SIP_DURATION;
                 const sip = p >= 0 && p < 1 ? Math.sin(p * Math.PI) : 0;
-                arm.rotation.z = 1.3 - pulse * 0.75 + sip * 1.3;
-                arm.rotation.x = pulse * 0.35 + sip * 0.5;
-                hand.position.y = -0.3 - pulse * 0.02;
+                // Épaule et coude se plient ensemble : le coude suit l'épaule pour garder la main sur le bouton
+                arm.rotation.z = 1.3 - pulse * 0.5 + sip * 1.3;
+                arm.rotation.x = pulse * 0.35 + sip * 0.9;
+                elbow.rotation.z = -0.15 - pulse * 0.6 - sip * 2.95;
             }
 
             return { root, update };
