@@ -2017,7 +2017,10 @@
                 }
                 ctx = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = ctx.createAnalyser();
-                analyser.fftSize = 128;
+                analyser.fftSize = 512;
+                analyser.minDecibels = -90;
+                analyser.maxDecibels = -10;
+                analyser.smoothingTimeConstant = 0.75;
                 freq = new Uint8Array(analyser.frequencyBinCount);
                 ctx.createMediaElementSource(audio).connect(analyser);
                 analyser.connect(ctx.destination);
@@ -2068,7 +2071,8 @@
                 grad.addColorStop(0.6, '#10b981');
                 grad.addColorStop(1, '#38bdf8');
                 g.fillStyle = grad;
-                const binCount = freq ? freq.length : 0;
+                // Le MP3 est coupé vers 16 kHz : on s'arrête là pour que chaque barre ait du contenu
+                const binCount = freq ? Math.round(freq.length * 0.62) : 0;
                 for (let i = 0; i < bars; i++) {
                     // Bandes logarithmiques : les barres couvrent toute la largeur, du grave à l'aigu
                     let v = 0;
