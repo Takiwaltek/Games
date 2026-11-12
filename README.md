@@ -4,7 +4,7 @@ Site de présentation des projets de Takiwaltek, publié sur GitHub Pages : http
 
 ## Contenu du site
 
-- **Accueil** (`index.html`) : liens vers les projets, nouveautés Steam, widget du Discord Satisfactory France, tchat en direct (Firebase) et lecteur MP3 (bouton **Musique**).
+- **Accueil** (`index.html`) : liens vers les projets, nouveautés Steam, widget du Discord Satisfactory France, tchat en direct (Firebase) et lecteur MP3 (à côté du tchat).
 - **Calculateur** (`calculateur/`) : planificateur de production Satisfactory. Le code source est dans un autre projet, seul le build est ici.
 - **Carte de la base** (`carte/`) : carte Satisfactory.
 - **Jeux** :
