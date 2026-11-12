@@ -1396,6 +1396,8 @@
             scene.add(trail);
             // Position sur la grille (coordonnées locales, entières sur les lignes)
             const rider = { x: -4, z: -1, dir: [1, 0], p: 0 };
+            // Cap de la moto, lissé pour que le virage soit progressif
+            let heading = Math.atan2(1, 0);
             const trailPts = [];
             let lastT = performance.now() / 1000;
             const inBounds = (x, z) => Math.abs(x) <= 6 && z <= 0 && z >= -6;
@@ -1423,7 +1425,10 @@
                     if (trailPts.length > TRAIL_MAX) trailPts.shift();
                 }
                 bike.position.set(px, GRID_Y, pz + scroll);
-                bike.rotation.y = Math.atan2(rider.dir[0], rider.dir[1]);
+                const target = Math.atan2(rider.dir[0], rider.dir[1]);
+                const turn = Math.atan2(Math.sin(target - heading), Math.cos(target - heading));
+                heading += turn * Math.min(1, dt * 12);
+                bike.rotation.y = heading;
                 trailPts.forEach(([x, z], i) => {
                     trailBuf[i * 3] = x;
                     trailBuf[i * 3 + 1] = GRID_Y;
