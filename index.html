@@ -1278,6 +1278,15 @@
             root.position.y = 0.1;
             const helmetMat = new THREE.MeshStandardMaterial({ color: 0x2b3550, metalness: 0.6, roughness: 0.35 });
             const trimMat = new THREE.MeshBasicMaterial({ color: 0x00e08a });
+            const outlineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.BackSide });
+            // Contour blanc : même forme que la pièce, un peu plus grande, vue uniquement par l'arrière
+            const outlineOf = (mesh, k) => {
+                const edge = new THREE.Mesh(mesh.geometry, outlineMat);
+                edge.position.copy(mesh.position);
+                edge.rotation.copy(mesh.rotation);
+                edge.scale.copy(mesh.scale).multiplyScalar(k);
+                return edge;
+            };
             const visorMat = new THREE.MeshStandardMaterial({
                 color: 0x0b3b2e, metalness: 0.9, roughness: 0.1, emissive: 0x00e08a, emissiveIntensity: 0.4,
             });
@@ -1288,6 +1297,7 @@
             const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.2, 32, 24), helmetMat);
             helmet.scale.set(1, 1.1, 1);
             root.add(helmet);
+            root.add(outlineOf(helmet, 1.07));
 
             // Visière : calotte avant qui couvre les yeux, face à +Z
             const visor = new THREE.Mesh(
@@ -1296,6 +1306,7 @@
             );
             visor.scale.set(1, 1.1, 1);
             root.add(visor);
+            root.add(outlineOf(visor, 1.04));
 
             // Deux yeux lumineux posés sur la visière, de part et d'autre de l'axe
             const eyeMat = new THREE.MeshBasicMaterial({ color: 0x7dffc8 });
@@ -1312,10 +1323,12 @@
             const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 0.2, 16), helmetMat);
             neck.position.y = -0.27;
             root.add(neck);
+            root.add(outlineOf(neck, 1.12));
 
             const base = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.05, 28), helmetMat);
             base.position.y = -0.4;
             root.add(base);
+            root.add(outlineOf(base, 1.08));
             const baseTrim = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.01, 8, 32), trimMat);
             baseTrim.rotation.x = Math.PI / 2;
             baseTrim.position.y = -0.375;
@@ -1328,16 +1341,16 @@
             const sleeve = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.2, 4, 8), helmetMat);
             sleeve.position.y = -0.13;
             arm.add(sleeve);
+            arm.add(outlineOf(sleeve, 1.25));
             const hand = new THREE.Group();
             hand.position.y = -0.3;
             arm.add(hand);
-            // Contour fin : une coque claire en face arrière, un peu plus grande que la main
-            const handEdge = new THREE.MeshBasicMaterial({ color: 0xe8fff6, side: THREE.BackSide });
+            // Contour blanc de la main : une coque en face arrière, un peu plus grande
             const addHandPart = (geo, pos, rotZ, edgeScale) => {
                 const part = new THREE.Group();
                 part.position.copy(pos);
                 part.rotation.z = rotZ;
-                const edge = new THREE.Mesh(geo, handEdge);
+                const edge = new THREE.Mesh(geo, outlineMat);
                 edge.scale.setScalar(edgeScale);
                 const fill = new THREE.Mesh(geo, trimMat);
                 part.add(edge, fill);
