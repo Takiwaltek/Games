@@ -1355,11 +1355,20 @@
             group.add(machine.root);
             // Échelle et hauteur réduites pour tenir au-dessus de la rangée de boutons
             group.scale.setScalar(0.5);
-            group.position.y = 0.15;
+            group.position.y = 0.3;
 
-            // Pionnier immobile, placé au-dessus du bouton Satisfactory (voir resize)
+            // Pionnier immobile au-dessus du bouton Satisfactory, il regarde la souris (voir frame)
             const head = createPioneerHead(THREE);
             scene.add(head.root);
+            let halfW = 1;
+            let halfH = 1;
+            let mx = 0;
+            let my = 0;
+            hero.addEventListener('pointermove', e => {
+                const r = hero.getBoundingClientRect();
+                mx = ((e.clientX - r.left) / r.width) * 2 - 1;
+                my = 1 - ((e.clientY - r.top) / r.height) * 2;
+            });
 
             function resize() {
                 const w = hero.clientWidth;
@@ -1370,6 +1379,8 @@
                 const visibleWidth = 2 * CAM_Z * Math.tan(THREE.MathUtils.degToRad(FOV / 2)) * camera.aspect;
                 // Sur écran étroit, l'objet reste centré pour ne pas recouvrir le titre
                 group.position.x = camera.aspect > 1.6 ? visibleWidth * 0.1 : 0;
+                halfW = visibleWidth / 2;
+                halfH = CAM_Z * Math.tan(THREE.MathUtils.degToRad(FOV / 2));
 
                 // Convertit la position du bouton Satisfactory en coordonnées de la scène
                 const anchor = [...hero.querySelectorAll('.sat-menu summary')].find(s => s.textContent.includes('Satisfactory'));
@@ -1378,9 +1389,8 @@
                     const br = anchor.getBoundingClientRect();
                     const cx = (br.left + br.width / 2 - hr.left) / w;
                     const cy = (br.top - hr.top) / h;
-                    const visibleHeight = 2 * CAM_Z * Math.tan(THREE.MathUtils.degToRad(FOV / 2));
-                    head.root.position.x = (cx * 2 - 1) * visibleWidth / 2;
-                    head.root.position.y = -0.1 + (0.5 - cy) * visibleHeight + 0.55;
+                    head.root.position.x = (cx * 2 - 1) * halfW;
+                    head.root.position.y = -0.1 + (0.5 - cy) * halfH * 2 + 0.55;
                 }
                 if (reduce) frame();
             }
@@ -1390,6 +1400,13 @@
                 // Rotation continue sur elle-même, inclinaison fixe
                 group.rotation.y = t * 0.6;
                 group.rotation.x = 0.2;
+                // Le pionnier tourne vers le curseur
+                const dx = mx * halfW - head.root.position.x;
+                const dy = my * halfH - head.root.position.y;
+                const yaw = THREE.MathUtils.clamp(Math.atan2(dx, CAM_Z), -1, 1);
+                const pitch = THREE.MathUtils.clamp(-Math.atan2(dy, CAM_Z), -0.45, 0.45);
+                head.root.rotation.y += (yaw - head.root.rotation.y) * 0.12;
+                head.root.rotation.x += (pitch - head.root.rotation.x) * 0.12;
                 machine.update(t);
                 grid.position.z = (t * 1.2) % 1;
                 renderer.render(scene, camera);
