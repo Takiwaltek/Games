@@ -1987,6 +1987,7 @@
             let ctx = null;
             let analyser = null;
             let freq = null;
+            const bandPeak = new Float32Array(32);
             let drawing = false;
 
             function setPlayIcon(playing) {
@@ -2018,7 +2019,7 @@
                 ctx = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = ctx.createAnalyser();
                 analyser.fftSize = 512;
-                analyser.minDecibels = -90;
+                analyser.minDecibels = -120;
                 analyser.maxDecibels = -10;
                 analyser.smoothingTimeConstant = 0.75;
                 freq = new Uint8Array(analyser.frequencyBinCount);
@@ -2072,7 +2073,7 @@
                 grad.addColorStop(1, '#38bdf8');
                 g.fillStyle = grad;
                 // Le MP3 est coupé vers 16 kHz : on s'arrête là pour que chaque barre ait du contenu
-                const binCount = freq ? Math.round(freq.length * 0.62) : 0;
+                const binCount = freq ? Math.round(freq.length * 0.5) : 0;
                 for (let i = 0; i < bars; i++) {
                     // Bandes logarithmiques : les barres couvrent toute la largeur, du grave à l'aigu
                     let v = 0;
@@ -2081,6 +2082,10 @@
                         const hi = Math.max(lo + 1, Math.floor(Math.pow(binCount, (i + 1) / bars)));
                         for (let b = lo; b < hi && b < binCount; b++) v = Math.max(v, freq[b]);
                         v /= 255;
+                        // Chaque bande est remontée vers un niveau de référence selon son niveau récent,
+                        // pour que les aigus faibles bougent aussi sans saturer les graves
+                        bandPeak[i] = Math.max(v, bandPeak[i] * 0.999);
+                        v = Math.min(1, v * Math.min(4, Math.max(1, 0.8 / Math.max(bandPeak[i], 0.05))));
                     }
                     const barH = Math.max(3, v * h);
                     g.fillRect(i * (barW + gap), h - barH, barW, barH);
