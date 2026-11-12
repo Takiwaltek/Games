@@ -1321,7 +1321,34 @@
             baseTrim.position.y = -0.375;
             root.add(baseTrim);
 
-            return { root };
+            // Petit bras droit : la main sort du côté du casque et tapote le bord du bouton
+            const arm = new THREE.Group();
+            arm.position.set(0.2, -0.2, 0);
+            root.add(arm);
+            const sleeve = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.2, 4, 8), helmetMat);
+            sleeve.position.y = -0.13;
+            arm.add(sleeve);
+            const hand = new THREE.Group();
+            hand.position.y = -0.3;
+            arm.add(hand);
+            const palm = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 8), trimMat);
+            hand.add(palm);
+            const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.014, 0.04, 4, 6), trimMat);
+            thumb.position.set(-0.04, 0.01, 0.01);
+            thumb.rotation.z = 0.6;
+            hand.add(thumb);
+
+            // Cycle de 4 s : deux petits coups sur le bouton, puis retour au repos
+            function update(t) {
+                const c = (t % 4) / 4;
+                const tapping = c < 0.5;
+                const pulse = tapping ? Math.pow(Math.abs(Math.sin(c * Math.PI * 4)), 2) : 0;
+                arm.rotation.z = 1.3 - pulse * 0.75;
+                arm.rotation.x = pulse * 0.35;
+                hand.position.y = -0.3 - pulse * 0.02;
+            }
+
+            return { root, update };
         }
 
         // Scène 3D de la bannière (Three.js, version épinglée).
@@ -1570,6 +1597,7 @@
                 head.root.rotation.y += (yaw - head.root.rotation.y) * 0.12;
                 head.root.rotation.x += (pitch - head.root.rotation.x) * 0.12;
                 machine.update(t);
+                head.update(t);
                 grid.position.z = (t * SCROLL_SPEED) % 1;
                 updateBikes(Math.min(0.05, t - lastT), t * SCROLL_SPEED);
                 lastT = t;
