@@ -1331,12 +1331,20 @@
             const hand = new THREE.Group();
             hand.position.y = -0.3;
             arm.add(hand);
-            const palm = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 8), trimMat);
-            hand.add(palm);
-            const thumb = new THREE.Mesh(new THREE.CapsuleGeometry(0.014, 0.04, 4, 6), trimMat);
-            thumb.position.set(-0.04, 0.01, 0.01);
-            thumb.rotation.z = 0.6;
-            hand.add(thumb);
+            // Contour fin : une coque claire en face arrière, un peu plus grande que la main
+            const handEdge = new THREE.MeshBasicMaterial({ color: 0xe8fff6, side: THREE.BackSide });
+            const addHandPart = (geo, pos, rotZ, edgeScale) => {
+                const part = new THREE.Group();
+                part.position.copy(pos);
+                part.rotation.z = rotZ;
+                const edge = new THREE.Mesh(geo, handEdge);
+                edge.scale.setScalar(edgeScale);
+                const fill = new THREE.Mesh(geo, trimMat);
+                part.add(edge, fill);
+                hand.add(part);
+            };
+            addHandPart(new THREE.SphereGeometry(0.05, 12, 8), new THREE.Vector3(0, 0, 0), 0, 1.22);
+            addHandPart(new THREE.CapsuleGeometry(0.014, 0.04, 4, 6), new THREE.Vector3(-0.04, 0.01, 0.01), 0.6, 1.3);
 
             // Cycle de 4 s : deux petits coups sur le bouton, puis retour au repos
             function update(t) {
