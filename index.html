@@ -1380,6 +1380,7 @@
 
             // Moto façon TRON : elle roule sur les lignes de la grille et laisse une traînée
             const BIKE_SPEED = 2.2;
+            const SCROLL_SPEED = 1.2;
             const TRAIL_MAX = 60;
             const GRID_Y = grid.position.y + 0.04;
             const bike = new THREE.Mesh(
@@ -1405,7 +1406,8 @@
                 if (inBounds(rider.x + dx, rider.z + dz) && Math.random() > 0.3) return rider.dir;
                 return sides.find(([sx, sz]) => inBounds(rider.x + sx, rider.z + sz)) || [-dx, -dz];
             }
-            function updateRider(dt, gz) {
+            // Décalage continu (non bouclé) : la moto et sa traînée ne doivent pas sauter quand la grille reboucle
+            function updateRider(dt, scroll) {
                 rider.p += BIKE_SPEED * dt;
                 while (rider.p >= 1) {
                     rider.p -= 1;
@@ -1420,12 +1422,12 @@
                     trailPts.push([px, pz]);
                     if (trailPts.length > TRAIL_MAX) trailPts.shift();
                 }
-                bike.position.set(px, GRID_Y, pz + gz);
+                bike.position.set(px, GRID_Y, pz + scroll);
                 bike.rotation.y = Math.atan2(rider.dir[0], rider.dir[1]);
                 trailPts.forEach(([x, z], i) => {
                     trailBuf[i * 3] = x;
                     trailBuf[i * 3 + 1] = GRID_Y;
-                    trailBuf[i * 3 + 2] = z + gz;
+                    trailBuf[i * 3 + 2] = z + scroll;
                 });
                 trailGeo.setDrawRange(0, trailPts.length);
                 trailGeo.attributes.position.needsUpdate = true;
@@ -1469,8 +1471,8 @@
                 head.root.rotation.y += (yaw - head.root.rotation.y) * 0.12;
                 head.root.rotation.x += (pitch - head.root.rotation.x) * 0.12;
                 machine.update(t);
-                grid.position.z = (t * 1.2) % 1;
-                updateRider(Math.min(0.05, t - lastT), grid.position.z);
+                grid.position.z = (t * SCROLL_SPEED) % 1;
+                updateRider(Math.min(0.05, t - lastT), t * SCROLL_SPEED);
                 lastT = t;
                 renderer.render(scene, camera);
             }
