@@ -1320,7 +1320,7 @@
                 camera.updateProjectionMatrix();
                 const visibleWidth = 2 * CAM_Z * Math.tan(THREE.MathUtils.degToRad(FOV / 2)) * camera.aspect;
                 // Sur écran étroit, l'objet reste centré pour ne pas recouvrir le titre
-                group.position.x = camera.aspect > 1.6 ? visibleWidth * 0.16 : 0;
+                group.position.x = camera.aspect > 1.6 ? visibleWidth * 0.1 : 0;
                 if (reduce) frame();
             }
 
