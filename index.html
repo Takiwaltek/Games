@@ -1359,13 +1359,27 @@
             addHandPart(new THREE.SphereGeometry(0.05, 12, 8), new THREE.Vector3(0, 0, 0), 0, 1.22);
             addHandPart(new THREE.CapsuleGeometry(0.014, 0.04, 4, 6), new THREE.Vector3(-0.04, 0.01, 0.01), 0.6, 1.3);
 
-            // Cycle de 4 s : deux petits coups sur le bouton, puis retour au repos
-            function update(t) {
-                const c = (t % 4) / 4;
-                const tapping = c < 0.5;
-                const pulse = tapping ? Math.pow(Math.abs(Math.sin(c * Math.PI * 4)), 2) : 0;
-                arm.rotation.z = 1.3 - pulse * 0.75;
-                arm.rotation.x = pulse * 0.35;
+            // Cycle de 7 s : deux petits coups sur le bouton au début, puis retour au repos.
+            // Si la souris ne bouge plus, il boit une gorgée une fois par cycle, après les coups.
+            const TAP_PERIOD = 7;
+            const TAP_DURATION = 1.2;
+            const SIP_START = 3;
+            const SIP_DURATION = 1.8;
+            let sipCycle = -1;
+            let sipStart = -Infinity;
+            function update(t, idle) {
+                const cycle = Math.floor(t / TAP_PERIOD);
+                const c = t - cycle * TAP_PERIOD;
+                const tapping = c < TAP_DURATION;
+                const pulse = tapping ? Math.pow(Math.abs(Math.sin((c / TAP_DURATION) * Math.PI * 2)), 2) : 0;
+                if (idle && sipCycle !== cycle && c >= SIP_START && c < TAP_PERIOD - SIP_DURATION) {
+                    sipCycle = cycle;
+                    sipStart = t;
+                }
+                const p = (t - sipStart) / SIP_DURATION;
+                const sip = p >= 0 && p < 1 ? Math.sin(p * Math.PI) : 0;
+                arm.rotation.z = 1.3 - pulse * 0.75 + sip * 1.3;
+                arm.rotation.x = pulse * 0.35 + sip * 0.5;
                 hand.position.y = -0.3 - pulse * 0.02;
             }
 
@@ -1424,6 +1438,11 @@
                 const r = hero.getBoundingClientRect();
                 mx = ((e.clientX - r.left) / r.width) * 2 - 1;
                 my = 1 - ((e.clientY - r.top) / r.height) * 2;
+            });
+            // Dernier mouvement de souris sur la page (en secondes, même base que frame)
+            let lastMove = -Infinity;
+            document.addEventListener('pointermove', () => {
+                lastMove = performance.now() / 1000;
             });
 
             // Moto façon TRON : elle roule sur les lignes de la grille et laisse une traînée
@@ -1618,7 +1637,7 @@
                 head.root.rotation.y += (yaw - head.root.rotation.y) * 0.12;
                 head.root.rotation.x += (pitch - head.root.rotation.x) * 0.12;
                 machine.update(t);
-                head.update(t);
+                head.update(t, t - lastMove > 2);
                 grid.position.z = (t * SCROLL_SPEED) % 1;
                 updateBikes(Math.min(0.05, t - lastT), t * SCROLL_SPEED);
                 lastT = t;
