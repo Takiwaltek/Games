@@ -1475,12 +1475,25 @@
             }
             const bikes = BIKE_COLORS.map(c => createBike(c, performance.now() / 1000 * SCROLL_SPEED));
             let lastT = performance.now() / 1000;
+            const Z_MID = -2.3;
             function pickDir(r, scroll) {
                 const [dx, dz] = r.dir;
+                const straight = [dx, dz];
+                const back = [-dx, -dz];
                 const sides = dx !== 0 ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]];
                 if (Math.random() < 0.5) sides.reverse();
-                if (inBounds(r.x + dx, r.z + dz, scroll) && Math.random() > 0.3) return r.dir;
-                return sides.find(([sx, sz]) => inBounds(r.x + sx, r.z + sz, scroll)) || [-dx, -dz];
+                const ok = ([sx, sz]) => inBounds(r.x + sx, r.z + sz, scroll);
+                if (ok(straight) && Math.random() > 0.3) {
+                    if (Math.random() < 0.1 && ok(back)) return back;
+                    return straight;
+                }
+                const side = sides.find(ok);
+                if (side) return side;
+                if (ok(straight)) return straight;
+                if (ok(back)) return back;
+                // Aucun choix dans la fenêtre : on prend celui qui ramène la moto vers le centre
+                const depth = d => Math.abs(r.z + d[1] + scroll - Z_MID);
+                return [straight, back, ...sides].reduce((a, b) => (depth(b) < depth(a) ? b : a));
             }
             // Décalage continu (non bouclé) : les motos et leurs traînées ne doivent pas sauter quand la grille reboucle
             function updateBikes(dt, scroll) {
