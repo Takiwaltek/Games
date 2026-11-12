@@ -1378,6 +1378,59 @@
                 my = 1 - ((e.clientY - r.top) / r.height) * 2;
             });
 
+            // Moto façon TRON : elle roule sur les lignes de la grille et laisse une traînée
+            const BIKE_SPEED = 2.2;
+            const TRAIL_MAX = 60;
+            const GRID_Y = grid.position.y + 0.04;
+            const bike = new THREE.Mesh(
+                new THREE.BoxGeometry(0.16, 0.08, 0.4),
+                new THREE.MeshBasicMaterial({ color: 0xffffff })
+            );
+            scene.add(bike);
+            const trailGeo = new THREE.BufferGeometry();
+            const trailBuf = new Float32Array(TRAIL_MAX * 3);
+            trailGeo.setAttribute('position', new THREE.BufferAttribute(trailBuf, 3));
+            const trail = new THREE.Line(trailGeo, new THREE.LineBasicMaterial({ color: 0xbffcff }));
+            trail.frustumCulled = false;
+            scene.add(trail);
+            // Position sur la grille (coordonnées locales, entières sur les lignes)
+            const rider = { x: -4, z: -1, dir: [1, 0], p: 0 };
+            const trailPts = [];
+            let lastT = performance.now() / 1000;
+            const inBounds = (x, z) => Math.abs(x) <= 6 && z <= 0 && z >= -6;
+            function pickDir() {
+                const [dx, dz] = rider.dir;
+                const sides = dx !== 0 ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]];
+                if (Math.random() < 0.5) sides.reverse();
+                if (inBounds(rider.x + dx, rider.z + dz) && Math.random() > 0.3) return rider.dir;
+                return sides.find(([sx, sz]) => inBounds(rider.x + sx, rider.z + sz)) || [-dx, -dz];
+            }
+            function updateRider(dt, gz) {
+                rider.p += BIKE_SPEED * dt;
+                while (rider.p >= 1) {
+                    rider.p -= 1;
+                    rider.x += rider.dir[0];
+                    rider.z += rider.dir[1];
+                    rider.dir = pickDir();
+                }
+                const px = rider.x + rider.dir[0] * rider.p;
+                const pz = rider.z + rider.dir[1] * rider.p;
+                const last = trailPts[trailPts.length - 1];
+                if (!last || Math.hypot(px - last[0], pz - last[1]) > 0.08) {
+                    trailPts.push([px, pz]);
+                    if (trailPts.length > TRAIL_MAX) trailPts.shift();
+                }
+                bike.position.set(px, GRID_Y, pz + gz);
+                bike.rotation.y = Math.atan2(rider.dir[0], rider.dir[1]);
+                trailPts.forEach(([x, z], i) => {
+                    trailBuf[i * 3] = x;
+                    trailBuf[i * 3 + 1] = GRID_Y;
+                    trailBuf[i * 3 + 2] = z + gz;
+                });
+                trailGeo.setDrawRange(0, trailPts.length);
+                trailGeo.attributes.position.needsUpdate = true;
+            }
+
             function resize() {
                 const w = hero.clientWidth;
                 const h = hero.clientHeight;
@@ -1417,6 +1470,8 @@
                 head.root.rotation.x += (pitch - head.root.rotation.x) * 0.12;
                 machine.update(t);
                 grid.position.z = (t * 1.2) % 1;
+                updateRider(Math.min(0.05, t - lastT), grid.position.z);
+                lastT = t;
                 renderer.render(scene, camera);
             }
 
