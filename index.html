@@ -1378,20 +1378,24 @@
             addHandPart(new THREE.SphereGeometry(0.05, 12, 8), new THREE.Vector3(0, 0, 0), 0, 1.22);
             addHandPart(new THREE.CapsuleGeometry(0.014, 0.04, 4, 6), new THREE.Vector3(-0.04, 0.01, 0.01), 0.6, 1.3);
 
-            // Cycle de 7 s : deux balancements de la main (coucou) au début, puis retour au repos.
-            // Si la souris ne bouge plus, il boit une gorgée une fois par cycle, après le coucou.
+            // Cycle de 7 s : coucou (deux balancements) au début quand la souris bouge.
+            // Souris immobile : le bras se pose sur le bouton et y reste, et une gorgée est bue une fois par cycle.
             const TAP_PERIOD = 7;
             const WAVE_DURATION = 2.4;
             const SIP_START = 3;
             const SIP_DURATION = 1.8;
             let sipCycle = -1;
             let sipStart = -Infinity;
-            // Repos : bras à plat sur le côté. Coucou : bras levé, avant-bras qui se balance hors de la tête.
+            let hold = 0;
+            // Repos : bras à plat sur le côté. Coucou : bras levé. Appui : main posée sur le bouton.
             const REST_SHOULDER = 1.3;
             const REST_TOTAL = 1.15;
             const WAVE_SHOULDER = 1.9;
             const WAVE_TOTAL = 2.5;
+            const HOLD_SHOULDER = 0.8;
+            const HOLD_TOTAL = 0.05;
             function update(t, idle) {
+                hold += ((idle ? 1 : 0) - hold) * 0.08;
                 const cycle = Math.floor(t / TAP_PERIOD);
                 const c = t - cycle * TAP_PERIOD;
                 const waving = c < WAVE_DURATION;
@@ -1403,11 +1407,12 @@
                 }
                 const p = (t - sipStart) / SIP_DURATION;
                 const sip = p >= 0 && p < 1 ? Math.sin(p * Math.PI) : 0;
-                const shoulder = REST_SHOULDER + (WAVE_SHOULDER - REST_SHOULDER) * lift + sip * 0.3;
-                const total = REST_TOTAL + (WAVE_TOTAL + swing * 0.35 - REST_TOTAL) * lift - sip * 0.6;
-                // L'épaule se plie puis le coude se plie : l'avant-bras reste donc à l'écart du casque
+                const waveShoulder = REST_SHOULDER + (WAVE_SHOULDER - REST_SHOULDER) * lift;
+                const waveTotal = REST_TOTAL + (WAVE_TOTAL + swing * 0.35 - REST_TOTAL) * lift;
+                const shoulder = waveShoulder + (HOLD_SHOULDER - waveShoulder) * hold + sip * 0.3;
+                const total = waveTotal + (HOLD_TOTAL - waveTotal) * hold - sip * 0.6;
                 arm.rotation.z = shoulder;
-                arm.rotation.x = sip * 0.6;
+                arm.rotation.x = hold * 0.35 + sip * 0.6;
                 elbow.rotation.z = total - shoulder;
             }
 
@@ -1433,6 +1438,9 @@
             const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
             const CAM_Z = 2.8;
             const FOV = 45;
+            // Pose de la tête quand la souris ne bouge plus : tournée vers le bouton
+            const HEAD_IDLE_YAW = 0.3;
+            const HEAD_IDLE_PITCH = 0.3;
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.setClearColor(0x000000, 0);
 
@@ -1657,15 +1665,16 @@
                 // Rotation continue sur elle-même, inclinaison fixe
                 group.rotation.y = t * 0.6;
                 group.rotation.x = 0.2;
-                // Le pionnier tourne vers le curseur
+                // Le pionnier tourne vers le curseur ; sans mouvement, il regarde le bouton Satisfactory
+                const idle = t - lastMove > 2;
                 const dx = mx * halfW - head.root.position.x;
                 const dy = my * halfH - head.root.position.y;
-                const yaw = THREE.MathUtils.clamp(Math.atan2(dx, CAM_Z), -1, 1);
-                const pitch = THREE.MathUtils.clamp(-Math.atan2(dy, CAM_Z), -0.45, 0.45);
+                const yaw = idle ? HEAD_IDLE_YAW : THREE.MathUtils.clamp(Math.atan2(dx, CAM_Z), -1, 1);
+                const pitch = idle ? HEAD_IDLE_PITCH : THREE.MathUtils.clamp(-Math.atan2(dy, CAM_Z), -0.45, 0.45);
                 head.root.rotation.y += (yaw - head.root.rotation.y) * 0.12;
                 head.root.rotation.x += (pitch - head.root.rotation.x) * 0.12;
                 machine.update(t);
-                head.update(t, t - lastMove > 2);
+                head.update(t, idle);
                 grid.position.z = (t * SCROLL_SPEED) % 1;
                 updateBikes(Math.min(0.05, t - lastT), t * SCROLL_SPEED);
                 lastT = t;
