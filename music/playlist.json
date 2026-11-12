@@ -1,5 +1,28 @@
 ﻿{
   "tracks": [
-    { "title": "Hip Hop Jazz Pur", "file": "hip-hop-jazz-pur.mp3" }
+    { "title": "Hip Hop Jazz Pur", "file": "hip-hop-jazz-pur.mp3" },
+    { "title": "untitled", "file": "untitled.mp3" },
+    { "title": "Viktor's Vinyl (1)", "file": "viktors-vinyl-1.mp3" },
+    { "title": "Viktor's Vinyl", "file": "viktors-vinyl.mp3" },
+    { "title": "Collectif Fantasme", "file": "collectif-fantasme.mp3" },
+    { "title": "France contre la guerre des", "file": "france-contre-la-guerre.mp3" },
+    { "title": "il moublie doucment", "file": "il-moublie-doucment.mp3" },
+    { "title": "Le monde Tournes", "file": "le-monde-tournes.mp3" },
+    { "title": "Les Bijoux du Louvre", "file": "les-bijoux-du-louvre.mp3" },
+    { "title": "Les Kids du Village", "file": "les-kids-du-village.mp3" },
+    { "title": "Marathon dans les pompes", "file": "marathon-dans-les-pompes.mp3" },
+    { "title": "Midnight Groove — Rap Continuation", "file": "midnight-groove-rap-continuation.mp3" },
+    { "title": "Ninety-Five Attitude", "file": "ninety-five-attitude.mp3" },
+    { "title": "On part de rien", "file": "on-part-de-rien.mp3" },
+    { "title": "Project_243", "file": "project-243.mp3" },
+    { "title": "Project_246", "file": "project-246.mp3" },
+    { "title": "silence et mémoire", "file": "silence-et-memoire.mp3" },
+    { "title": "Taki Drill", "file": "taki-drill.mp3" },
+    { "title": "Takiwaltek", "file": "takiwaltek.mp3" },
+    { "title": "3", "file": "3.mp3" },
+    { "title": "4", "file": "4.mp3" },
+    { "title": "instru 1", "file": "instru-1.mp3" },
+    { "title": "rap us Taki Label", "file": "rap-us-taki-label.mp3" },
+    { "title": "see the stars [Takiwaltek]", "file": "see-the-stars-takiwaltek.mp3" }
   ]
 }
