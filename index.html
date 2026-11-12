@@ -2068,8 +2068,16 @@
                 grad.addColorStop(0.6, '#10b981');
                 grad.addColorStop(1, '#38bdf8');
                 g.fillStyle = grad;
+                const binCount = freq ? freq.length : 0;
                 for (let i = 0; i < bars; i++) {
-                    const v = freq ? freq[i * 2] / 255 : 0;
+                    // Bandes logarithmiques : les barres couvrent toute la largeur, du grave à l'aigu
+                    let v = 0;
+                    if (freq) {
+                        const lo = Math.floor(Math.pow(binCount, i / bars));
+                        const hi = Math.max(lo + 1, Math.floor(Math.pow(binCount, (i + 1) / bars)));
+                        for (let b = lo; b < hi && b < binCount; b++) v = Math.max(v, freq[b]);
+                        v /= 255;
+                    }
                     const barH = Math.max(3, v * h);
                     g.fillRect(i * (barW + gap), h - barH, barW, barH);
                 }
