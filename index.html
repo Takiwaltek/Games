@@ -1271,6 +1271,51 @@
             };
         }
 
+        // Tête de pionnier : casque métallique, visière lumineuse et buste sur un socle
+        function createPioneerHead(THREE) {
+            const root = new THREE.Group();
+            root.scale.setScalar(1.3);
+            root.position.y = 0.1;
+            const helmetMat = new THREE.MeshStandardMaterial({ color: 0x2b3550, metalness: 0.6, roughness: 0.35 });
+            const trimMat = new THREE.MeshBasicMaterial({ color: 0x00e08a });
+            const visorMat = new THREE.MeshStandardMaterial({
+                color: 0x0b3b2e, metalness: 0.9, roughness: 0.1, emissive: 0x00e08a, emissiveIntensity: 0.4,
+            });
+            const light = new THREE.PointLight(0xffffff, 2, 6);
+            light.position.set(0.5, 0.5, 1.2);
+            root.add(light);
+
+            const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.2, 32, 24), helmetMat);
+            helmet.scale.set(1, 1.1, 1);
+            root.add(helmet);
+
+            // Visière : calotte avant qui couvre les yeux, face à +Z
+            const visor = new THREE.Mesh(
+                new THREE.SphereGeometry(0.207, 24, 12, Math.PI / 2 - 0.8, 1.6, Math.PI * 0.36, Math.PI * 0.2),
+                visorMat
+            );
+            visor.scale.set(1, 1.1, 1);
+            root.add(visor);
+
+            const band = new THREE.Mesh(new THREE.TorusGeometry(0.205, 0.012, 8, 40), trimMat);
+            band.rotation.x = Math.PI / 2;
+            root.add(band);
+
+            const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.12, 0.2, 16), helmetMat);
+            neck.position.y = -0.27;
+            root.add(neck);
+
+            const base = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.05, 28), helmetMat);
+            base.position.y = -0.4;
+            root.add(base);
+            const baseTrim = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.01, 8, 32), trimMat);
+            baseTrim.rotation.x = Math.PI / 2;
+            baseTrim.position.y = -0.375;
+            root.add(baseTrim);
+
+            return { root };
+        }
+
         // Scène 3D de la bannière (Three.js, version épinglée).
         // Si WebGL ou le CDN est indisponible, le sol CSS reste affiché.
         async function setupHero3D() {
@@ -1312,6 +1357,10 @@
             group.scale.setScalar(0.5);
             group.position.y = 0.15;
 
+            // Pionnier immobile, placé au-dessus du bouton Satisfactory (voir resize)
+            const head = createPioneerHead(THREE);
+            scene.add(head.root);
+
             function resize() {
                 const w = hero.clientWidth;
                 const h = hero.clientHeight;
@@ -1321,6 +1370,18 @@
                 const visibleWidth = 2 * CAM_Z * Math.tan(THREE.MathUtils.degToRad(FOV / 2)) * camera.aspect;
                 // Sur écran étroit, l'objet reste centré pour ne pas recouvrir le titre
                 group.position.x = camera.aspect > 1.6 ? visibleWidth * 0.1 : 0;
+
+                // Convertit la position du bouton Satisfactory en coordonnées de la scène
+                const anchor = [...hero.querySelectorAll('.sat-menu summary')].find(s => s.textContent.includes('Satisfactory'));
+                if (anchor) {
+                    const hr = hero.getBoundingClientRect();
+                    const br = anchor.getBoundingClientRect();
+                    const cx = (br.left + br.width / 2 - hr.left) / w;
+                    const cy = (br.top - hr.top) / h;
+                    const visibleHeight = 2 * CAM_Z * Math.tan(THREE.MathUtils.degToRad(FOV / 2));
+                    head.root.position.x = (cx * 2 - 1) * visibleWidth / 2;
+                    head.root.position.y = -0.1 + (0.5 - cy) * visibleHeight + 0.55;
+                }
                 if (reduce) frame();
             }
 
