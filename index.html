@@ -1345,7 +1345,7 @@
             baseTrim.position.y = -0.375;
             root.add(baseTrim);
 
-            // Petit bras droit : la main sort du côté du casque et tapote le bord du bouton
+            // Petit bras droit : la main sort du côté du casque et fait coucou
             const UPPER = 0.15;
             const arm = new THREE.Group();
             arm.position.set(0.2, -0.2, 0);
@@ -1378,29 +1378,37 @@
             addHandPart(new THREE.SphereGeometry(0.05, 12, 8), new THREE.Vector3(0, 0, 0), 0, 1.22);
             addHandPart(new THREE.CapsuleGeometry(0.014, 0.04, 4, 6), new THREE.Vector3(-0.04, 0.01, 0.01), 0.6, 1.3);
 
-            // Cycle de 7 s : deux petits coups sur le bouton au début, puis retour au repos.
-            // Si la souris ne bouge plus, il boit une gorgée une fois par cycle, après les coups.
+            // Cycle de 7 s : deux balancements de la main (coucou) au début, puis retour au repos.
+            // Si la souris ne bouge plus, il boit une gorgée une fois par cycle, après le coucou.
             const TAP_PERIOD = 7;
-            const TAP_DURATION = 1.2;
+            const WAVE_DURATION = 2.4;
             const SIP_START = 3;
             const SIP_DURATION = 1.8;
             let sipCycle = -1;
             let sipStart = -Infinity;
+            // Repos : bras à plat sur le côté. Coucou : bras levé, avant-bras qui se balance hors de la tête.
+            const REST_SHOULDER = 1.3;
+            const REST_TOTAL = 1.15;
+            const WAVE_SHOULDER = 1.9;
+            const WAVE_TOTAL = 2.5;
             function update(t, idle) {
                 const cycle = Math.floor(t / TAP_PERIOD);
                 const c = t - cycle * TAP_PERIOD;
-                const tapping = c < TAP_DURATION;
-                const pulse = tapping ? Math.pow(Math.abs(Math.sin((c / TAP_DURATION) * Math.PI * 2)), 2) : 0;
+                const waving = c < WAVE_DURATION;
+                const lift = waving ? Math.sin((c / WAVE_DURATION) * Math.PI) : 0;
+                const swing = waving ? Math.sin((c / WAVE_DURATION) * Math.PI * 4) : 0;
                 if (idle && sipCycle !== cycle && c >= SIP_START && c < TAP_PERIOD - SIP_DURATION) {
                     sipCycle = cycle;
                     sipStart = t;
                 }
                 const p = (t - sipStart) / SIP_DURATION;
                 const sip = p >= 0 && p < 1 ? Math.sin(p * Math.PI) : 0;
-                // Épaule et coude se plient ensemble : le coude suit l'épaule pour garder la main sur le bouton
-                arm.rotation.z = 1.3 - pulse * 0.5 + sip * 1.3;
-                arm.rotation.x = pulse * 0.35 + sip * 0.9;
-                elbow.rotation.z = -0.15 - pulse * 0.6 - sip * 2.95;
+                const shoulder = REST_SHOULDER + (WAVE_SHOULDER - REST_SHOULDER) * lift + sip * 0.3;
+                const total = REST_TOTAL + (WAVE_TOTAL + swing * 0.35 - REST_TOTAL) * lift - sip * 0.6;
+                // L'épaule se plie puis le coude se plie : l'avant-bras reste donc à l'écart du casque
+                arm.rotation.z = shoulder;
+                arm.rotation.x = sip * 0.6;
+                elbow.rotation.z = total - shoulder;
             }
 
             return { root, update };
