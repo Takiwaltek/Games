@@ -213,6 +213,101 @@
             left: auto;
             right: 0;
         }
+        .player-body {
+            display: grid;
+            gap: 12px;
+            padding: 16px 18px 18px;
+        }
+
+        .player-track {
+            margin: 0;
+            overflow: hidden;
+            color: var(--text);
+            font-weight: 700;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .player-viz {
+            width: 100%;
+            height: 100px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: #050a12;
+        }
+
+        .player-seek {
+            width: 100%;
+            accent-color: var(--accent);
+        }
+
+        .player-controls {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .player-controls button {
+            min-width: 42px;
+            padding: 8px 10px;
+            border: 2px solid #000;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #10b981, #065f46);
+            color: #000;
+            font-family: var(--font);
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #000;
+        }
+
+        .player-controls button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #000;
+        }
+
+        .player-controls button[aria-pressed="true"] {
+            filter: brightness(0.7);
+        }
+
+        .player-volume {
+            width: 120px;
+            margin-left: auto;
+            accent-color: var(--accent);
+        }
+
+        .player-list {
+            display: grid;
+            gap: 4px;
+            max-height: 180px;
+            margin: 0;
+            padding: 0;
+            overflow-y: auto;
+            list-style: none;
+        }
+
+        .player-list button {
+            width: 100%;
+            padding: 6px 8px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--muted);
+            font: inherit;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .player-list button:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text);
+        }
+
+        .player-list li[aria-current="true"] button {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
         section[id] {
             scroll-margin-top: 20px;
         }
@@ -1009,8 +1104,30 @@
                         <a href="./1/index.html" title="NEON//REVOLUTION, jeu d'idle">NEON</a>
                     </div>
                 </details>
+                <button type="button" class="tile" id="player-toggle" aria-expanded="false" aria-controls="player">Musique</button>
             </nav>
         </header>
+
+        <section class="steam player" id="player" aria-labelledby="player-title" hidden>
+            <div class="steam-head">
+                <h2 class="steam-title" id="player-title">Lecteur MP3</h2>
+                <span class="steam-updated" id="player-count"></span>
+            </div>
+            <div class="player-body">
+                <p class="player-track" id="player-track">Chargement de la playlist...</p>
+                <canvas class="player-viz" id="player-viz" width="640" height="120" aria-hidden="true"></canvas>
+                <input type="range" class="player-seek" id="player-seek" min="0" max="0" step="0.1" value="0" aria-label="Position dans la musique" disabled>
+                <div class="player-controls">
+                    <button type="button" id="player-prev" aria-label="Précédent" title="Précédent">⏮</button>
+                    <button type="button" id="player-play" aria-label="Lecture" title="Lecture">▶</button>
+                    <button type="button" id="player-stop" aria-label="Stop" title="Stop">⏹</button>
+                    <button type="button" id="player-next" aria-label="Suivant" title="Suivant">⏭</button>
+                    <button type="button" id="player-mute" aria-label="Couper le son" aria-pressed="false" title="Muet">🔊</button>
+                    <input type="range" class="player-volume" id="player-volume" min="0" max="1" step="0.01" value="0.7" aria-label="Volume">
+                </div>
+                <ol class="player-list" id="player-list"></ol>
+            </div>
+        </section>
 
         <section class="steam" id="steam" aria-labelledby="steam-title">
             <div class="steam-head">
@@ -1808,6 +1925,203 @@
                 });
             });
         }
+    </script>
+
+    <script>
+        // Lecteur MP3 : playlist lue dans music/playlist.json, diagramme des fréquences via Web Audio
+        (() => {
+            const panel = document.getElementById('player');
+            const toggle = document.getElementById('player-toggle');
+            const trackLabel = document.getElementById('player-track');
+            const count = document.getElementById('player-count');
+            const seek = document.getElementById('player-seek');
+            const volume = document.getElementById('player-volume');
+            const muteBtn = document.getElementById('player-mute');
+            const playBtn = document.getElementById('player-play');
+            const list = document.getElementById('player-list');
+            const canvas = document.getElementById('player-viz');
+            const g = canvas.getContext('2d');
+            const audio = new Audio();
+            audio.preload = 'metadata';
+            audio.volume = Number(volume.value);
+
+            let tracks = [];
+            let current = -1;
+            let loaded = false;
+            let ctx = null;
+            let analyser = null;
+            let freq = null;
+            let drawing = false;
+
+            function setPlayIcon(playing) {
+                playBtn.textContent = playing ? '⏸' : '▶';
+                playBtn.setAttribute('aria-label', playing ? 'Pause' : 'Lecture');
+                playBtn.title = playing ? 'Pause' : 'Lecture';
+            }
+
+            function renderList() {
+                list.innerHTML = '';
+                tracks.forEach((item, i) => {
+                    const li = document.createElement('li');
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.textContent = `${i + 1}. ${item.title}`;
+                    btn.addEventListener('click', () => playTrack(i));
+                    if (i === current) li.setAttribute('aria-current', 'true');
+                    li.append(btn);
+                    list.append(li);
+                });
+            }
+
+            // L'analyseur ne peut être relié qu'une fois à l'élément audio, et après un clic utilisateur
+            function connect() {
+                if (ctx) {
+                    ctx.resume();
+                    return;
+                }
+                ctx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = ctx.createAnalyser();
+                analyser.fftSize = 128;
+                freq = new Uint8Array(analyser.frequencyBinCount);
+                ctx.createMediaElementSource(audio).connect(analyser);
+                analyser.connect(ctx.destination);
+            }
+
+            function playTrack(i) {
+                if (!tracks.length) return;
+                current = (i + tracks.length) % tracks.length;
+                audio.src = `./music/${encodeURIComponent(tracks[current].file)}`;
+                trackLabel.textContent = tracks[current].title;
+                renderList();
+                connect();
+                audio.play().catch(() => {});
+            }
+
+            function togglePlay() {
+                if (current < 0) {
+                    playTrack(0);
+                } else if (audio.paused) {
+                    connect();
+                    audio.play().catch(() => {});
+                } else {
+                    audio.pause();
+                }
+            }
+
+            function stop() {
+                audio.pause();
+                audio.currentTime = 0;
+                seek.value = 0;
+            }
+
+            function draw() {
+                if (panel.hidden) {
+                    drawing = false;
+                    return;
+                }
+                requestAnimationFrame(draw);
+                const w = canvas.width;
+                const h = canvas.height;
+                const bars = 32;
+                const gap = 4;
+                const barW = (w - gap * (bars - 1)) / bars;
+                if (analyser && !audio.paused) {
+                    analyser.getByteFrequencyData(freq);
+                } else if (freq) {
+                    freq.fill(0);
+                }
+                g.clearRect(0, 0, w, h);
+                const grad = g.createLinearGradient(0, h, 0, 0);
+                grad.addColorStop(0, '#065f46');
+                grad.addColorStop(0.6, '#10b981');
+                grad.addColorStop(1, '#38bdf8');
+                g.fillStyle = grad;
+                for (let i = 0; i < bars; i++) {
+                    const v = freq ? freq[i * 2] / 255 : 0;
+                    const barH = Math.max(3, v * h);
+                    g.fillRect(i * (barW + gap), h - barH, barW, barH);
+                }
+            }
+
+            function startDraw() {
+                if (drawing) return;
+                drawing = true;
+                requestAnimationFrame(draw);
+            }
+
+            async function loadPlaylist() {
+                loaded = true;
+                try {
+                    const response = await fetch('./music/playlist.json', { cache: 'no-cache' });
+                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                    const data = await response.json();
+                    tracks = (data.tracks || [])
+                        .filter(t => t && t.file)
+                        .map(t => ({ title: t.title || t.file, file: t.file }));
+                } catch (error) {
+                    console.warn('Playlist du lecteur indisponible :', error);
+                    tracks = [];
+                }
+                count.textContent = tracks.length ? `${tracks.length} morceau(x)` : '';
+                if (!tracks.length) {
+                    trackLabel.textContent = 'Aucune musique pour le moment.';
+                    return;
+                }
+                trackLabel.textContent = 'Clique sur ▶ pour lancer la playlist.';
+                renderList();
+            }
+
+            toggle.addEventListener('click', () => {
+                const open = panel.hidden;
+                panel.hidden = !open;
+                toggle.setAttribute('aria-expanded', String(open));
+                if (open) {
+                    startDraw();
+                    if (!loaded) loadPlaylist();
+                    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            });
+
+            playBtn.addEventListener('click', togglePlay);
+            document.getElementById('player-stop').addEventListener('click', stop);
+            document.getElementById('player-prev').addEventListener('click', () => {
+                playTrack(current <= 0 ? tracks.length - 1 : current - 1);
+            });
+            document.getElementById('player-next').addEventListener('click', () => playTrack(current + 1));
+
+            muteBtn.addEventListener('click', () => {
+                audio.muted = !audio.muted;
+                muteBtn.setAttribute('aria-pressed', String(audio.muted));
+                muteBtn.textContent = audio.muted ? '🔇' : '🔊';
+            });
+
+            volume.addEventListener('input', () => {
+                audio.volume = Number(volume.value);
+                if (audio.muted) muteBtn.click();
+            });
+
+            seek.addEventListener('input', () => {
+                audio.currentTime = Number(seek.value);
+            });
+
+            audio.addEventListener('loadedmetadata', () => {
+                seek.max = Number.isFinite(audio.duration) ? audio.duration : 0;
+                seek.disabled = !Number.isFinite(audio.duration);
+            });
+            audio.addEventListener('timeupdate', () => {
+                if (!seek.matches(':active')) seek.value = audio.currentTime;
+            });
+            audio.addEventListener('play', () => {
+                setPlayIcon(true);
+                startDraw();
+            });
+            audio.addEventListener('pause', () => setPlayIcon(false));
+            audio.addEventListener('ended', () => playTrack(current + 1));
+            audio.addEventListener('error', () => {
+                setPlayIcon(false);
+                trackLabel.textContent = `Fichier introuvable : ${tracks[current]?.file ?? ''}`;
+            });
+        })();
     </script>
 
     <script type="module">
