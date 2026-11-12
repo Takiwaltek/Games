@@ -1297,6 +1297,14 @@
             visor.scale.set(1, 1.1, 1);
             root.add(visor);
 
+            // Deux yeux lumineux posés sur la visière, de part et d'autre de l'axe
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x7dffc8 });
+            for (const sx of [-1, 1]) {
+                const eye = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 8), eyeMat);
+                eye.position.set(sx * 0.07, 0.03, 0.2);
+                root.add(eye);
+            }
+
             const band = new THREE.Mesh(new THREE.TorusGeometry(0.205, 0.012, 8, 40), trimMat);
             band.rotation.x = Math.PI / 2;
             root.add(band);
