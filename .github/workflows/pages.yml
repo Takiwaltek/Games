@@ -39,6 +39,9 @@ jobs:
         with:
           path: .
 
+      - name: Wait for Pages artifact metadata
+        run: sleep 10
+
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
